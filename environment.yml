@@ -1,4 +1,4 @@
-name: base
+name: osgeo-env-v1
 channels:
   - conda-forge
   - defaults

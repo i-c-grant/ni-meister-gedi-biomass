@@ -3,8 +3,8 @@
 # Gets directory of .sh file
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
-##
-source activate base
+# Activate environment that was created in the builed-env.sh file
+source activate osgeo-env
 
 # Create output dir
 OUTPUTDIR="${PWD}/output"
