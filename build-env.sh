@@ -2,4 +2,4 @@
 
 source activate base
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
-conda install ${basedir}/environment.yml
+conda env update --name base -f ${basedir}/environment.yml
