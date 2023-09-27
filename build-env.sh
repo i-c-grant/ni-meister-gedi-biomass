@@ -4,7 +4,6 @@
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 echo installing environment...
 mamba env create --name osgeo-env -f ${basedir}/environment.yml
-conda env list
 # conda create --name osgeo-env --clone base
 # source activate osgeo-env
 # mamba install -c conda-forge scipy -y

@@ -5,7 +5,9 @@ basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
 # Activate environment that was created in the builed-env.sh file
 source activate osgeo-env
-
+# view contents of where thi file is
+echo viewing contents of run.sh folder...
+ls
 # Create output dir
 OUTPUTDIR="${PWD}/output"
 mkdir -p ${OUTPUTDIR}
