@@ -23,8 +23,6 @@ from download_gedi import download_gedi
 
 ## GET CONSTANTS
 CWD = os.getcwd()
-print("current working directory...")
-print(CWD)
 
 ## Function to return beam dataframe with some meta data
 def get_beam_gdf(beam,l1b_ds,l2a_ds):
@@ -106,9 +104,9 @@ if __name__ == '__main__':
     l2a_basename = os.path.basename(l2a_url)
     
     # Read in domain polys and allom data
-    domain_poly_fp = os.path.join(CWD, "./NEON_Domains/NEON_Domains.shp")
+    domain_poly_fp = os.path.join(CWD, "NEON_Domains/NEON_Domains.shp")
     domain_polys = gpd.read_file(domain_poly_fp)
-    allom_fp = os.path.join(CWD, "./NEON-DOMAINS-HSE-edited.csv")
+    allom_fp = os.path.join(CWD, "NEON-DOMAINS-HSE-edited.csv")
     allom_df = pd.read_csv(allom_fp)
     
     

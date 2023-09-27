@@ -5,13 +5,11 @@ basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
 # Activate environment that was created in the builed-env.sh file
 source activate osgeo-env
-# view contents of where thi file is
-echo viewing contents of run.sh folder...
-ls
+
 # Create output dir
 OUTPUTDIR="${PWD}/output"
 mkdir -p ${OUTPUTDIR}
-# INPUT_FILE=$(ls -d *.txt)
+# INPUT_FILES
 L1B_URL=$1
 L2A_URL=$2 # e.g. GEDI01_B or GEDI02_A
 # YR=$3
