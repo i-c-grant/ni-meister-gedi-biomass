@@ -21,8 +21,8 @@ from pgap import GapDS, wf_smooth
 # import custom functions, etc.
 from download_gedi import download_gedi
 
-## GET CONSTANTS
-CWD = os.getcwd()
+## GET CWD of file to locate path
+CWD = os.path.dirname(os.path.abspath(__file__))
 
 ## Function to return beam dataframe with some meta data
 def get_beam_gdf(beam,l1b_ds,l2a_ds):
