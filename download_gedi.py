@@ -21,8 +21,9 @@ def download_gedi(url,shortname):
     elif shortname=="GEDI02_A":
         level = "L2A"
     try:
-        # filename = results[0].getData(outdir)
-        filename = results[0].getData()
+        ## GET CWD of file to save
+        CWD = os.path.dirname(os.path.abspath(__file__))
+        filename = results[0].getData(CWD)
     except Exception as e:
         print(f"Cant get data for granule {granule_name}")
         print(e)

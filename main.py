@@ -95,9 +95,9 @@ if __name__ == '__main__':
     # Call function
     # main(l1b_fp,l2a_fp,outdir)
     #Download L1B and L2a
-    print("Downloading data...")
-    # download_gedi(l1b_url,"GEDI01_B")
-    # download_gedi(l2a_url,"GEDI02_A")
+    print("Downloading GEDI data...")
+    download_gedi(l1b_url,"GEDI01_B")
+    download_gedi(l2a_url,"GEDI02_A")
     print("Download successful!")
     # Get filenames for downloaded gedi
     l1b_basename = os.path.basename(l1b_url)
