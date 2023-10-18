@@ -1,0 +1,21 @@
+algorithm_description: Estimate biomass using GEDI data
+algorithm_name: arojas_biomass_gedi
+algorithm_version: master
+build_command: biomass-gedi-conus/build-env.sh
+disk_space: 8gbGB
+docker_container_url: mas.maap-project.org/root/maap-workspaces/base_images/vanilla:v3.0.1
+inputs:
+  config: []
+  file: []
+  positional:
+  - default: ''
+    description: ''
+    name: L1B_URL
+    required: false
+  - default: ''
+    description: ''
+    name: L2A_URL
+    required: false
+queue: maap-dps-worker-16gb
+repository_url: https://repo.maap-project.org/arojearthdata/biomass-gedi-conus.git
+run_command: biomass-gedi-conus/run.sh
