@@ -123,7 +123,7 @@ if __name__ == '__main__':
     orbit_num = re.findall("O[0-9]{5}", l1b_basename)[0]
     track_num = re.findall("T[0-9]{5}", l1b_basename)[0]
     date_str = re.findall("[0-9]{13}", l1b_basename)[0]
-    outfp = os.path.join(outdir, f"GEDI_bioindex_{date_str}_{orbit_num}_{track_num}.csv")
+    outfp = os.path.join(outdir, "output", f"GEDI_bioindex_{date_str}_{orbit_num}_{track_num}.csv")
     
     # init df_list to concat afterwards
     df_list = []
@@ -194,7 +194,6 @@ if __name__ == '__main__':
     try:
         out_df = pd.concat(df_list, axis=0, ignore_index=True)
         out_df.to_csv(outfp, index=False)  
-        out_df.to_csv(outfp, "output", index=False)       
     except:
         print("Couldnt save file: ", l1b_fp)
         sys.exit()
