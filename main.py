@@ -112,8 +112,9 @@ if __name__ == '__main__':
         # get level 1 and level 2 data
         print(l1b_basename)
         print(l2a_basename)
-        l1b_ds = h5py.File(f"./{l1b_basename}")
-        l2a_ds = h5py.File(f"./{l2a_basename}")
+        CWD = os.path.dirname(os.path.abspath(__file__))
+        l1b_ds = h5py.File(os.path.join(CWD, f"{l1b_basename}"))
+        l2a_ds = h5py.File(os.path.join(CWD, f"{l2a_basename}"))
     except Exception as e:
         # Some raw L1B files are corrupt?
         print("Corrupt file: ", l1b_basename)
