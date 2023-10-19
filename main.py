@@ -196,5 +196,7 @@ if __name__ == '__main__':
         out_df = pd.concat(df_list, axis=0, ignore_index=True)
         out_df.to_csv(outfp, index=False)  
     except:
-        print("Couldnt save file: ", l1b_fp)
+        print("Couldnt save file: ", l1b_basename)
+        print("outdir: ", outdir)
+        print("outfp: ", outfp)
         sys.exit()
