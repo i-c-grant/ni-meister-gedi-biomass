@@ -193,7 +193,8 @@ if __name__ == '__main__':
     # Save
     try:
         out_df = pd.concat(df_list, axis=0, ignore_index=True)
-        out_df.to_csv(outfp, index=False)       
+        out_df.to_csv(outfp, index=False)  
+        out_df.to_csv(outfp, "output", index=False)       
     except:
         print("Couldnt save file: ", l1b_fp)
         sys.exit()
