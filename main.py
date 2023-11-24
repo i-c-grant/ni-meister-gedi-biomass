@@ -76,13 +76,11 @@ def gedi_bioindex(index,l1b_ds,l2a_ds, beam, beam_filt, allom_df):
         # get pgap
         pgap = GapDS(waveform_smooth, ht_arr, np.array([rh100]), calc_refl_vg = False,
                         utm_x=None,utm_y=None,cval=cval)
-        # print cval to make sure all is good
-        print(cval)
     except:
         # bad data (fix for future)
         return (np.nan,np.nan,np.nan,np.nan,np.nan)
     # return a tuple of biwf and bfp
-    return (pgap.biWF[0], pgap.biFP[0], np.nanmin(pgap.gap), np.nanmax(pgap.lai), rh100)
+    return (pgap.biWF[0], pgap.biFP[0], np.nanmin(pgap.gap), np.nanmax(pgap.lai), rh100, cval)
 
 
 
@@ -171,6 +169,7 @@ if __name__ == '__main__':
         gap_list = []
         lai_list = []
         rh_list = []
+        cval_list = []
         print("Running pgap iteratively...")
         for i in idx:
             results = gedi_bioindex(i,l1b_ds,l2a_ds,beam,beam_filt, allom_df)
@@ -180,6 +179,7 @@ if __name__ == '__main__':
             gap_list.append(results[2])
             lai_list.append(results[3])
             rh_list.append(results[4])
+            cval_list.append(results[5])
         print("Done!")
 
 
@@ -192,6 +192,8 @@ if __name__ == '__main__':
         new_df['gap'] = np.round(gap_list,3)
         new_df['lai'] = np.round(lai_list,3)
         new_df['rh'] = np.round(rh_list,3)
+        new_df['cval'] = np.round(rh_list,3)
+        
         # append to df_list
         df_list.append(new_df)
 
