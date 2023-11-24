@@ -70,12 +70,14 @@ def gedi_bioindex(index,l1b_ds,l2a_ds, beam, beam_filt, allom_df):
     beam_domain = beam_filt.loc[index]['DomainID']
     try:
         if pd.isnull(beam_domain):
-            cval = 1.77 # 1.77 is average of all good domains alloms
+            cval = 1.63
         else:
             cval =  allom_df[allom_df['domain']==beam_domain]['HSE'].values[0]
         # get pgap
         pgap = GapDS(waveform_smooth, ht_arr, np.array([rh100]), calc_refl_vg = False,
                         utm_x=None,utm_y=None,cval=cval)
+        # print cval to make sure all is good
+        print(cval)
     except:
         # bad data (fix for future)
         return (np.nan,np.nan,np.nan,np.nan,np.nan)
@@ -104,7 +106,7 @@ if __name__ == '__main__':
     # Read in domain polys and allom data
     domain_poly_fp = os.path.join(CWD, "NEON_Domains/NEON_Domains.shp")
     domain_polys = gpd.read_file(domain_poly_fp)
-    allom_fp = os.path.join(CWD, "NEON-DOMAINS-HSE-edited.csv")
+    allom_fp = os.path.join(CWD, "NEON-DOMAINS-HSE-2020to2023-edited.csv")
     allom_df = pd.read_csv(allom_fp)
     
     
