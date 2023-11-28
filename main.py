@@ -68,17 +68,19 @@ def gedi_bioindex(index,l1b_ds,l2a_ds, beam, beam_filt, allom_df):
     
     # get bioindex using HSE from NEON db analysis
     beam_domain = beam_filt.loc[index]['DomainID']
+    print(beam_domain)
     try:
         if pd.isnull(beam_domain):
             cval = 1.63
         else:
             cval =  allom_df[allom_df['domain']==beam_domain]['HSE'].values[0]
+        print(cval)
         # get pgap
         pgap = GapDS(waveform_smooth, ht_arr, np.array([rh100]), calc_refl_vg = False,
                         utm_x=None,utm_y=None,cval=cval)
     except:
         # bad data (fix for future)
-        return (np.nan,np.nan,np.nan,np.nan,np.nan)
+        return (np.nan,np.nan,np.nan,np.nan,np.nan,np.nan)
     # return a tuple of biwf and bfp
     return (pgap.biWF[0], pgap.biFP[0], np.nanmin(pgap.gap), np.nanmax(pgap.lai), rh100, cval)
 
@@ -182,7 +184,6 @@ if __name__ == '__main__':
             cval_list.append(results[5])
         print("Done!")
 
-
         # Create out_df to output as csv
         new_df = beam_filt[['shot_number', "lat", "lon", 'qf',"DomainID"]].copy().reset_index(drop=True)
         ## Add new variables
@@ -192,17 +193,21 @@ if __name__ == '__main__':
         new_df['gap'] = np.round(gap_list,3)
         new_df['lai'] = np.round(lai_list,3)
         new_df['rh'] = np.round(rh_list,3)
-        new_df['cval'] = np.round(rh_list,3)
+        new_df['cval'] = np.round(cval_list,3)
         
         # append to df_list
         df_list.append(new_df)
 
-    # Save
-    try:
-        out_df = pd.concat(df_list, axis=0, ignore_index=True)
-        out_df.to_csv(outfp, index=False)  
-    except:
-        print("Couldnt save file: ", l1b_basename)
-        print("outdir: ", outdir)
-        print("outfp: ", outfp)
-        sys.exit()
+    # # Save
+    # try:
+    #     out_df = pd.concat(df_list, axis=0, ignore_index=True)
+    #     out_df.to_csv(outfp, index=False)  
+    # except Exception as e:
+    #     print("Couldnt save file: ", l1b_basename)
+    #     print("outdir: ", outdir)
+    #     print("outfp: ", outfp)
+    #     print(e)
+    #     sys.exit()
+        # Save
+    out_df = pd.concat(df_list, axis=0, ignore_index=True)
+    out_df.to_csv(outfp, index=False)  
