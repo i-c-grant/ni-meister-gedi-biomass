@@ -199,16 +199,14 @@ if __name__ == '__main__':
         # append to df_list
         df_list.append(new_df)
 
-    # # Save
-    # try:
-    #     out_df = pd.concat(df_list, axis=0, ignore_index=True)
-    #     out_df.to_csv(outfp, index=False)  
-    # except Exception as e:
-    #     print("Couldnt save file: ", l1b_basename)
-    #     print("outdir: ", outdir)
-    #     print("outfp: ", outfp)
-    #     print(e)
-    #     sys.exit()
-        # Save
-    out_df = pd.concat(df_list, axis=0, ignore_index=True)
-    out_df.to_csv(outfp, index=False)  
+    # Save
+    try:
+        out_df = pd.concat(df_list, axis=0, ignore_index=True)
+        out_df.to_csv(outfp, index=False)  
+    except Exception as e:
+        print("Couldnt save file: ", l1b_basename)
+        print("outdir: ", outdir)
+        print("outfp: ", outfp)
+        print(e)
+        sys.exit()
+
