@@ -3,10 +3,14 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - geopandas=0.13.2=pyhd8ed1ab_1
-  - geopandas-base=0.13.2=pyha770c72_1
-  - h5py=3.9.0=nompi_py311h3839ddf_102
-  - numpy=1.25.2=py311h64a7726_0
-  - pandas=2.1.0=py311h320fe9a_0
-  - python=3.11.5=hab00c5b_0_cpython
-  - scipy=1.11.2=py311h64a7726_0
+  - boto3
+  - botocore
+  - fsspec
+  - s3fs
+  - geopandas
+  - geopandas-base
+  - h5py
+  - numpy
+  - pandas
+  - python
+  - scipy
