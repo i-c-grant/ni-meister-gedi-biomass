@@ -1,4 +1,4 @@
-1import sys
+import sys
 import h5py
 import boto3
 import botocore
@@ -21,7 +21,8 @@ def get_gedi_data(url):
         secret=credentials['secretAccessKey'],
         token=credentials['sessionToken']
     )
-    with s3.open(lpdaac_gedi_https_to_s3(url), "rb") as f:
-        gedi_ds = h5py.File(f, "r")
-        
+    # with s3.open(lpdaac_gedi_https_to_s3(url), "rb") as f:
+    #     gedi_ds = h5py.File(f, "r")
+    #     return gedi_ds
+    gedi_ds = h5py.File(s3.open(lpdaac_gedi_https_to_s3(url), "rb"), "r")
     return gedi_ds

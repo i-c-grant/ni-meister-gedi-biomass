@@ -69,13 +69,11 @@ def gedi_bioindex(index,l1b_ds,l2a_ds, beam, beam_filt, allom_df):
     
     # get bioindex using HSE from NEON db analysis
     beam_domain = beam_filt.loc[index]['DomainID']
-    print(beam_domain)
     try:
         if pd.isnull(beam_domain):
             cval = 1.63
         else:
             cval =  allom_df[allom_df['domain']==beam_domain]['HSE'].values[0]
-        print(cval)
         # get pgap
         pgap = GapDS(waveform_smooth, ht_arr, np.array([rh100]), calc_refl_vg = False,
                         utm_x=None,utm_y=None,cval=cval)
