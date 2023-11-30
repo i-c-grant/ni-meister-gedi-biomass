@@ -20,6 +20,7 @@ from itertools import repeat
 from pgap import GapDS, wf_smooth
 # import custom functions, etc.
 from download_gedi import download_gedi
+from get_gedi_data import get_gedi_data
 
 ## GET CWD of file to locate path
 CWD = os.path.dirname(os.path.abspath(__file__))
@@ -91,14 +92,13 @@ def gedi_bioindex(index,l1b_ds,l2a_ds, beam, beam_filt, allom_df):
 ##########
 if __name__ == '__main__':
     
+    # File handling
     l1b_url = sys.argv[1] # first index is python file name, second is arg1, etc
     l2a_url = sys.argv[2] # e.g. 'GEDI01_B' or 'GEDI02_A'
     outdir = sys.argv[3]
-    # Call function
-    # main(l1b_fp,l2a_fp,outdir)
     #Download L1B and L2a
-    download_gedi(l1b_url,"GEDI01_B")
-    download_gedi(l2a_url,"GEDI02_A")
+    # download_gedi(l1b_url,"GEDI01_B")
+    # download_gedi(l2a_url,"GEDI02_A")
     # Get filenames for downloaded gedi
     l1b_basename = os.path.basename(l1b_url)
     l2a_basename = os.path.basename(l2a_url)
@@ -115,8 +115,11 @@ if __name__ == '__main__':
         print(l1b_basename)
         print(l2a_basename)
         CWD = os.path.dirname(os.path.abspath(__file__))
-        l1b_ds = h5py.File(os.path.join(CWD, f"{l1b_basename}"))
-        l2a_ds = h5py.File(os.path.join(CWD, f"{l2a_basename}"))
+        l1b_ds = get_gedi_data(l1b_url)
+        l2a_ds = get_gedi_data(l2a_url)
+        
+        # l1b_ds = h5py.File(os.path.join(CWD, f"{l1b_basename}"))
+        # l2a_ds = h5py.File(os.path.join(CWD, f"{l2a_basename}"))
     except Exception as e:
         # Some raw L1B files are corrupt?
         print("Corrupt file: ", l1b_basename)
