@@ -26,7 +26,7 @@ def get_gedi_data(url):
         token=credentials['sessionToken']
     )
     basename = os.path.basename(url)
-    outfp = f"output/{basename}.h5"
+    outfp = f"output/{basename}"
     gedi_ds = h5py.File(s3.open(lpdaac_gedi_https_to_s3(url), "rb"), "r")
     with h5py.File(outfp, 'w') as dst:
         for obj in gedi_ds.keys():        

@@ -19,7 +19,7 @@ from itertools import repeat
 # Import pgap function from wenge 
 from pgap import GapDS, wf_smooth
 # import custom functions, etc.
-from download_gedi import download_gedi
+# from download_gedi import download_gedi
 from get_gedi_data import get_gedi_data
 
 ## GET CWD of file to locate path
