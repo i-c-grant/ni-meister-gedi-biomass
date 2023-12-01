@@ -203,8 +203,8 @@ if __name__ == '__main__':
         # Close h5py files and delete so they are note saved!
         l1b_ds.close()
         l2a_ds.close()
-        # os.remove(l1b_fp)
-        # os.remove(l2a_fp)
+        os.remove(l1b_fp)
+        os.remove(l2a_fp)
     except Exception as e:
         print("Couldnt save file: ", l1b_basename)
         print("outdir: ", outdir)
