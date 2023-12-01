@@ -94,9 +94,7 @@ if __name__ == '__main__':
     l1b_url = sys.argv[1] # first index is python file name, second is arg1, etc
     l2a_url = sys.argv[2] # e.g. 'GEDI01_B' or 'GEDI02_A'
     outdir = sys.argv[3]
-    #Download L1B and L2a
-    # download_gedi(l1b_url,"GEDI01_B")
-    # download_gedi(l2a_url,"GEDI02_A")
+
     # Get filenames for downloaded gedi
     l1b_basename = os.path.basename(l1b_url)
     l2a_basename = os.path.basename(l2a_url)
@@ -113,11 +111,10 @@ if __name__ == '__main__':
         print(l1b_basename)
         print(l2a_basename)
         CWD = os.path.dirname(os.path.abspath(__file__))
-        l1b_ds = get_gedi_data(l1b_url)
-        l2a_ds = get_gedi_data(l2a_url)
-        
-        # l1b_ds = h5py.File(os.path.join(CWD, f"{l1b_basename}"))
-        # l2a_ds = h5py.File(os.path.join(CWD, f"{l2a_basename}"))
+        l1b_fp = get_gedi_data(l1b_url)
+        l2a_fp = get_gedi_data(l2a_url)
+        l1b_ds = h5py.File(l1b_fp, "r")
+        l2a_ds = h5py.File(l2a_fp, "r")
     except Exception as e:
         # Some raw L1B files are corrupt?
         print("Corrupt file: ", l1b_basename)
@@ -127,7 +124,7 @@ if __name__ == '__main__':
     orbit_num = re.findall("O[0-9]{5}", l1b_basename)[0]
     track_num = re.findall("T[0-9]{5}", l1b_basename)[0]
     date_str = re.findall("[0-9]{13}", l1b_basename)[0]
-    # outfp = os.path.join(outdir, "output",f"GEDI_bioindex_{date_str}_{orbit_num}_{track_num}.csv") # already saves to output
+    # outfp = os.path.join(outdir, "output",f"GEDI_bioindex_{date_str}_{orbit_num}_{track_num}.csv")
     outfp = os.path.join(outdir, f"GEDI_bioindex_{date_str}_{orbit_num}_{track_num}.csv")
     
     
@@ -199,14 +196,19 @@ if __name__ == '__main__':
         # append to df_list
         df_list.append(new_df)
 
-# Save
-try:
-    out_df = pd.concat(df_list, axis=0, ignore_index=True)
-    out_df.to_csv(outfp, index=False)  
-except Exception as e:
-    print("Couldnt save file: ", l1b_basename)
-    print("outdir: ", outdir)
-    print("outfp: ", outfp)
-    print(e)
-    sys.exit()
+    # Save
+    try:
+        out_df = pd.concat(df_list, axis=0, ignore_index=True)
+        out_df.to_csv(outfp, index=False)
+        # Close h5py files and delete so they are note saved!
+        l1b_ds.close()
+        l2a_ds.close()
+        # os.remove(l1b_fp)
+        # os.remove(l2a_fp)
+    except Exception as e:
+        print("Couldnt save file: ", l1b_basename)
+        print("outdir: ", outdir)
+        print("outfp: ", outfp)
+        print(e)
+        sys.exit()
 
