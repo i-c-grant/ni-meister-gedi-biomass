@@ -20,7 +20,9 @@ from itertools import repeat
 from pgap import GapDS, wf_smooth
 # import custom functions, etc.
 # from download_gedi import download_gedi
-from get_gedi_data import get_gedi_data
+# from get_gedi_data import get_gedi_data
+from get_gedi_data_fsspec import get_gedi_data
+
 
 ## GET CWD of file to locate path
 CWD = os.path.dirname(os.path.abspath(__file__))
@@ -152,7 +154,7 @@ if __name__ == '__main__':
         if not isinstance(idx, list):
             idx = [idx]
 
-        # run function in parallel
+        # run function in parallel (not available in MAAP)
         # pool = mp.Pool(10)
         # results = pool.map(gedi_bioindex, idx)
         # results = pool.starmap(gedi_bioindex, zip(idx, repeat(l1b_ds), repeat(l2a_ds)))
