@@ -86,7 +86,7 @@ def gedi_bioindex(index):
                                utm_x=None,utm_y=None,cval=cval)
     except:
         # bad data (fix for future)
-        return (np.nan,np.nan,np.nan,np.nan,np.nan)
+        return (np.nan,np.nan,np.nan,np.nan,np.nan,np.nan)
     # return a tuple of biwf and bfp
     return (pgap.biWF[0], pgap.biFP[0], np.nanmin(pgap.gap), np.nanmax(pgap.lai), rh100, cval)
 
