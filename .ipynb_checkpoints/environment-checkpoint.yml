@@ -1,0 +1,16 @@
+name: osgeo-env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - boto3
+  - botocore
+  - fsspec
+  - s3fs
+  - geopandas
+  - geopandas-base
+  - h5py
+  - numpy
+  - pandas
+  - python
+  - scipy
