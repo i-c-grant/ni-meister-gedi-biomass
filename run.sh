@@ -8,7 +8,7 @@ basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
 # Create output dir
 # OUTPUTDIR="${PWD}/output"
-# mkdir -p output
+mkdir -p output
 # INPUT_FILES
 L1B_URL=$1
 L2A_URL=$2 # e.g. GEDI01_B or GEDI02_A
