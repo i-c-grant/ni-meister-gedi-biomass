@@ -14,3 +14,5 @@ dependencies:
   - pandas
   - python
   - scipy
+  - pip:
+      - git+https://git@github.com/MAAP-Project/maap-py@v4.0.0
