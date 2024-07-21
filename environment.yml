@@ -1,4 +1,4 @@
-name: osgeo-env
+name: nmbim-env
 channels:
   - conda-forge
   - defaults

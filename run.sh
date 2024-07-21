@@ -4,7 +4,7 @@
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
 # Activate environment that was created in the builed-env.sh file
-source activate osgeo-env
+source activate nmbim-env
 
 # Create output dir
 # OUTPUTDIR="${PWD}/output"
