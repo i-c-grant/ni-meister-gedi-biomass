@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+from typing import Any
 
 class Waveform:
     """Fetches NMBIM-relevant data for one waveform from L1B and L2A files.
@@ -59,7 +60,7 @@ class Waveform:
             np.where(l2a[beam]["shot_number"][:] == shot_number)[0][0]
         )
 
-        self.raw = {
+        self._raw = {
             "wf": self._get_waveform(l1b, beam, shot_index),
             "mean_noise": l1b[beam]["noise_mean_corrected"][shot_index],
             "elev": self._get_elev(l1b, l2a, beam, shot_index)
@@ -82,6 +83,14 @@ class Waveform:
 
         l1b.close()
         l2a.close()
+
+    @property
+    def raw(self) -> dict[str, Any]:
+        return self._raw
+
+    @raw.setter
+    def raw(self, value: dict[str, Any]) -> None:
+        raise AttributeError("Raw waveform data cannot be modified.")
 
     def _get_waveform(
         self, l1b: h5py.File, beam: str, shot_index: int
