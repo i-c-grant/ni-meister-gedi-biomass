@@ -95,17 +95,13 @@ class Waveform:
 
         return wf
 
-    def _get_height(
+    def _get_elev(
         self, l1b: h5py.File, l2a: h5py.File, beam: str, shot_index: int
-    ) -> np.ndarray:
-        # Extract elevation data and calculate height above ground
-
+    ) -> dict[str, np.uint16]:
+        """Extracts elevation data and calculates height above ground."""
         elev = {
             "start": l1b[beam]["geolocation"]["elevation_bin0"][shot_index],
             "end": l1b[beam]["geolocation"]["elevation_lastbin"][shot_index],
             "ground": l2a[beam]["elev_lowestmode"][shot_index],
         }
-
-        height = np.linspace(elev["start"], elev["end"], len(self.wf)) - elev["ground"]
-
-        return height
+        return elev
