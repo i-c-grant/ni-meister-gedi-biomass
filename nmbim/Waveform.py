@@ -100,8 +100,8 @@ class Waveform:
     ) -> dict[str, np.uint16]:
         """Extracts elevation data and calculates height above ground."""
         elev = {
-            "start": l1b[beam]["geolocation"]["elevation_bin0"][shot_index],
-            "end": l1b[beam]["geolocation"]["elevation_lastbin"][shot_index],
+            "top": l1b[beam]["geolocation"]["elevation_bin0"][shot_index],
+            "bottom": l1b[beam]["geolocation"]["elevation_lastbin"][shot_index],
             "ground": l2a[beam]["elev_lowestmode"][shot_index],
         }
         return elev
