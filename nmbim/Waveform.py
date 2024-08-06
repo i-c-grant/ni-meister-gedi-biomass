@@ -1,7 +1,6 @@
 import h5py
 import numpy as np
 
-
 class Waveform:
     """Fetches NMBIM-relevant data for one waveform from L1B and L2A files.
 
@@ -10,12 +9,25 @@ class Waveform:
 
     Attributes
     ----------
-    wf : dict[str, np.ndarray]
-        A dictionary containing the waveform data and height above ground.
-    rh : np.ndarray
-        The relative height data from L2A.
-    mean_noise : float
-        The mean noise for the waveform.
+    metadata: dict[str, Any]
+        Dictionary containing metadata for the waveform.
+
+    raw: dict[str, Any]
+        Dictionary containing unprocessed waveform data from L1B and L2A files.
+        - wf: np.ndarray   
+            The laser return data (from rxwaveform in L1B file).
+        
+        - mean_noise: np.uint16
+            The mean noise value.
+
+        - elev: dict[str, np.uint16]
+            Dictionary containing elevation data.
+    
+    processed: dict[str, Any]
+        Dictionary containing processed waveform data (e.g. height above ground). Initially empty.
+
+    results: dict[str, Any]
+        Dictionary containing the results of the NMBIM model.
     """
 
     def __init__(
@@ -47,16 +59,26 @@ class Waveform:
             np.where(l2a[beam]["shot_number"][:] == shot_number)[0][0]
         )
 
-        # Extract the waveform, height, and relative height data
-        self.wf = self._get_waveform(l1b, beam, shot_index)
-        self.mean_noise = l1b[beam]["noise_mean_corrected"][shot_index]
-        self.height = self._get_height(l1b, l2a, beam, shot_index)
-        self.rh = l2a[beam]["rh"][shot_index]
+        self.raw = {
+            "wf": self._get_waveform(l1b, beam, shot_index),
+            "mean_noise": l1b[beam]["noise_mean_corrected"][shot_index],
+            "elev": self._get_elev(l1b, l2a, beam, shot_index)
+        }
 
-        # Extract the gelocation data
-        self.coords = {}
-        self.coords["lat"] = l1b[beam]["geolocation"]["latitude_bin0"][shot_index]
-        self.coords["lon"] = l1b[beam]["geolocation"]["longitude_bin0"][shot_index]
+        self.metadata = {
+            "coords": {
+                "lat": l1b[beam]["geolocation"]["latitude_bin0"][shot_index],
+                "lon": l1b[beam]["geolocation"]["longitude_bin0"][shot_index],
+            },
+            "shot_number": shot_number,
+            "shot_index": shot_index,
+            "beam": beam,
+            "l1b_path": l1b_path,
+            "l2a_path": l2a_path
+        }
+
+        self.processed = {}
+        self.results = {}
 
         l1b.close()
         l2a.close()
