@@ -59,27 +59,32 @@ class Waveform:
         l1b_beam: h5py.Group = l1b[beam]  # type: ignore
         l2a_beam: h5py.Group = l2a[beam]  # type: ignore
 
-        # Find the index of the shot number within the L1B and L2A files
-        shot_index: np.int64 = self._get_shot_index(l1b_beam, shot_number)
-        assert shot_index == self._get_shot_index(l2a_beam, shot_number)
-
-        self._raw = {
-            "wf": self._get_waveform(l1b_beam, shot_index),
-            "mean_noise": l1b_beam["noise_mean_corrected"][shot_index],  # type: ignore
-            "elev": self._get_elev(l1b_beam, l2a_beam, shot_index),
-        }
-
-        breakpoint()
+        # Store initial metadata
         self.metadata = {
-            "coords": {
-                "lat": l1b_beam["geolocation"]["latitude_bin0"][shot_index],  # type: ignore
-                "lon": l1b_beam["geolocation"]["longitude_bin0"][shot_index],  # type: ignore
-            },
             "shot_number": shot_number,
-            "shot_index": shot_index,
             "beam": beam,
             "l1b_path": l1b_path,
             "l2a_path": l2a_path,
+        }
+
+        # Get shot index for this waveform (requires initial metadata)
+        self.metadata["shot_index"] = self._get_shot_index(l1b)
+        if self.metadata["shot_index"] != self._get_shot_index(l2a):
+            raise ValueError("Shot indicies in L1B and L2A files do not match")
+
+        shot_index = self.metadata["shot_index"]
+
+        # Store geolocation
+        self.metadata["coords"] = {
+            "lat": l1b_beam["geolocation"]["latitude_bin0"][shot_index],  # type: ignore
+            "lon": l1b_beam["geolocation"]["longitude_bin0"][shot_index],  # type: ignore
+        }
+
+        # Initialize read-only representation of raw waveform data (see property and setter below)
+        self._raw = {
+            "wf": self._get_waveform(l1b_file=l1b),
+            "mean_noise": l1b_beam["noise_mean_corrected"][shot_index],  # type: ignore
+            "elev": self._get_elev(l1b_file=l1b, l2a_file=l2a),
         }
 
         self.processed = {}
