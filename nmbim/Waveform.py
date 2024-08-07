@@ -88,6 +88,15 @@ class Waveform:
         l1b.close()
         l2a.close()
 
+    # Make raw data read-only
+    @property
+    def raw(self) -> dict[str, Any]:
+        return self._raw
+
+    @raw.setter
+    def raw(self, value: dict[str, Any]) -> None:
+        raise AttributeError("Raw waveform data cannot be modified.")
+
     def _get_shot_index(self, in_file: h5py.File) -> np.int64:
         # Find the index of this Waveform's shot within its beam group
         beam = self.metadata["beam"]
@@ -122,11 +131,3 @@ class Waveform:
 
         return elev
 
-    # Make raw data read-only
-    @property
-    def raw(self) -> dict[str, Any]:
-        return self._raw
-
-    @raw.setter
-    def raw(self, value: dict[str, Any]) -> None:
-        raise AttributeError("Raw waveform data cannot be modified.")
