@@ -40,16 +40,16 @@ class Waveform:
 
         Parameters
         ----------
-        shot_number : int
+        shot_number: int
             The unique shot number of the waveform.
 
-        beam : str
+        beam: str
             The beam name for the waveform (e.g. "BEAM0000").
 
-        l1b_path : str
+        l1b_path: str
             The path to the L1B file.
 
-        l2a_path : str
+        l2a_path: str
             The path to the L2A file.
 
         """
