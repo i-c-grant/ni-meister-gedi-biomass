@@ -88,9 +88,13 @@ class Waveform:
         l1b.close()
         l2a.close()
 
-    def _get_shot_index(self, beam_group : h5py.Group, shot_number : np.int64) -> np.int64:
-        # Find the index of the shot number within a beam group
-        return np.where(beam_group["shot_number"][:] == shot_number)[0][0]
+    def _get_shot_index(self, in_file: h5py.File) -> np.int64:
+        # Find the index of this Waveform's shot within its beam group
+        beam = self.metadata["beam"]
+        shot_number = self.metadata["shot_number"]
+        beam_group : h5py.Group = in_file[beam]  # type: ignore
+        index = np.where(beam_group["shot_number"][:] == shot_number)[0][0]
+        return index
 
     def _get_waveform(
         self, l1b_beam: h5py.Group, shot_index: np.int64
