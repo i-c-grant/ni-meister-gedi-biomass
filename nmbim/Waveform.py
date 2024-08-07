@@ -105,15 +105,19 @@ class Waveform:
         index = np.where(beam_group["shot_number"][:] == shot_number)[0][0]
         return index
 
-    def _get_waveform(
-        self, l1b_beam: h5py.Group, shot_index: np.int64
-    ) -> npt.NDArray[np.float32]:
+    def _get_waveform(self, l1b_file: h5py.File) -> npt.NDArray[np.float32]:
+        beam = self.metadata["beam"]
+        shot_index = self.metadata["shot_index"]
+        l1b_beam: h5py.Group = l1b_file[beam]
+
         # Extract the waveform data from the L1B file, converting to 0-based index
         wf_start: np.uint64 = (
             np.uint64(l1b_beam["rx_sample_start_index"][shot_index]) - 1
         )  # type: ignore
         wf_count: np.uint64 = np.uint64(l1b_beam["rx_sample_count"][shot_index])  # type: ignore
-        wf: npt.NDArray[np.float32] = l1b_beam["rxwaveform"][wf_start : wf_start + wf_count]  # type: ignore
+        wf: npt.NDArray[np.float32] = l1b_beam["rxwaveform"][
+            wf_start : wf_start + wf_count
+        ]  # type: ignore
 
         return wf
 
