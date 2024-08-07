@@ -122,8 +122,13 @@ class Waveform:
         return wf
 
     def _get_elev(
-        self, l1b_beam: h5py.Group, l2a_beam: h5py.Group, shot_index: np.int64
+        self, l1b_file: h5py.File, l2a_file: h5py.File
     ) -> Dict[str, Union[np.float32, np.float64]]:
+        beam = self.metadata["beam"]
+        shot_index = self.metadata["shot_index"]
+        l1b_beam: h5py.Group = l1b_file[beam]
+        l2a_beam: h5py.Group = l2a_file[beam]
+
         # Extract elevation data and calculate height above ground.
         elev = {
             "top": np.float64(l1b_beam["geolocation"]["elevation_bin0"][shot_index]),  # type: ignore
@@ -134,4 +139,3 @@ class Waveform:
         }
 
         return elev
-
