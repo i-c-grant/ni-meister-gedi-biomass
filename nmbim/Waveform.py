@@ -3,6 +3,7 @@ import numpy as np
 from typing import Any, Dict, Union
 import numpy.typing as npt
 
+DSet = h5py.Dataset
 
 class Waveform:
     """Fetches NMBIM-relevant data for one waveform from L1B and L2A files.
@@ -56,8 +57,7 @@ class Waveform:
         l1b = h5py.File(l1b_path, "r")
         l2a = h5py.File(l2a_path, "r")
 
-        l1b_beam: h5py.Group = l1b[beam]  # type: ignore
-        l2a_beam: h5py.Group = l2a[beam]  # type: ignore
+        l1b_beam: h5py.Group = Waveform._get_group(l1b, beam)
 
         # Store initial metadata
         self.metadata = {
@@ -75,16 +75,23 @@ class Waveform:
         shot_index = self.metadata["shot_index"]
 
         # Store geolocation
+        lats: DSet = Waveform._get_dataset(l1b, [beam, "geolocation", "latitude_bin0"])
+        lon: DSet = Waveform._get_dataset(l1b, [beam, "geolocation", "longitude_bin0"])
         self.metadata["coords"] = {
-            "lat": l1b_beam["geolocation"]["latitude_bin0"][shot_index],  # type: ignore
-            "lon": l1b_beam["geolocation"]["longitude_bin0"][shot_index],  # type: ignore
+            "lat": lats[shot_index],
+            "lon": lon[shot_index],
         }
 
         # Initialize read-only representation of raw waveform data (see property and setter below)
+        wf: DSet = self._get_waveform(l1b_file=l1b)
+        mean_noise: float = Waveform._get_dataset(l1b, [beam, "noise_mean_corrected"])[shot_index]
+        elev: Dict[str, Union[np.float32, np.float64]] = (
+            self._get_elev(l1b_file=l1b, l2a_file=l2a)
+        )
         self._raw = {
-            "wf": self._get_waveform(l1b_file=l1b),
-            "mean_noise": l1b_beam["noise_mean_corrected"][shot_index],  # type: ignore
-            "elev": self._get_elev(l1b_file=l1b, l2a_file=l2a),
+            "wf": wf,
+            "mean_noise": mean_noise,
+            "elev": elev,
         }
 
         self.processed = {}
@@ -104,26 +111,23 @@ class Waveform:
 
     def _get_shot_index(self, in_file: h5py.File) -> np.int64:
         # Find the index of this Waveform's shot within its beam group
-        beam = self.metadata["beam"]
-        shot_number = self.metadata["shot_number"]
-        beam_group : h5py.Group = in_file[beam]  # type: ignore
-        index = np.where(beam_group["shot_number"][:] == shot_number)[0][0]
+        beam: str = self.metadata["beam"]
+        shot_number: np.int64 = self.metadata["shot_number"]
+        shot_nums: DSet = Waveform._get_dataset(in_file, [beam, "shot_number"])
+        index = np.int64(np.where(shot_nums[:] == shot_number)[0][0])
         return index
 
-    def _get_waveform(self, l1b_file: h5py.File) -> npt.NDArray[np.float32]:
-        beam = self.metadata["beam"]
-        shot_index = self.metadata["shot_index"]
-        l1b_beam: h5py.Group = l1b_file[beam]
-
+    def _get_waveform(self, l1b_file: h5py.File) -> DSet:
+        beam: str = self.metadata["beam"]
+        shot_index: np.int64 = self.metadata["shot_index"]
+        _get_dataset = Waveform._get_dataset
         # Extract the waveform data from the L1B file, converting to 0-based index
-        wf_start: np.uint64 = (
-            np.uint64(l1b_beam["rx_sample_start_index"][shot_index]) - 1
-        )  # type: ignore
-        wf_count: np.uint64 = np.uint64(l1b_beam["rx_sample_count"][shot_index])  # type: ignore
-        wf: npt.NDArray[np.float32] = l1b_beam["rxwaveform"][
-            wf_start : wf_start + wf_count
-        ]  # type: ignore
-
+        start_idxs: DSet = _get_dataset(l1b_file, [beam, "rx_sample_start_index"])
+        counts: DSet = _get_dataset(l1b_file, [beam, "rx_sample_count"])
+        full_wf: DSet = _get_dataset(l1b_file, [beam, "rxwaveform"])
+        wf_start = np.uint64(start_idxs[shot_index])
+        wf_count = np.uint64(counts[shot_index])
+        wf: DSet = full_wf[wf_start : wf_start + wf_count]
         return wf
 
     def _get_elev(
@@ -131,16 +135,29 @@ class Waveform:
     ) -> Dict[str, Union[np.float32, np.float64]]:
         beam = self.metadata["beam"]
         shot_index = self.metadata["shot_index"]
-        l1b_beam: h5py.Group = l1b_file[beam]
-        l2a_beam: h5py.Group = l2a_file[beam]
 
         # Extract elevation data and calculate height above ground.
+        top = np.float64(Waveform._get_dataset(l2a_file, [beam, "elev_highestreturn"])[shot_index])
+        bottom = np.float64(Waveform._get_dataset(l1b_file, [beam, "geolocation", "elevation_lastbin"])[shot_index])
+        ground = np.float32(Waveform._get_dataset(l2a_file, [beam, "elev_lowestmode"])[shot_index])
+        
         elev = {
-            "top": np.float64(l1b_beam["geolocation"]["elevation_bin0"][shot_index]),  # type: ignore
-            "bottom": np.float64(
-                l1b_beam["geolocation"]["elevation_lastbin"][shot_index]
-            ),  # type: ignore
-            "ground": np.float32(l2a_beam["elev_lowestmode"][shot_index]),  # type: ignore
+            "top": top,
+            "bottom": bottom,
+            "ground": ground
         }
 
         return elev
+
+    @staticmethod
+    def _get_group(file: h5py.File, key: str) -> h5py.Group:
+        return file[key] # type: ignore
+
+    @staticmethod
+    def _get_dataset(file: h5py.File, keys: list[str]) -> DSet:
+        path: str = "/".join(keys)
+        dataset = file[path] # type: ignore
+        if not isinstance(dataset, h5py.Dataset):
+            raise TypeError(f"Expected dataset in H5 file {file} at path {path}")
+        else:
+            return dataset
