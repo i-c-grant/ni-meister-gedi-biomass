@@ -7,9 +7,8 @@ DSet = h5py.Dataset
 
 class Waveform:
     """Fetches NMBIM-relevant data for one waveform from L1B and L2A files.
-
-    Data in the Waveform class is raw and unprocessed. The class is intended
-    to be used as a data container in the WaveformProcessor class.
+    Responsible for storing raw and processed data, as well as metadata.
+    Not responsible for processing the waveform data or managing file connections.
 
     Attributes
     ----------
