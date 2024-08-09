@@ -172,3 +172,21 @@ class Waveform:
             )
         else:
             return dataset
+
+    def get_data(self, keys: List[str]) -> Any:
+        """Get data from the waveform object.
+
+        Parameters
+        ----------
+        keys: List[str]
+            List of keys indicating where to find data in the Waveform.
+
+        Returns
+        -------
+        data: np.ndarray
+            The data from the waveform.
+        """
+        data_dict = getattr(self, keys[0])
+        for key in keys[1:]:
+            obj = data_dict[key] # type: ignore
+        return data_dict
