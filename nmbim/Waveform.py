@@ -190,3 +190,19 @@ class Waveform:
         for key in keys[1:]:
             obj = data_dict[key] # type: ignore
         return data_dict
+
+    def save_data(self, data: Any, keys: List[str]) -> None:
+        """Save data to the Waveform.
+
+        Parameters
+        ----------
+        data: Any
+            The data to save.
+
+        keys: List[str]
+            List of keys indicating where to save data in the Waveform.
+        """
+        data_dict = getattr(self, keys[0])
+        for key in keys[1:-1]:
+            data_dict = data_dict[key]
+        data_dict[keys[-1]] = data
