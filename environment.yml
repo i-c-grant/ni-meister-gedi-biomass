@@ -1,20 +1,24 @@
 name: nmbim-env
+
 channels:
   - conda-forge
   - defaults
+
 dependencies:
   - python=3.12
   - pip=23.3.1
+
   - boto3
   - botocore
   - fsspec
-  - s3fs
   - geopandas
-  - geopandas-base
   - h5py
+  - mypy
   - numpy
   - pandas
   - python
+  - s3fs
   - scipy
+
   - pip:
       - git+https://git@github.com/MAAP-Project/maap-py@v4.0.0
