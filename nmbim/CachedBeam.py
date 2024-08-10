@@ -62,6 +62,9 @@ class CachedBeam:
                 raise TypeError(f"Expected group or dataset, got {type(group[key])}")
         return data
 
+    def get_beam_name(self) -> str:
+        return self.beam
+
     def __repr__(self) -> str:
         return f"CachedBeam({self.file_path}, {self.beam})"
 
