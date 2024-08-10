@@ -1,3 +1,6 @@
+from nmbim.Waveform import Waveform
+from typing import Any, Callable, Dict, List
+
 class WaveformProcessor:
     """Object to process one Waveform with an algorithm.
     
