@@ -68,14 +68,15 @@ class WaveformProcessor:
         """Applies the algorithm to the waveform data."""
         # Get data from waveform
         data: Dict[str, Any] = {}
+
         for key in self.input_map:
             path_to_data: List[str] = self.input_map[key]
-            data[key] = waveform.get_data(path_to_data)
-        
+            data[key] = self.waveform.get_data(path_to_data)
+
         # Apply algorithm
         results = self.alg_fun(**data, **self.params)
         
         # Save results to waveform
-        self.waveform.save_data(results, self.output)
+        self.waveform.save_data(results, self.output_path)
         
         self.complete = True
