@@ -35,7 +35,7 @@ class WaveformProcessor:
                  alg_fun: Callable,
                  params: Dict[str, Any],
                  input_map: Dict[str, List[str]],
-                 output_path: List[str])
+                 output_path: List[str],
         ) -> None:
         """Initializes the WaveformProcessor object.
 
