@@ -7,7 +7,7 @@ DSet = h5py.Dataset
 InputBeam = Union[h5py.Group, CachedBeam]
 
 class Waveform:
-    """Fetches NMBIM-relevant data for one waveform from L1B and L2A files.
+    """Fetches NMBIM-relevant data for one waveform from files or cached data.
     Responsible for storing raw and processed data, as well as metadata.
     Not responsible for processing waveform data or opening/closing files.
 
@@ -51,15 +51,15 @@ class Waveform:
         beam: str
             The beam name for the waveform (e.g. "BEAM0000").
 
-        l1b: h5py.File
-            Open HDF5 file object for the L1B file.
+        l1b_beam: InputBeam
+            The L1B beam data.
 
-        l2a: h5py.File
-            Open HDF5 file object for the L2A file.
+        l2a_beam: InputBeam
+            The L2A beam data.
 
         """
-        self.l1b_beam = l1b_beam
-        self.l2a_beam = l2a_beam
+        self.l1b_beam: InputBeam = l1b_beam
+        self.l2a_beam: InputBeam = l2a_beam
 
         # Get beam name from CachedBeam object or h5py.Group
         if isinstance(l1b_beam, CachedBeam):
