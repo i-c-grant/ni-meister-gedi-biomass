@@ -73,3 +73,9 @@ class CachedBeam:
 
     def __setitem__(self, key: str, value: Union[np.ndarray, "BeamData"]) -> None:
         raise NotImplementedError("CachedBeam is read-only")
+
+    def items(self) -> BeamData:
+        return self.data.items()
+
+    def keys(self) -> BeamData:
+        return self.data.keys()
