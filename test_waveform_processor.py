@@ -27,13 +27,12 @@ if __name__ == "__main__":
     output_path = ["processed", "wf_noise_removed"]
     params = {}
 
-    processor = WaveformProcessor(waveform = waveform,
-                                  alg_fun = alg_fun,
+    processor = WaveformProcessor(alg_fun = alg_fun,
                                   params = params,
                                   input_map = input_map,
                                   output_path = output_path)
 
-    processor.process()
+    processor.process(waveform)
 
     l1b.close()
     l2a.close()
