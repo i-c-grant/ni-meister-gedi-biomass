@@ -188,26 +188,27 @@ class Waveform:
         else:
             return dataset
 
-    def get_data(self, keys: List[str]) -> Any:
+    def get_data(self, path: str) -> Any:
         """Get data from the Waveform object.
 
         Parameters
         ----------
-        keys: List[str]
-            List of keys indicating where to find data in the Waveform.
+        path: str
+            The path to the data in the Waveform object, e.g. "raw/wf".
 
         Returns
         -------
         data: np.ndarray
             The data from the waveform.
         """
+        keys = path.split("/")
         data_dict = getattr(self, keys[0])
 
         for key in keys[1:]:
             obj = data_dict[key] # type: ignore
         return obj
 
-    def save_data(self, data: Any, keys: List[str]) -> None:
+    def save_data(self, data: Any, path: str) -> None:
         """Save data to the Waveform.
 
         Parameters
@@ -218,6 +219,8 @@ class Waveform:
         keys: List[str]
             List of keys indicating where to save data in the Waveform.
         """
+
+        keys = path.split("/")
         data_dict = getattr(self, keys[0])
         for key in keys[1:-1]:
             data_dict = data_dict[key]
