@@ -91,8 +91,14 @@ class WaveformProcessor:
         """
         return bool(self.params is not None)
 
-    # def set_params(self, params: Dict[str, Any]) -> None:
-    #     """Set the parameters for the algorithm."""
-    #     if not isinstance(params, dict):
-    #         raise TypeError("params must be a dictionary")
-    #     self.params = params
+    def clear_params(self) -> None:
+        """Clear the parameters from the processor."""
+        self.params = None
+
+    def __repr__(self) -> str:
+        return f"WaveformProcessor(alg_fun={self.alg_fun.__name__}, params={self.params}, input_map={self.input_map}, output_path={self.output_path}, complete={self.complete})"
+
+    def __str__(self) -> str:
+        return f"WaveformProcessor object: {self.alg_fun.__name__}"
+    
+    
