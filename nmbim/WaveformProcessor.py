@@ -29,7 +29,7 @@ class WaveformProcessor:
 
     def __init__(self,
                  alg_fun: Callable,
-                 params: Dict[str, Any],
+                 params: Optional[Dict[str, Any]] = None,
                  input_map: Dict[str, List[str]],
                  output_path: List[str],
         ) -> None:
@@ -51,7 +51,7 @@ class WaveformProcessor:
         """
             
         self.alg_fun: Callable = alg_fun
-        self.params: Dict[str, Any] = params
+        self._params: Optional[Dict[str, Any]] = params
         self.input_map: Dict[str, Any] = input_map
         self.output_path: List[str] = output_path
         self.complete: bool = False
@@ -72,3 +72,27 @@ class WaveformProcessor:
         waveform.save_data(results, self.output_path)
         
         self.complete = True
+
+    @property
+    def params(self) -> Dict[str, Any]:
+        return self._params
+
+    @params.setter
+    def params(self, params: Dict[str, Any]) -> None:
+        if not isinstance(params, dict):
+            raise TypeError("params must be a dictionary")
+        self._params = params
+
+    def has_params(self) -> bool:
+        """Check if the processor has been supplied parameters.
+
+        None means no parameters have been supplied.
+        A dict (even an empty one) means parameters have been supplied.
+        """
+        return bool(self.params is not None)
+
+    # def set_params(self, params: Dict[str, Any]) -> None:
+    #     """Set the parameters for the algorithm."""
+    #     if not isinstance(params, dict):
+    #         raise TypeError("params must be a dictionary")
+    #     self.params = params
