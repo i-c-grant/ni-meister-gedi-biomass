@@ -79,10 +79,10 @@ class Waveform:
         shot_index = self.metadata["shot_index"]
 
         # Store geolocation
-        lats: DSet = self._get_dataset(
+        lats: DSet = self._read_dataset(
             "l1b", ["geolocation", "latitude_bin0"]
         )
-        lon: DSet = self._get_dataset(
+        lon: DSet = self._read_dataset(
             "l1b", ["geolocation", "longitude_bin0"]
         )
         self.metadata["coords"] = {
@@ -92,7 +92,7 @@ class Waveform:
 
         # Initialize read-only waveform data (see property below)
         wf: DSet = self._get_waveform()
-        mean_noise: float = self._get_dataset(
+        mean_noise: float = self._read_dataset(
             "l1b", ["noise_mean_corrected"]
         )[shot_index]
         elev: Dict[str, Union[np.float32, np.float64]] = self._get_elev()
@@ -117,8 +117,8 @@ class Waveform:
     def _get_shot_index(self) -> np.int64:
         # Find the index of this Waveform's shot within its beam group
         shot_number: np.int64 = self.metadata["shot_number"]
-        shot_nums_l1b: DSet = self._get_dataset("l1b", ["shot_number"])
-        shot_nums_l2a: DSet = self._get_dataset("l2a", ["shot_number"])
+        shot_nums_l1b: DSet = self._read_dataset("l1b", ["shot_number"])
+        shot_nums_l2a: DSet = self._read_dataset("l2a", ["shot_number"])
         index_l1b: np.int64 = np.where(shot_nums_l1b == shot_number)[0][0]
         index_l2a: np.int64 = np.where(shot_nums_l2a == shot_number)[0][0]
 
@@ -135,9 +135,9 @@ class Waveform:
     def _get_waveform(self) -> DSet:
         shot_index: np.int64 = self.metadata["shot_index"]
         # Extract waveform data, converting to 0-based index
-        start_idxs: DSet = self._get_dataset("l1b", ["rx_sample_start_index"])
-        counts: DSet = self._get_dataset("l1b", ["rx_sample_count"])
-        full_wf: DSet = self._get_dataset("l1b", ["rxwaveform"])
+        start_idxs: DSet = self._read_dataset("l1b", ["rx_sample_start_index"])
+        counts: DSet = self._read_dataset("l1b", ["rx_sample_count"])
+        full_wf: DSet = self._read_dataset("l1b", ["rxwaveform"])
         wf_start = np.uint64(start_idxs[shot_index])
         wf_count = np.uint64(counts[shot_index])
         wf: DSet = full_wf[wf_start: wf_start + wf_count]
@@ -148,22 +148,22 @@ class Waveform:
 
         # Extract elevation data and calculate height above ground.
         top = np.float64(
-            self._get_dataset("l2a", ["elev_highestreturn"])[shot_index]
+            self._read_dataset("l2a", ["elev_highestreturn"])[shot_index]
         )
         bottom = np.float64(
-            self._get_dataset(
+            self._read_dataset(
                 "l1b", ["geolocation", "elevation_lastbin"]
             )[shot_index]
         )
         ground = np.float32(
-            self._get_dataset("l2a", ["elev_lowestmode"])[shot_index]
+            self._read_dataset("l2a", ["elev_lowestmode"])[shot_index]
         )
 
         elev = {"top": top, "bottom": bottom, "ground": ground}
 
         return elev
 
-    def _get_dataset(self, which_product: str, keys: List[str]) -> Union[DSet, np.ndarray]:
+    def _read_dataset(self, which_product: str, keys: List[str]) -> Union[DSet, np.ndarray]:
         # Get dataset from L1B or L2A input beam.
 
         # Returns h5py.Dataset if beam is h5py.Group (lazy loading)
