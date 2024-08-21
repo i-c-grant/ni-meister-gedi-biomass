@@ -96,10 +96,13 @@ class Waveform:
             "l1b", ["noise_mean_corrected"]
         )[shot_index]
         elev: Dict[str, Union[np.float32, np.float64]] = self._get_elev()
+        rh: DSet = self._read_dataset("l2a", ["rh"])
+
         self._raw = {
             "wf": wf,
             "mean_noise": mean_noise,
             "elev": elev,
+            "rh": rh,
         }
 
         self.processed = {}
