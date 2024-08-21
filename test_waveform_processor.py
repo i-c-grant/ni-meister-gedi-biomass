@@ -14,6 +14,12 @@ def main():
     parser.add_argument(
         "-n", "--number", help="Number of waveforms to process", type=int
     )
+    parser.add_argument(
+        "-c",
+        '--cache',
+        help="Cache beams in memory instead of accessing files directly",
+        action="store_true"
+    )
 
     args = parser.parse_args()
 
