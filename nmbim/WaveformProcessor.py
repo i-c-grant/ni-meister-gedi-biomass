@@ -1,5 +1,5 @@
 from nmbim.Waveform import Waveform
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 class WaveformProcessor:
     """Object to process Waveforms with one algorithm and parameter set.
@@ -29,9 +29,9 @@ class WaveformProcessor:
 
     def __init__(self,
                  alg_fun: Callable,
-                 params: Optional[Dict[str, Any]] = None,
                  input_map: Dict[str, List[str]],
                  output_path: List[str],
+                 params: Optional[Dict[str, Any]] = None,
         ) -> None:
         """Initializes the WaveformProcessor object.
 
