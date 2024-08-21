@@ -205,11 +205,15 @@ class Waveform:
             The data from the waveform.
         """
         keys = path.split("/")
-        data_dict = getattr(self, keys[0])
 
+        # Get top-level dictionary
+        data = getattr(self, keys[0])
+
+        # Traverse dictionary to get data
         for key in keys[1:]:
-            obj = data_dict[key] # type: ignore
-        return obj
+            data = data[key] # type: ignore
+
+        return data
 
     def save_data(self, data: Any, path: str) -> None:
         """Save data to the Waveform.
