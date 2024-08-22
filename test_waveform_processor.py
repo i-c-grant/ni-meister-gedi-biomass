@@ -16,7 +16,7 @@ def main():
     )
     parser.add_argument(
         "-c",
-        '--cache',
+        "--cache",
         help="Cache beams in memory instead of accessing files directly",
         action="store_true"
     )
