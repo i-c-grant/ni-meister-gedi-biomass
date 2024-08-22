@@ -1,3 +1,8 @@
+from typing import Dict
+import h5py
+import numpy as np
+import csv
+
 class WaveformWriter:
     def __init__(self, path: str, cols: Dict[str, str], append: bool = False):
         """
@@ -98,5 +103,3 @@ class WaveformWriter:
 
     def __str__(self) -> str:
         return f"WaveformWriter writing to {self.path} with columns {list(self.cols.keys())}"
-
-
