@@ -40,58 +40,49 @@ def main():
             alg_fun = algorithms.remove_noise,
             input_map = {"wf": "raw/wf",
                          "mean_noise": "raw/mean_noise"},
-            output_path = "processed/wf_noise_removed"),
+            output_path = "processed/wf_noise_removed",
+            params = {}),
          "normalize": WaveformProcessor(
              alg_fun = algorithms.normalize_waveform,
              input_map = {"wf": "processed/wf_noise_removed"},
-             output_path = "processed/wf_noise_normalized"),
+             output_path = "processed/wf_noise_normalized",
+             params = {}),
          "smooth": WaveformProcessor(
              alg_fun = algorithms.smooth_waveform,
              input_map = {"wf": "processed/wf_noise_normalized"},
-             output_path = "processed/wf_noise_normalized_smoothed"),
+             output_path = "processed/wf_noise_normalized_smoothed",
+             params = {"sd": 5}),
          "per_height": WaveformProcessor(
              alg_fun = algorithms.calc_wf_per_height,
              input_map = {"wf": "processed/wf_noise_normalized_smoothed"},
-             output_path = "processed/wf_per_height"),
+             output_path = "processed/wf_per_height",
+             params = {"dz": .1}),
          "segment": WaveformProcessor(
              alg_fun = algorithms.separate_veg_ground,
              input_map = {"wf": "processed/wf_per_height",
                           "ht": "processed/ht",
                           "rh": "raw/rh"},
-             output_path = "processed/wf_segmented"),
+             output_path = "processed/wf_segmented",
+             params = {"veg_floor": 5}),
          "height": WaveformProcessor(
              alg_fun = algorithms.calc_height,
              input_map = {"wf": "raw/wf",
                           "elev_top": "raw/elev/top",
                           "elev_bottom": "raw/elev/bottom",
                           "elev_ground": "raw/elev/ground"},
-             output_path = "processed/ht")
+             output_path = "processed/ht",
+             params = {})
          }
     )
 
-    # Define parameters for each processor
-    params = {
-        "noise": {},
-        "normalize": {},
-        "smooth": {"sd": 5},
-        "per_height": {"dz": .1},
-        "segment": {"veg_floor": 5},
-        "height": {},
-    }
-
-    # Parameterize processors
-    for proc_name in processors:
-        processors[proc_name].params = params[proc_name]
 
     # Create list of processors indicating order of processing
-    pipeline = ["height",
-                "noise",
-                "normalize",
-                "smooth",
-                "per_height",
-                "segment"]
-    
-    processors = [processors[proc_name] for proc_name in pipeline]
+    proc_list = ["height",
+                 "noise",
+                 "normalize",
+                 "smooth"]
+
+    pipeline = [processors[proc_name] for proc_name in proc_list]
     
     # Get beam names, excluding metadata group
     beams = list(l1b.keys())[:-1]
@@ -117,15 +108,22 @@ def main():
         # Define waveform arguments that don't change between waveforms
         waveform_args = {"l1b_beam": l1b_beam, "l2a_beam": l2a_beam}
 
-        waveforms = []
+        # Create set to store waveforms, ensuring no duplicates
+        waveforms = set()
 
-        # Process each waveform in the beam
+        # Create waveforms
         for shot_number in shot_numbers:
             waveform_args["shot_number"] = shot_number
-            wf = Waveform(**waveform_args)
-            for p in processors:
-                p.process(wf)
-            # waveforms.append(wf)   
+            waveforms.add(Waveform(**waveform_args))
+
+        # Queue waveforms for processing by each processor
+        for processor in pipeline:
+            for w in waveforms:
+                processor.add_waveform(w)
+
+        # Process waveforms, applying each processor in order
+        for p in pipeline:
+            p.process()
 
     l1b.close()
     l2a.close()
