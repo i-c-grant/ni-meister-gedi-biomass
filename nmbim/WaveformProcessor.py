@@ -1,5 +1,6 @@
 from nmbim.Waveform import Waveform
 from typing import Any, Callable, Dict, List, Optional
+from collections import Deque
 
 class WaveformProcessor:
     """Object to process Waveforms with one algorithm and parameter set.
@@ -39,25 +40,40 @@ class WaveformProcessor:
         alg_fun: Callable
             The algorithm function to apply to the waveform.
 
-        params: dict[str, Any]
+        params: Dict[str, Any]
             Dictionary containing the parameters for the algorithm.
 
-        input_map: dict[str, List[str]]
+        input_map: Dict[str, str]
             Dictionary mapping algorithm input names to waveform data keys.
 
-        output_path: List[str]
-            List of keys indicating where to save processed data in Waveform.
+        output_path: str
+            Path indicating where to save processed data in Waveform.
+
+        queue: Deque[Waveform]
+            Deque of Waveform objects to process. First in, first out.
         """
             
         self.alg_fun: Callable = alg_fun
-        self._params: Optional[Dict[str, Any]] = params
-        self.input_map: Dict[str, Any] = input_map
-        self.output_path: List[str] = output_path
-        self.complete: bool = False
+        self.params: Dict[str, Any] = params
+        self.input_map: Dict[str, str] = input_map
+        self.output_path: str = output_path
+        self.queue: Deque[Waveform] = Deque()
 
-    def process(self, waveform) -> None:
+    def add_waveform(self, waveform: Waveform) -> None:
+        """Adds a waveform to the processing queue."""
+        self.queue.append(waveform)
+
+    def process(self) -> None:
         """Applies the algorithm to the waveform data."""
+        while self.queue:
+            self._process_next()
+
+    def _process_next(self) -> None:
+        """Applies the algorithm to the waveform data,
+        modifying the next waveform in processing queue in place.
+        """
         # Get data from waveform
+        waveform: Waveform = self.queue.popleft()
         data: Dict[str, Any] = {}
 
         for key in self.input_map:
