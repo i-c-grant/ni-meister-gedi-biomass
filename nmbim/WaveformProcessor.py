@@ -58,12 +58,6 @@ class WaveformProcessor:
 
     def process(self, waveform) -> None:
         """Applies the algorithm to the waveform data."""
-        # Check if parameters have been supplied
-        if not self.has_params():
-            raise ValueError(
-                f"You must supply parameters before processing "
-                f"{waveform} with {self}")
-
         # Get data from waveform
         data: Dict[str, Any] = {}
 
