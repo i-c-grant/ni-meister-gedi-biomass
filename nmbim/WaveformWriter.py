@@ -4,6 +4,10 @@ import numpy as np
 import csv
 
 class WaveformWriter:
+    """
+    Class for writing waveform data to a CSV file. 
+    """
+
     def __init__(self, path: str, cols: Dict[str, str], append: bool = False):
         """
         Initialize the WaveformWriter with the file path, columns, and append mode.
