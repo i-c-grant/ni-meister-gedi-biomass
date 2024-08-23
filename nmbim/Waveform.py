@@ -235,3 +235,8 @@ class Waveform:
             return False
         else:
             return self.metadata == other.metadata
+
+    def __hash__(self) -> int:
+        beam = self.metadata["beam"]
+        shot_number = self.metadata["shot_number"]
+        return hash((beam, shot_number))
