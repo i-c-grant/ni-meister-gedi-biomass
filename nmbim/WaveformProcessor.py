@@ -1,6 +1,6 @@
 from nmbim.Waveform import Waveform
 from typing import Any, Callable, Dict, List, Optional
-from collections import Deque
+from collections import deque
 
 class WaveformProcessor:
     """Object to process Waveforms with one algorithm and parameter set.
@@ -49,15 +49,15 @@ class WaveformProcessor:
         output_path: str
             Path indicating where to save processed data in Waveform.
 
-        queue: Deque[Waveform]
-            Deque of Waveform objects to process. First in, first out.
+        queue: deque[Waveform]
+            deque of Waveform objects to process. First in, first out.
         """
             
         self.alg_fun: Callable = alg_fun
         self.params: Dict[str, Any] = params
         self.input_map: Dict[str, str] = input_map
         self.output_path: str = output_path
-        self.queue: Deque[Waveform] = Deque()
+        self.queue: deque[Waveform] = deque()
 
     def add_waveform(self, waveform: Waveform) -> None:
         """Adds a waveform to the processing queue."""
