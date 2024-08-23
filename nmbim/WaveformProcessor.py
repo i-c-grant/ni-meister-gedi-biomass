@@ -9,17 +9,16 @@ class WaveformProcessor:
     alg_fun: Callable
         The algorithm function to apply to the waveform.
 
-    params: dict[str, Any]
+    params: Dict[str, Any]
         Dictionary containing the parameters for the algorithm.
 
-    input_map: dict[str, List[str]]
-        Dictionary mapping algorithm input names to waveform data keys.
+    input_map: Dict[str, str]
+        Dictionary mapping algorithm input names to waveform data keys, where
+    the keys are the algorithm function's arguments and the values are the
+    paths to the data in the Waveform.
 
-    output_path: List[str]
-        List of keys indicating where to save processed data in Waveform.
-
-    complete: bool
-        Flag indicating if the processing is complete.
+    output_path: str
+        Path indicating where to save processed data in Waveform.
 
     Methods
     -------
@@ -29,9 +28,9 @@ class WaveformProcessor:
 
     def __init__(self,
                  alg_fun: Callable,
-                 input_map: Dict[str, List[str]],
-                 output_path: List[str],
-                 params: Optional[Dict[str, Any]] = None,
+                 input_map: Dict[str, str],
+                 output_path: str,
+                 params: Dict[str, Any],
         ) -> None:
         """Initializes the WaveformProcessor object.
 
