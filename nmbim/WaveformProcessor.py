@@ -85,35 +85,13 @@ class WaveformProcessor:
         
         # Save results to waveform
         waveform.save_data(results, self.output_path)
-        
-        self.complete = True
-
-    @property
-    def params(self) -> Dict[str, Any]:
-        return self._params
-
-    @params.setter
-    def params(self, params: Dict[str, Any]) -> None:
-        if not isinstance(params, dict):
-            raise TypeError("params must be a dictionary")
-        self._params = params
-
-    def has_params(self) -> bool:
-        """Check if the processor has been supplied parameters.
-
-        None means no parameters have been supplied.
-        A dict (even an empty one) means parameters have been supplied.
-        """
-        return bool(self.params is not None)
-
-    def clear_params(self) -> None:
-        """Clear the parameters from the processor."""
-        self.params = None
 
     def __repr__(self) -> str:
-        return f"WaveformProcessor(alg_fun={self.alg_fun.__name__}, params={self.params}, input_map={self.input_map}, output_path={self.output_path}, complete={self.complete})"
+        rep = (
+            f"WaveformProcessor object: {self.alg_fun.__name__}, "
+            f"{self.params}, {self.input_map}, {self.output_path}"
+        )
+        return rep
 
     def __str__(self) -> str:
         return f"WaveformProcessor object: {self.alg_fun.__name__}"
-    
-    
