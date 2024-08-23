@@ -74,29 +74,28 @@ class Waveform:
         }
 
         # Get shot index for this waveform (requires initial metadata)
+        # This is the index of the shot within the file,
+        # not the unique shot number
         self.metadata["shot_index"] = self._get_shot_index()
         
         shot_index = self.metadata["shot_index"]
 
         # Store geolocation
-        lats: DSet = self._read_dataset(
-            "l1b", ["geolocation", "latitude_bin0"]
-        )
-        lon: DSet = self._read_dataset(
-            "l1b", ["geolocation", "longitude_bin0"]
-        )
+        lats: ArrayLike = self._read_dataset("l1b", "geolocation/latitude_bin0")
+        lons: ArrayLike = self._read_dataset("l1b", "geolocation/longitude_bin0")
+
         self.metadata["coords"] = {
             "lat": lats[shot_index],
-            "lon": lon[shot_index],
+            "lon": lons[shot_index],
         }
 
         # Initialize read-only waveform data (see property below)
-        wf: DSet = self._get_waveform()
+        wf: ArrayLike = self._get_waveform()
         mean_noise: float = self._read_dataset(
-            "l1b", ["noise_mean_corrected"]
+            "l1b", "noise_mean_corrected"
         )[shot_index]
         elev: Dict[str, Union[np.float32, np.float64]] = self._get_elev()
-        rh: DSet = self._read_dataset("l2a", ["rh"])
+        rh: ArrayLike = self._read_dataset("l2a", "rh")
 
         self._raw = {
             "wf": wf,
