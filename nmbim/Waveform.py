@@ -149,26 +149,25 @@ class Waveform:
 
         # Extract elevation data and calculate height above ground.
         top = np.float64(
-            self._read_dataset("l2a", ["elev_highestreturn"])[shot_index]
+            self._read_dataset("l2a", "elev_highestreturn")[shot_index]
         )
         bottom = np.float64(
-            self._read_dataset(
-                "l1b", ["geolocation", "elevation_lastbin"]
-            )[shot_index]
+            self._read_dataset("l1b", "geolocation/elevation_lastbin")[shot_index]
         )
         ground = np.float32(
-            self._read_dataset("l2a", ["elev_lowestmode"])[shot_index]
+            self._read_dataset("l2a", "elev_lowestmode")[shot_index]
         )
 
         elev = {"top": top, "bottom": bottom, "ground": ground}
 
         return elev
 
-    def _read_dataset(self, which_product: str, keys: List[str]) -> Union[DSet, np.ndarray]:
+    def _read_dataset(self, which_product: str, path: str) -> Union[ArrayLike, np.ndarray]:
         # Get dataset from L1B or L2A input beam.
 
         # Returns h5py.Dataset if beam is h5py.Group (lazy loading)
         # or numpy.ndarray if beam is CachedBeam (already loaded)
+        keys = path.split("/")
         
         if which_product == "l1b":
             beam: InputBeam = self.l1b_beam
