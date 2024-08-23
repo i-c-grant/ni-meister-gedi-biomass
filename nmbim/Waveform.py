@@ -3,7 +3,6 @@ import numpy as np
 from typing import Any, Dict, Union, List
 from nmbim.CachedBeam import CachedBeam
 
-DSet = h5py.Dataset
 InputBeam = Union[h5py.Group, CachedBeam]
 
 class Waveform:
@@ -119,8 +118,8 @@ class Waveform:
     def _get_shot_index(self) -> np.int64:
         # Find the index of this Waveform's shot within its beam group
         shot_number: np.int64 = self.metadata["shot_number"]
-        shot_nums_l1b: DSet = self._read_dataset("l1b", ["shot_number"])
-        shot_nums_l2a: DSet = self._read_dataset("l2a", ["shot_number"])
+        shot_nums_l1b: ArrayLike = self._read_dataset("l1b", "shot_number")
+        shot_nums_l2a: ArrayLike = self._read_dataset("l2a", "shot_number")
         index_l1b: np.int64 = np.where(shot_nums_l1b == shot_number)[0][0]
         index_l2a: np.int64 = np.where(shot_nums_l2a == shot_number)[0][0]
 
@@ -134,15 +133,15 @@ class Waveform:
 
         return index
 
-    def _get_waveform(self) -> DSet:
+    def _get_waveform(self) -> ArrayLike:
         shot_index: np.int64 = self.metadata["shot_index"]
         # Extract waveform data, converting to 0-based index
-        start_idxs: DSet = self._read_dataset("l1b", ["rx_sample_start_index"])
-        counts: DSet = self._read_dataset("l1b", ["rx_sample_count"])
-        full_wf: DSet = self._read_dataset("l1b", ["rxwaveform"])
+        start_idxs: ArrayLike = self._read_dataset("l1b", "rx_sample_start_index")
+        counts: ArrayLike = self._read_dataset("l1b", "rx_sample_count")
+        full_wf: ArrayLike = self._read_dataset("l1b", "rxwaveform")
         wf_start = np.uint64(start_idxs[shot_index])
         wf_count = np.uint64(counts[shot_index])
-        wf: DSet = full_wf[wf_start: wf_start + wf_count]
+        wf: ArrayLike = full_wf[wf_start: wf_start + wf_count]
         return wf
 
     def _get_elev(self) -> Dict[str, Union[np.float32, np.float64]]:
@@ -183,7 +182,7 @@ class Waveform:
         for key in keys:
             dataset = dataset[key]
 
-        if not isinstance(dataset, (DSet, np.ndarray)):
+        if not isinstance(dataset, (h5py.Dataset, np.ndarray)):
             raise TypeError(
                 f"Expected h5py.Dataset or numpy array in {which_product} at {keys}, got {type(dataset)}"
             )
