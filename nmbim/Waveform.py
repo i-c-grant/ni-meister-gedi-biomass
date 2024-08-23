@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+from numpy.typing import ArrayLike
 from typing import Any, Dict, Union, List
 from nmbim.CachedBeam import CachedBeam
 
