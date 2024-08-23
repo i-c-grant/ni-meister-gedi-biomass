@@ -229,3 +229,9 @@ class Waveform:
         for key in keys[1:-1]:
             data_dict = data_dict[key]
         data_dict[keys[-1]] = data
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Waveform):
+            return False
+        else:
+            return self.metadata == other.metadata
