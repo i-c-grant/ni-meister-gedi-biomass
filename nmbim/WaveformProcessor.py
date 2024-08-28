@@ -1,5 +1,5 @@
 from nmbim.Waveform import Waveform
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Iterable
 from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
