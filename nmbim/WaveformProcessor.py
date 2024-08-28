@@ -1,79 +1,62 @@
 from nmbim.Waveform import Waveform
 from typing import Any, Callable, Dict, List, Optional
-from collections import deque
+from dataclasses import dataclass, field
 
+@dataclass(frozen=True)
 class WaveformProcessor:
-    """Object to process Waveforms with one algorithm and parameter set.
-    
+    """Responsible for processing one collection of Waveforms with one algorithm.
+    Attributes are supplied at initialization and are immutable.
+    Processsing function can only be called once.
+
     Attributes
     ----------
+    waveforms: Iterable[Waveform]
+        Collection of Waveform objects to process in place.
+
     alg_fun: Callable
-        The algorithm function to apply to the waveform.
+        The algorithm function to apply to each waveform in the supplied collection.
 
     params: Dict[str, Any]
-        Dictionary containing the parameters for the algorithm.
+        Dictionary containing the parameters for the algorithm function.
+    Parameters are algorithm inputs other than the waveform data itself.
 
     input_map: Dict[str, str]
-        Dictionary mapping algorithm input names to waveform data keys, where
-    the keys are the algorithm function's arguments and the values are the
-    paths to the data in the Waveform.
+        Dictionary mapping algorithm function arguments to Waveform data paths.
+    Together, params and input_map should contain all arguments that alg_fun requires.
 
     output_path: str
-        Path indicating where to save processed data in Waveform.
+        Path indicating where to save processed data in each Waveform.
 
     Methods
     -------
     process() -> None
         Applies the algorithm and saves the results to the Waveform.
+    Can only be called once.
 """
+    alg_fun: Callable
+    params: Dict[str, Any]
+    input_map: Dict[str, str]
+    output_path: str
+    waveforms: Iterable[Waveform]
 
-    def __init__(self,
-                 alg_fun: Callable,
-                 input_map: Dict[str, str],
-                 output_path: str,
-                 params: Dict[str, Any],
-        ) -> None:
-        """Initializes the WaveformProcessor object.
-
-        Parameters
-        ----------
-        alg_fun: Callable
-            The algorithm function to apply to the waveform.
-
-        params: Dict[str, Any]
-            Dictionary containing the parameters for the algorithm.
-
-        input_map: Dict[str, str]
-            Dictionary mapping algorithm input names to waveform data keys.
-
-        output_path: str
-            Path indicating where to save processed data in Waveform.
-
-        queue: deque[Waveform]
-            deque of Waveform objects to process. First in, first out.
-        """
-            
-        self.alg_fun: Callable = alg_fun
-        self.params: Dict[str, Any] = params
-        self.input_map: Dict[str, str] = input_map
-        self.output_path: str = output_path
-        self.queue: deque[Waveform] = deque()
-
-    def add_waveform(self, waveform: Waveform) -> None:
-        """Adds a waveform to the processing queue."""
-        self.queue.append(waveform)
+    _processed: bool = field(default=False, init=False, repr=False)
 
     def process(self) -> None:
-        """Applies the algorithm to the waveform data."""
-        while self.queue:
-            self._process_next()
-
-    def _process_next(self) -> None:
-        """Applies the algorithm to the waveform data,
-        modifying the next waveform in processing queue in place.
+        """Apply the algorithm to each waveform in the collection and save the results.
+        Can only be called once to prevent accidental reprocessing.
         """
-        # Get data from waveform
-        waveform: Waveform = self.queue.popleft()
+        if self._processed:
+            raise RuntimeError("This WaveformProcessor has already been processed.")
+
+        for w in self.waveforms:
+            self._process_next(w)
+        
+        object.__setattr__(self, "_processed", True)
+
+    def _process_next(self, waveform: Waveform) -> None:
+        # Apply the algorithm to the next waveform in the collection
+
+        # Get input data from waveform
         data: Dict[str, Any] = {}
 
         for key in self.input_map:
@@ -85,13 +68,3 @@ class WaveformProcessor:
         
         # Save results to waveform
         waveform.save_data(results, self.output_path)
-
-    def __repr__(self) -> str:
-        rep = (
-            f"WaveformProcessor object: {self.alg_fun.__name__}, "
-            f"{self.params}, {self.input_map}, {self.output_path}"
-        )
-        return rep
-
-    def __str__(self) -> str:
-        return f"WaveformProcessor object: {self.alg_fun.__name__}"
