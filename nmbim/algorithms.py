@@ -67,6 +67,50 @@ def truncate_waveform(floor: IntOrFloat,
     mask = (ht >= floor) & (ht <= ceiling)
     trunc_wf[~mask] = np.nan
     return trunc_wf
+
+
+def calc_biomass_index_simple(dp_dz: ArrayLike,
+                              dz: float,
+                              ht: ArrayLike,
+                              ceiling: float,
+                              floor: float,
+                              hse: float) -> float:
+    """
+    Calculate a simple biomass index for a waveform. Sum of waveform returns raised to the HSE, with below-ground returns set to negative absolute value to cancel out the above-ground component of the ground return.
+
+    Parameters
+    ----------
+    dp_dz: ArrayLike
+        Change in gap probability per unit height. Assumed to be >= 0.
+
+    dz: float
+        Height increment (m) between waveform returns.
+
+    ht: ArrayLike
+        Height of each waveform return relative to ground.
+
+    hse: float
+        Height scaling exponent.
+
+    Returns
+    -------
+    biomass_index: float
+        Biomass index for the waveform.
+    """
+    mask = (ht >= floor) & (ht <= ceiling)
+    biomass_index = (
+        np.nansum(dp_dz[mask] *
+                  np.abs(ht[mask]) ** hse *
+                  np.sign(ht[mask]))
+    )
+    biomass_index *= dz
+    return biomass_index
+
+def calc_height(wf: ArrayLike,
+                elev_top: float,
+                elev_bottom: float,
+                elev_ground: float) -> ArrayLike:
+    """
     Calculate height of each waveform return relative to ground.
 
     Parameters
