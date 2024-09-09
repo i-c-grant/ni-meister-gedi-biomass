@@ -131,28 +131,47 @@ def calc_height(wf: ArrayLike,
     -------
     ArrayLike
         Height (m) relative to ground for each return, beginning at top
-    '''
+    """
     elev_range = np.linspace(elev_top, elev_bottom, len(wf))
     return elev_range - elev_ground
-    
-    
-    
+
 
 def normalize_waveform(wf: ArrayLike) -> ArrayLike:
     # Normalize waveform by dividing by total waveform sum
     return np.divide(wf, np.nansum(wf))
 
-def calc_wf_per_height(wf: ArrayLike, dz: float) -> ArrayLike:
+
+def calc_dp_dz(wf: ArrayLike, dz: float) -> ArrayLike:
+    """
+    Calculate change in gap probability per unit height from waveform returns.
+
+    Parameters
+    ----------
+    wf : ArrayLike
+        Waveform returns.
+
+    dz : float
+        Height increment for calculating dp/dz.
+
+    Returns
+    -------
+    ArrayLike
+        Change in gap probability per unit height.
+    """
+    
     # Calculate waveform returns per unit height (m)
     dp_dz = wf / dz
     # Set negative return values to zero
     dp_dz[dp_dz < 0] = 0
     return dp_dz
 
-def separate_veg_ground(wf: ArrayLike,
-                        ht: ArrayLike,
-                        rh: ArrayLike,
-                        veg_floor: IntOrFloat) -> Dict:
+
+def separate_veg_ground(
+        wf: ArrayLike,
+        ht: ArrayLike,
+        rh: ArrayLike,
+        veg_floor: IntOrFloat
+) -> Dict:
     """
     Calculate indices of waveform returns corresponding to ground and vegetation. Assumes a symmetric ground return. Note: indices start from the top of the waveform.
 
