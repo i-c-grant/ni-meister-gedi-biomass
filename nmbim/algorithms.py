@@ -8,6 +8,24 @@ from scipy import ndimage
 
 IntOrFloat = Union[int, float]
 
+def calc_dz(ht: ArrayLike) -> float:
+    """
+    Calculate height increment (dz) between waveform returns.
+
+    Parameters
+    ----------
+    ht : ArrayLike
+        Height (m) of each waveform return relative to ground.
+
+    Returns
+    -------
+    float
+        Height increment (m) between waveform returns.
+    """
+    return ht[1] - ht[0]
+
+
+
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # Remove mean noise from waveform
     return wf - mean_noise
