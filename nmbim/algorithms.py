@@ -29,13 +29,44 @@ def calc_dz(ht: ArrayLike) -> float:
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # Remove mean noise from waveform
     return wf - mean_noise
-        
+
+
 def smooth_waveform(wf: ArrayLike, sd: IntOrFloat) -> ArrayLike:
     # Smooth waveform using Gaussian filter
     return ndimage.gaussian_filter1d(wf, sd)
 
-def calc_height(wf: ArrayLike, elev_top, elev_bottom, elev_ground) -> ArrayLike:
-    '''
+def truncate_waveform(floor: IntOrFloat,
+                      ceiling: IntOrFloat,
+                      wf: ArrayLike,
+                      ht: ArrayLike) -> ArrayLike:
+
+    """
+    Truncate waveform to specified height range in m, inclusive. Heights are relative to the ground return.
+    
+    Parameters
+    ----------
+
+    floor : IntOrFloat
+        Minimum height of waveform in meters.
+
+    ceiling : IntOrFloat
+        Maximum height of waveform in meters.
+
+    wf : ArrayLike
+        Waveform returns.
+
+    ht : ArrayLike
+        Height of each waveform return relative to ground.
+
+    Returns
+    -------
+    truncated_wf : ArrayLike
+        Truncated waveform returns.
+"""
+    trunc_wf = wf.copy()
+    mask = (ht >= floor) & (ht <= ceiling)
+    trunc_wf[~mask] = np.nan
+    return trunc_wf
     Calculate height of each waveform return relative to ground.
 
     Parameters
