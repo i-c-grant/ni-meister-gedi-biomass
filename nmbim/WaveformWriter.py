@@ -6,7 +6,6 @@ from pathlib import Path
 import geopandas as gpd
 import h5py
 import numpy as np
-
 from nmbim.Waveform import Waveform
 from shapely.geometry import Point
 
@@ -72,8 +71,12 @@ class WaveformWriter:
                 # (e.g. biomass index) or an array of values (e.g. raw waveform).
                 # Both are okay as long as all columns requested are of the same length,
                 # which is checked in WaveformWriter._validate_row_lengths.
-                col_data: Union[ArrayLike, int, float, str] = waveform.get_data(col_path)
-                if isinstance(col_data, (int, float, str)):
+                col_data = waveform.get_data(col_path)
+                if isinstance(col_data, (int,
+                                         float,
+                                         str,
+                                         np.floating,
+                                         np.integer)):
                     col_data = [col_data] # Cast single values to list for length validation
                 else:
                     raise TypeError(
