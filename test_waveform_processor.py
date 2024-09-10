@@ -39,57 +39,30 @@ def main():
     # Define processor parameters
     processor_params = processing_pipelines.pipeline_biomass_index_simple
 
-    with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a:
-        # Get beam names, excluding metadata group
-        beams = [key for key in l1b.keys() if key != 'METADATA']
+    waveforms = WaveformCollection(l1b_path,
+                                   l2a_path,
+                                   limit=num_waveforms,
+                                   cache_beams=args.cache,)
+    
+    # Create pipeline of processors for this beam
+    pipeline = []
 
-        for beam in beams:
+    for proc_name in processor_params:
+        p = WaveformProcessor(**processor_params[proc_name], waveforms = waveforms)
+        pipeline.append(p)
 
-            # Load beam data into memory if caching is enabled
-            # Otherwise, access data directly from file
-            if args.cache:
-                l1b_beam = CachedBeam(l1b, beam)
-                l2a_beam = CachedBeam(l2a, beam)
-            else:
-                l1b_beam = l1b[beam]
-                l2a_beam = l2a[beam]
+    # Process waveforms, applying each processor in order
+    for p in pipeline:
+        p.process()
 
-            # Limit number of waveforms to process if limit was specified
-            if num_waveforms is not None:
-                shot_numbers = l1b[beam]["shot_number"][:num_waveforms]
-
-            else:
-                shot_numbers = l1b[beam]["shot_number"][:]
-
-            print(f"Processing {len(shot_numbers)} waveforms for beam {beam}")
-
-            # Define within-beam waveform arguments that don't change between waveforms
-            waveform_args = {"l1b_beam": l1b_beam, "l2a_beam": l2a_beam}
-
-            # Create set of waveforms for this beam, ensuring no duplicates
-            waveforms = set()
-            for shot_number in shot_numbers:
-                waveform_args["shot_number"] = shot_number
-                waveforms.add(Waveform(**waveform_args))
-
-            # Create pipeline of processors for this beam
-            pipeline = []
-            for proc_name in processor_params:
-                p = WaveformProcessor(**processor_params[proc_name], waveforms = waveforms)
-                pipeline.append(p)
-
-            # Process waveforms, applying each processor in order
-            for p in pipeline:
-                p.process()
-                
-            # Write processed data to GeoPackage
-            waveform_writer = WaveformWriter(path=f"{output_dir}/test.gpkg",
-                                             cols={"biwf": "results/biomass_index",
-                                                   "lat": "metadata/coords/lat",
-                                                   "lon": "metadata/coords/lon"},
-                                             append=True,
-                                             waveforms=waveforms)
-            waveform_writer.write()
+    # Write processed data to GeoPackage
+    waveform_writer = WaveformWriter(path=f"{output_dir}/test.gpkg",
+                                     cols={"biwf": "results/biomass_index",
+                                           "lat": "metadata/coords/lat",
+                                           "lon": "metadata/coords/lon"},
+                                     append=True,
+                                     waveforms=waveforms)
+    waveform_writer.write()
 
 if __name__ == "__main__":
     main()
