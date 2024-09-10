@@ -2,9 +2,7 @@ import h5py
 import numpy as np
 from numpy.typing import ArrayLike
 from typing import Any, Dict, Union, List
-from nmbim.CachedBeam import CachedBeam
-
-InputBeam = Union[h5py.Group, CachedBeam]
+from nmbim.Beam import Beam
 
 class Waveform:
     """Fetches NMBIM-relevant data for one waveform from files or cached data.
@@ -38,8 +36,8 @@ class Waveform:
     def __init__(
             self,
             shot_number: int,
-            l1b_beam: InputBeam,
-            l2a_beam: InputBeam,
+            l1b_beam: Beam,
+            l2a_beam: Beam,
     ) -> None:
         """Initializes the Waveform object.
 
@@ -48,54 +46,61 @@ class Waveform:
         shot_number: int
             The unique shot number of the waveform.
 
-        beam: str
-            The beam name for the waveform (e.g. "BEAM0000").
-
-        l1b_beam: InputBeam
+        l1b_beam: Beam
             The L1B beam data.
 
-        l2a_beam: InputBeam
+        l2a_beam: Beam
             The L2A beam data.
-
         """
-        self.l1b_beam: InputBeam = l1b_beam
-        self.l2a_beam: InputBeam = l2a_beam
 
-        # Get beam name from CachedBeam object or h5py.Group
-        if isinstance(l1b_beam, CachedBeam):
-            beam = l1b_beam.get_beam_name()
-        elif isinstance(l1b_beam, h5py.Group):
-            beam = l1b_beam.name.split("/")[-1]
+        self.l1b_beam: Beam = l1b_beam
+        self.l2a_beam: Beam = l2a_beam
 
+        beam_name = l1b_beam.get_beam_name()
+        
         # Store initial metadata
         self.metadata = {
             "shot_number": shot_number,
-            "beam": beam,
+            "beam": beam_name,
         }
 
         # Get shot index for this waveform (requires initial metadata)
-        # This is the index of the shot within the file,
+        # This is the index of the shot within its files,
         # not the unique shot number
         self.metadata["shot_index"] = self._get_shot_index()
         
         shot_index = self.metadata["shot_index"]
 
         # Store geolocation
-        lats: ArrayLike = self._read_dataset("l1b", "geolocation/latitude_bin0")
-        lons: ArrayLike = self._read_dataset("l1b", "geolocation/longitude_bin0")
+        lats: ArrayLike = self.l1b_beam.extract_dataset("geolocation/latitude_bin0")
+        lons: ArrayLike = self.l1b_beam.extract_dataset("geolocation/longitude_bin0")
 
         self.metadata["coords"] = {
             "lat": lats[shot_index],
             "lon": lons[shot_index],
         }
 
+        # Get quality flag and number of modes from L2A beam
+        self.metadata["flags"] = {
+            "quality": self.l2a_beam.extract_dataset("quality_flag")[shot_index],
+            "surface": self.l2a_beam.extract_dataset("surface_flag")[shot_index],
+        }
+
+        self.metadata["landcover"] = {
+            "modis_nonvegetated": self.l2a_beam.extract_dataset("land_cover_data/modis_nonvegetated")[shot_index],
+            "modis_treecover": self.l2a_beam.extract_dataset("land_cover_data/modis_treecover")[shot_index],
+            "landsat_treecover": self.l2a_beam.extract_dataset("land_cover_data/landsat_treecover")[shot_index],
+        }
+
+        self.metadata["modes"] = {
+            "num_modes": self.l2a_beam.extract_dataset("num_detectedmodes")[shot_index],
+        }
+
         # Initialize read-only waveform data (see property below)
         wf: ArrayLike = self._get_waveform()
-        mean_noise: float = self._read_dataset(
-            "l1b", "noise_mean_corrected"
-        )[shot_index]
+        mean_noise = self.l1b_beam.extract_dataset("noise_mean_corrected")[shot_index]
         elev: Dict[str, Union[np.float32, np.float64]] = self._get_elev()
-        rh: ArrayLike = self._read_dataset("l2a", "rh")
+        rh: ArrayLike = self.l2a_beam.extract_dataset("rh")
 
         self._raw = {
             "wf": wf,
@@ -119,8 +124,8 @@ class Waveform:
     def _get_shot_index(self) -> np.int64:
         # Find the index of this Waveform's shot within its beam group
         shot_number: np.int64 = self.metadata["shot_number"]
-        shot_nums_l1b: ArrayLike = self._read_dataset("l1b", "shot_number")
-        shot_nums_l2a: ArrayLike = self._read_dataset("l2a", "shot_number")
+        shot_nums_l1b: ArrayLike = self.l1b_beam.extract_dataset("shot_number")
+        shot_nums_l2a: ArrayLike = self.l2a_beam.extract_dataset("shot_number")
         index_l1b: np.int64 = np.where(shot_nums_l1b == shot_number)[0][0]
         index_l2a: np.int64 = np.where(shot_nums_l2a == shot_number)[0][0]
 
@@ -137,60 +142,36 @@ class Waveform:
     def _get_waveform(self) -> ArrayLike:
         shot_index: np.int64 = self.metadata["shot_index"]
         # Extract waveform data, converting to 0-based index
-        start_idxs: ArrayLike = self._read_dataset("l1b", "rx_sample_start_index")
-        counts: ArrayLike = self._read_dataset("l1b", "rx_sample_count")
-        full_wf: ArrayLike = self._read_dataset("l1b", "rxwaveform")
-        wf_start = np.uint64(start_idxs[shot_index])
-        wf_count = np.uint64(counts[shot_index])
+        start_idxs: ArrayLike = self.l1b_beam.extract_dataset("rx_sample_start_index")
+        wf_start: int = np.int64(start_idxs[shot_index])
+        counts: ArrayLike = self.l1b_beam.extract_dataset("rx_sample_count")
+        full_wf: ArrayLike = self.l1b_beam.extract_dataset("rxwaveform")
+        wf_count = counts[shot_index]
         wf: ArrayLike = full_wf[wf_start: wf_start + wf_count]
         return wf
 
     def _get_elev(self) -> Dict[str, Union[np.float32, np.float64]]:
         shot_index = self.metadata["shot_index"]
-
-        # Extract elevation data and calculate height above ground.
+        # Elevation of top of waveform return window
         top = np.float64(
-            self._read_dataset("l2a", "elev_highestreturn")[shot_index]
+            self.l2a_beam.extract_dataset("elev_highestreturn")[shot_index]
         )
+        # Elevation of bottom of waveform return window
         bottom = np.float64(
-            self._read_dataset("l1b", "geolocation/elevation_lastbin")[shot_index]
+            self.l1b_beam.extract_dataset("geolocation/elevation_lastbin")[shot_index]
         )
+        # Elevation of ground, set to elevation of lowest detected waveform mode
         ground = np.float32(
-            self._read_dataset("l2a", "elev_lowestmode")[shot_index]
+            self.l2a_beam.extract_dataset("elev_lowestmode")[shot_index]
         )
 
         elev = {"top": top, "bottom": bottom, "ground": ground}
 
         return elev
 
-    def _read_dataset(self, which_product: str, path: str) -> Union[ArrayLike, np.ndarray]:
-        # Get dataset from L1B or L2A input beam.
-
-        # Returns h5py.Dataset if beam is h5py.Group (lazy loading)
-        # or numpy.ndarray if beam is CachedBeam (already loaded)
-        keys = path.split("/")
-        
-        if which_product == "l1b":
-            beam: InputBeam = self.l1b_beam
-        elif which_product == "l2a":
-            beam: InputBeam = self.l2a_beam
-        else:
-            raise ValueError(f"Data product must be 'l1b' or 'l2a', got {which_product}")
-
-        # Traverse nested dictionary to get dataset
-        dataset: Any = beam
-        for key in keys:
-            dataset = dataset[key]
-
-        if not isinstance(dataset, (h5py.Dataset, np.ndarray)):
-            raise TypeError(
-                f"Expected h5py.Dataset or numpy array in {which_product} at {keys}, got {type(dataset)}"
-            )
-        else:
-            return dataset
-
     def get_data(self, path: str) -> Any:
-        """Get data from the Waveform object.
+        """
+        Get data from the Waveform object.
 
         Parameters
         ----------
