@@ -180,10 +180,15 @@ class Waveform:
 
         Returns
         -------
-        data: np.ndarray
+        data: Any
             The data from the waveform.
         """
         keys = path.split("/")
+
+        if not hasattr(self, keys[0]):
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{keys[0]}'"
+            )
 
         # Get top-level dictionary
         data = getattr(self, keys[0])
@@ -202,13 +207,21 @@ class Waveform:
         data: Any
             The data to save.
 
-        keys: List[str]
-            List of keys indicating where to save data in the Waveform.
+        path: str
+            Path to the data in the Waveform object, e.g. "processed/heights".
         """
 
         keys = path.split("/")
+        if not hasattr(self, keys[0]):
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{keys[0]}'"
+            )
+
         data_dict = getattr(self, keys[0])
         for key in keys[1:-1]:
+            # Create nested dicts to the save path if they don't exist
+            if key not in data_dict:
+                data_dict[key] = {}
             data_dict = data_dict[key]
         data_dict[keys[-1]] = data
 
