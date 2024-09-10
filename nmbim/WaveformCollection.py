@@ -40,7 +40,8 @@ class WaveformCollection:
             input_l2a: str,
             filters: Union[Filter, List[Filter]] = None,
             limit: Optional[int] = None,
-            cache_beams: bool = True
+            cache_beams: bool = True,
+            beams = None
     ):
         """
         Initialize the WaveformCollection by loading waveform data from two HDF5 files.
@@ -52,6 +53,9 @@ class WaveformCollection:
                 of functions to apply to each waveform. Defaults to None (no filters).
             limit (Optional[int], optional): Maximum number of waveforms to process. 
                 Defaults to None (process all waveforms).
+            cache_beams (bool, optional): Whether to cache beam data in memory.
+                Defaults to True.
+            beams (List[str], optional): List of beam names to process.
         """
         
         self.l1b_path = Path(input_l1b)
@@ -70,8 +74,9 @@ class WaveformCollection:
         # Read in waveform data
         with h5py.File(input_l1b, "r") as l1b, h5py.File(input_l2a, "r") as l2a:
 
-            # Get beam names, excluding metadata group
-            beams: List[str] = [key for key in l1b.keys() if key != 'METADATA']
+            # If no beams are specified, process all beams
+            if beams is None:
+                beams: List[str] = [key for key in l1b.keys() if key != 'METADATA']
 
             # Construct waveforms for each beam, caching a beam at a time
             for beam_name in beams:
