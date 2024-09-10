@@ -101,9 +101,9 @@ class WaveformCollection:
                     )
 
                 if limit is None:
-                    limit = len(shot_numbers_l1b)
-
-                shot_numbers = shot_numbers_l1b[:limit]
+                    shot_numbers = shot_numbers_l1b
+                else:
+                    shot_numbers = shot_numbers_l1b[:limit]
 
                 # Create the Waveforms for this beam
                 waveform_args = {"l1b_beam": l1b_beam, "l2a_beam": l2a_beam}
