@@ -22,7 +22,7 @@ class Waveform:
         - mean_noise: np.uint16
             The mean noise value.
 
-        - elev: dict[str, np.uint16]
+        - elev: Dict[str, Union[np.float32, np.float64]]
             Dictionary containing elevation data.
 
     processed: dict[str, Any]
