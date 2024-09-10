@@ -1,18 +1,11 @@
 import argparse
 from datetime import datetime
-import cProfile
 import os
-from pathlib import Path
 
-import h5py
-
-import nmbim.algorithms as algorithms
-import nmbim.processing_pipelines as processing_pipelines
-from nmbim.CachedBeam import CachedBeam
-from nmbim.Waveform import Waveform
-from nmbim.WaveformProcessor import WaveformProcessor
-from nmbim.WaveformWriter import WaveformWriter
-
+from nmbim import (
+    algorithms, processing_pipelines, Beam, Waveform,
+    WaveformProcessor, WaveformCollection, WaveformWriter
+)
 
 def main():
     parser = argparse.ArgumentParser()
