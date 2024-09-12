@@ -22,7 +22,6 @@ class WaveformCollection:
     Attributes:
         l1b_path (Path): Path to the L1B HDF5 file.
         l2a_path (Path): Path to the L2A HDF5 file.
-        limit (Optional[int]): Limit on the number of waveforms to process.
         waveforms (List[Waveform]): List of filtered Waveform objects.
         filters (List[Filter]): List of filter functions to apply.
 
@@ -39,7 +38,6 @@ class WaveformCollection:
             input_l1b: str,
             input_l2a: str,
             filters: Union[Filter, List[Filter]] = None,
-            limit: Optional[int] = None,
             cache_beams: bool = True,
             beams = None
     ):
@@ -51,8 +49,6 @@ class WaveformCollection:
             input_l2a (str): Path to the L2A HDF5 file.
             filters (Union[Filter, List[Filter]], optional): A filter function or list 
                 of functions to apply to each waveform. Defaults to None (no filters).
-            limit (Optional[int], optional): Maximum number of waveforms to process. 
-                Defaults to None (process all waveforms).
             cache_beams (bool, optional): Whether to cache beam data in memory.
                 Defaults to True.
             beams (List[str], optional): List of beam names to process.
@@ -60,9 +56,10 @@ class WaveformCollection:
         
         self.l1b_path = Path(input_l1b)
         self.l2a_path = Path(input_l2a)
-        self.limit = limit
+
         self.waveforms = []
         self.cache_beams = cache_beams
+        self.beams = beams
 
         if filters is None:
             filters = []
@@ -100,23 +97,37 @@ class WaveformCollection:
                         f"but {input_l2a} has {len(shot_numbers_l2a)} shots."
                     )
 
-                if limit is None:
-                    shot_numbers = shot_numbers_l1b
-                else:
-                    shot_numbers = shot_numbers_l1b[:limit]
+                shot_numbers = shot_numbers_l1b
 
                 # Create the Waveforms for this beam
                 waveform_args = {"l1b_beam": l1b_beam, "l2a_beam": l2a_beam}
 
                 for shot_number in shot_numbers:
-                        waveform_args["shot_number"] = shot_number
-                        # Add waveforms if they pass the collection's filters
-                        self.add_waveform(Waveform(**waveform_args))
+                    waveform_args["shot_number"] = shot_number
+                    new_wf = Waveform(**waveform_args)
+                    if self.filter_waveform(new_wf):
+                        self.add_waveform(new_wf)
 
-    def add_waveform(self, wf: Waveform):
-        """Add a waveform to collection if it passes the collection's filters."""
-        if all(filt(wf) for filt in self.filters):
-            self.waveforms.append(wf)
+            if len(self) == 0:
+                warnings.warn(
+                    f"No waveforms were added to the collection "
+                    f"for beam(s) {self.beams}. Perhaps the filters "
+                    f"are too restrictive?"
+                )
+
+    def filter_waveform(self, wf: Waveform) -> bool:
+        """Apply filters to a waveform."""
+        return all(filt(wf) for filt in self.filters)
+
+    def add_waveform(self, wf: Waveform) -> None:
+        """Add a waveform to collection."""
+        self.waveforms.append(wf)
 
     def __iter__(self):
         return iter(self.waveforms)
+
+    def __len__(self):
+        return len(self.waveforms)
+
+    def __getitem__(self, index):
+        return self.waveforms[index]
