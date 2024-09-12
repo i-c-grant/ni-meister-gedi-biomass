@@ -48,6 +48,8 @@ class WaveformWriter:
         self._file_type = self.path.suffix.lstrip('.')
         if self._file_type not in ['csv', 'gpkg']:
             raise ValueError(f"Unsupported file type {self._file_type}")
+        if self.waveforms is None or len(self.waveforms) == 0:
+            raise ValueError("No waveforms provided to write")
 
         self._waveform_iter = iter(self.waveforms)
 
