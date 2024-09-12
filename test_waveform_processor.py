@@ -6,16 +6,16 @@ import logging
 
 from nmbim import (
     algorithms, processing_pipelines, Beam, Waveform,
-    WaveformProcessor, WaveformCollection, WaveformWriter
+    WaveformProcessor, WaveformCollection, WaveformWriter, WaveformPlot
 )
 
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("l1b", help="Path to L1B file", type=str)
     parser.add_argument("l2a", help="Path to L2A file", type=str)
-    parser.add_argument(
-        "-n", "--number", help="Number of waveforms to process", type=int
-    )
+    # parser.add_argument(
+        # "-n", "--number", help="Number of waveforms to process", type=int
+    # )
     parser.add_argument(
         "-c",
         "--cache",
