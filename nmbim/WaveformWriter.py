@@ -80,10 +80,10 @@ class WaveformWriter:
                                          np.floating,
                                          np.integer)):
                     col_data = [col_data] # Cast single values to list for length validation
-                else:
+                elif not isinstance(col_data, (list, np.ndarray)):
                     raise TypeError(
                         f"Unwritable data type {type(col_data)} in "
-                        "column {col_name}")
+                        f"column {col_name}")
                 self._waveform_data[col_name] = col_data
 
             # Update the number of rows based on the first column provided
@@ -164,6 +164,7 @@ class WaveformWriter:
                     **{col_name: self._waveform_data[col_name][i] for col_name in self._waveform_data},
                     "geometry": geometry
                 }
+
                 rows.append(row)
 
             wf = self._load_next_waveform()
