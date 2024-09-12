@@ -5,7 +5,7 @@ from typing import Dict
 import logging
 
 from nmbim import (
-    algorithms, processing_pipelines, Beam, Waveform,
+    algorithms, processing_pipelines, app_utils, Beam, Waveform,
     WaveformProcessor, WaveformCollection, WaveformWriter, WaveformPlot
 )
 
@@ -31,31 +31,6 @@ def create_parser():
 
     return parser
 
-def process_waveforms(waveforms: WaveformCollection,
-                      processor_params: Dict[str, Dict],
-                      output_dir: str,
-                      output_name: str):
-
-    # Create pipeline and process waveforms
-    pipeline = []
-    for proc_name in processor_params:
-        p = WaveformProcessor(**processor_params[proc_name],
-                              waveforms=waveforms)
-        pipeline.append(p)
-        
-    for p in pipeline:
-        p.process()
-
-    # Write processed data
-    waveform_writer = WaveformWriter(
-        path=f"{output_dir}/{output_name}.gpkg",
-        cols={"biwf": "results/biomass_index",
-              "num_modes": "metadata/modes/num_modes",
-              "quality_flag": "metadata/flags/quality",},
-        append=True,
-        waveforms=waveforms
-    )
-    waveform_writer.write()
 
 def main():
     parser = create_parser()
@@ -69,7 +44,7 @@ def main():
     output_name = f"test_run_{now}"
 
     # Define processor parameters
-    processor_params = processing_pipelines.pipeline_biomass_index_simple
+    processor_params = processing_pipelines.pipeline_test_veg_ground_sep
 
     # Beam processing or whole file processing
     beams = ["BEAM0000",
@@ -81,45 +56,37 @@ def main():
              "BEAM1000",
              "BEAM1011"]
 
-    # Quality control filters
-    def flag_filter(wf: Waveform) -> bool:
-        """Filter waveforms based on metadata or data quality."""
-        if wf.get_data("metadata/flags/quality") == 1:
-            return True
-        else: 
-            return False
-
-    def modes_filter(wf: Waveform) -> bool:
-        """Keep only waveforms with more than one mode."""
-        if wf.get_data("metadata/modes/num_modes") > 1:
-            return True
-        else:
-            return
-
-    my_filters = [flag_filter]
+    my_filters = app_utils.define_filters()
 
     if args.beamwise:
         for beam in beams:
             waveforms = WaveformCollection(args.l1b,
                                            args.l2a,
-                                           limit=args.number,
                                            cache_beams=args.cache,
                                            beams=[beam],
                                            filters=my_filters)
-            process_waveforms(waveforms,
-                              processor_params,
-                              output_dir,
-                              output_name)
+
+            app_utils.process_waveforms(waveforms,
+                                        processor_params)
+
+            # WaveformPlot(waveforms[0]).segmentation_plot()
+
+            app_utils.write_waveforms(waveforms,
+                                      output_dir,
+                                      output_name)
+
     else:
         waveforms = WaveformCollection(args.l1b,
                                        args.l2a,
-                                       limit=args.number,
                                        cache_beams=args.cache,
                                        filters=my_filters)
-        process_waveforms(waveforms,
-                          processor_params,
-                          output_dir,
-                          output_name)
+
+        app_utils.process_waveforms(waveforms,
+                                    processor_params)
+        
+        app_utils.write_waveforms(waveforms,
+                                  output_dir,
+                                  output_name)
 
     # Log the run
     logging.basicConfig(filename=f"{output_dir}/run.log", level=logging.INFO)
