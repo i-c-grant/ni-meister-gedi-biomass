@@ -4,6 +4,7 @@ from typing import List, Callable, Union, Optional
 from pathlib import Path
 import h5py
 import numpy as np
+import warnings
 
 from nmbim.Beam import Beam
 from nmbim.Waveform import Waveform
