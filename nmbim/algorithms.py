@@ -5,6 +5,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 from typing import Dict, Union
 from scipy import ndimage
+import warnings
 
 IntOrFloat = Union[int, float]
 
