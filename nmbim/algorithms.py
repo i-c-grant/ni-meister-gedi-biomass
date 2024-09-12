@@ -131,7 +131,10 @@ def calc_height(wf: ArrayLike,
     ArrayLike
         Height (m) relative to ground for each return, beginning at top
     """
-    elev_range = np.linspace(elev_top, elev_bottom, len(wf))
+    elev_range = np.linspace(start=elev_top,
+                             stop=elev_bottom,
+                             num=len(wf))
+
     return elev_range - elev_ground
 
 
@@ -169,10 +172,12 @@ def separate_veg_ground(
         wf: ArrayLike,
         ht: ArrayLike,
         rh: ArrayLike,
-        veg_floor: IntOrFloat
+        veg_floor: float,
+        veg_buffer: float = 0,
 ) -> Dict:
     """
-    Calculate indices of waveform returns corresponding to ground and vegetation. Assumes a symmetric ground return. Note: indices start from the top of the waveform.
+    Calculate indices of waveform returns corresponding to ground and vegetation.
+    Assumes a symmetric ground return. Note: indices start from the top of the waveform.
 
     Parameters
     ----------
@@ -188,7 +193,8 @@ def separate_veg_ground(
     Returns
     -------
     Dict
-        Dictionary with keys "ground_top", "ground_bottom", "veg_top", and "veg_bottom" and values giving the corresponding indices within the waveform.
+        Dictionary with keys "ground_top", "ground_bottom", "veg_top", and "veg_bottom"
+    and values giving the corresponding indices within the waveform.
     """
 
     # Get index of first vegetation return (top of canopy)
