@@ -222,12 +222,11 @@ def separate_veg_ground(
     # Ground return index +/- ground offset gives the indices
     # in the ground return region
     ground_offset = np.min(below_ground_noise_idxs)
-    breakpoint()
-    last_ground_idx = np.min(ground_idx + ground_offset, len(wf) - 1)
-    first_ground_idx = np.max(ground_idx - ground_offset, 0)
+    last_ground_idx = min(ground_idx + ground_offset, len(wf) - 1)
+    first_ground_idx = max(ground_idx - ground_offset, 0)
 
     # Calculate last vegetation return index
-    last_veg_height = np.min([veg_floor, -ht[last_ground_idx]])
+    last_veg_height = min([veg_floor, -ht[last_ground_idx]])
     veg_last_idx = np.max(np.where(ht >= last_veg_height))
 
     ans = {
