@@ -24,11 +24,10 @@ def calc_dz(ht: ArrayLike) -> float:
     """
     return ht[1] - ht[0]
 
-
-
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
-    # Remove mean noise from waveform
-    return wf - mean_noise
+    # Remove mean noise from waveform,
+    # with floor of zero
+    return np.maximum(wf - mean_noise, 0)
 
 
 def smooth_waveform(wf: ArrayLike, sd: IntOrFloat) -> ArrayLike:
