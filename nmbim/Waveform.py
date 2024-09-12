@@ -100,7 +100,7 @@ class Waveform:
         wf: ArrayLike = self._get_waveform()
         mean_noise = self.l1b_beam.extract_dataset("noise_mean_corrected")[shot_index]
         elev: Dict[str, Union[np.float32, np.float64]] = self._get_elev()
-        rh: ArrayLike = self.l2a_beam.extract_dataset("rh")
+        rh: ArrayLike = self.l2a_beam.extract_dataset("rh")[shot_index]
 
         self._raw = {
             "wf": wf,
