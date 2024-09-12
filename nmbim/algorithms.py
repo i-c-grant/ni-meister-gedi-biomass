@@ -168,6 +168,7 @@ def calc_dp_dz(wf: ArrayLike, dz: float) -> ArrayLike:
 def separate_veg_ground(
         wf: ArrayLike,
         ht: ArrayLike,
+        dz: float,
         rh: ArrayLike,
         veg_floor: float,
         veg_buffer: float = 0,
@@ -216,11 +217,17 @@ def separate_veg_ground(
         noise = np.std(wf_above_ground) * 2
         # Find below-noise indices with new noise level
         below_ground_noise_idxs = np.where(wf[ground_idx:] < noise)[0]
-        # If still no below-noise returns, raise exception
+        # If still no below-noise returns, default to 5 m below ground
         if len(below_ground_noise_idxs) == 0:
-            raise ValueError(
-                f"No returns below noise level {noise} found below ground return"
+            warnings.warn(
+                f"No returns below noise level {noise} "
+                f"found below ground return"
             )
+            below_ground_noise_idxs = (
+                np.where((ht[ground_idx:] > -5) &
+                         (ht[ground_idx:] < 0))
+            )[0]
+                         
 
     # Ground return index +/- ground offset gives the indices
     # in the ground return region
@@ -230,11 +237,11 @@ def separate_veg_ground(
 
     # Calculate last vegetation return index
     last_veg_height = min([veg_floor, -ht[last_ground_idx]])
-    veg_last_idx = np.max(np.where(ht >= last_veg_height))
+    veg_last_idx = min(np.max(np.where(ht >= last_veg_height)),
+                       len(wf) - 1)
 
     # Add buffer to vegetation height to account for continuous dropoff
     # in canopy between highest detected return and first empty bin
-    dz = ht[1] - ht[0]
     veg_buffer = dz * .5
 
     ans = {
