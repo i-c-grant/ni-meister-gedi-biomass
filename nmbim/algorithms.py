@@ -235,11 +235,16 @@ def separate_veg_ground(
     last_veg_height = min([veg_floor, -ht[last_ground_idx]])
     veg_last_idx = np.max(np.where(ht >= last_veg_height))
 
+    # Add buffer to vegetation height to account for continuous dropoff
+    # in canopy between highest detected return and first empty bin
+    dz = ht[1] - ht[0]
+    veg_buffer = dz * .5
+
     ans = {
-        "ground_top": first_ground_idx,
-        "ground_bottom": last_ground_idx,
-        "veg_top": veg_first_idx,
-        "veg_bottom": veg_last_idx,
+        "ground_top": ht[first_ground_idx],
+        "ground_bottom": ht[last_ground_idx],
+        "veg_top": rh[100] + veg_buffer,
+        "veg_bottom": ht[veg_last_idx],
     }
 
     return ans
