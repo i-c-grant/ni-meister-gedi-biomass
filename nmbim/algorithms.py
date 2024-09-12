@@ -254,6 +254,26 @@ def separate_veg_ground(
     return ans
 
 
+def isolate_vegetation(wf: ArrayLike,
+                       ht: ArrayLike,
+                       veg_top: float,
+                       ground_return: ArrayLike) -> ArrayLike:
+
+    """
+    Isolate vegetation returns from a waveform by subtracting the ground return with a floor of zero and setting below-ground and above-canopy returns to zero.
+    """
+
+    # Subtract ground return from waveform
+    wf_no_ground = np.maximum(wf - ground_return, 0)
+
+    # Set below-ground and above-canopy returns to zero
+    mask = (ht < 0) | (ht > veg_top)
+
+    wf_no_ground[mask] = 0
+
+    return wf_no_ground
+                       
+
 def calc_gap_prob(
     wf_per_height: np.ndarray,
     veg_first_idx: int,
