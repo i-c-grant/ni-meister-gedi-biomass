@@ -1,5 +1,30 @@
 import nmbim.algorithms as algorithms
 
+pipeline_test_veg_ground_sep = {
+    "height": {"alg_fun" : algorithms.calc_height,
+                "input_map" : {"wf": "raw/wf",
+                                "elev_top": "raw/elev/top",
+                                "elev_bottom": "raw/elev/bottom",
+                                "elev_ground": "raw/elev/ground"},
+                "output_path" : "processed/ht",
+                "params" : {}},
+    "noise": {"alg_fun" : algorithms.remove_noise,
+              "input_map" : {"wf": "raw/wf",
+                             "mean_noise": "raw/mean_noise"},
+              "output_path" : "processed/wf_noise_removed",
+              "params" : {}},
+    "smooth": {"alg_fun" : algorithms.smooth_waveform,
+               "input_map" : {"wf": "processed/wf_noise_removed"},
+               "output_path" : "processed/wf_noise_smooth",
+               "params" : {"sd": 5}},
+    "segment": {"alg_fun" : algorithms.separate_veg_ground,
+                "input_map" : {"wf": "processed/wf_noise_smooth",
+                               "ht": "processed/ht",
+                               "rh": "raw/rh"},
+                "params": {"veg_floor": 5},
+                "output_path" : "results/veg_ground_sep"}
+}
+
 pipeline_biomass_index_simple = {
     "height": {"alg_fun" : algorithms.calc_height,
                "input_map" : {"wf": "raw/wf",
