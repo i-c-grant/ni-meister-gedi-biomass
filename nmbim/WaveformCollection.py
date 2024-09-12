@@ -124,6 +124,13 @@ class WaveformCollection:
         """Add a waveform to collection."""
         self.waveforms.append(wf)
 
+    def get_waveform(self, shot_number: int) -> Optional[Waveform]:
+        """Get a waveform by shot number."""
+        for wf in self.waveforms:
+            if wf.get_data("metadata/shot_number") == shot_number:
+                return wf
+        return None
+
     def __iter__(self):
         return iter(self.waveforms)
 
