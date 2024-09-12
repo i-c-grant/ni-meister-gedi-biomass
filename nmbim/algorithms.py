@@ -29,6 +29,29 @@ def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # with floor of zero
     return np.maximum(wf - mean_noise, 0)
 
+def create_ground_return(wf: ArrayLike,
+                         ht: ArrayLike,
+                         ground_bottom: ArrayLike) -> ArrayLike:
+
+    ground_index = np.where(np.abs(ht) == np.min(np.abs(ht)))
+    ground_peak = wf[ground_index]
+
+    # Initialize new array of same length as wf
+    ground_wf = np.zeros_like(wf)
+
+    # Define standard deviation for Gaussian
+    sigma = ground_bottom / 2
+
+    # Assign values as a Gaussian centered at the ground return
+    for i in range(len(ground_wf)):
+        ground_wf[i] = np.exp(-(ht[i] ** 2) / (2 * sigma ** 2))
+    ground_wf = np.round(ground_wf, 2)
+
+    # Scale to the peak of the ground return
+    ground_wf *= ground_peak
+
+    return ground_wf
+
 
 def smooth_waveform(wf: ArrayLike, sd: IntOrFloat) -> ArrayLike:
     # Smooth waveform using Gaussian filter
