@@ -140,26 +140,43 @@ class Waveform:
         return index
 
     def _get_waveform(self) -> ArrayLike:
+
         shot_index: np.int64 = self.metadata["shot_index"]
-        # Extract waveform data, converting to 0-based index
-        start_idxs: ArrayLike = self.l1b_beam.extract_dataset("rx_sample_start_index")
-        wf_start: int = np.int64(start_idxs[shot_index])
+
+        # Get the array with all waveforms for this beam
+        all_wfs: ArrayLike = self.l1b_beam.extract_dataset("rxwaveform")
+
+        # Get start index of waveform within all_wfs,
+        # converting to 0-based index from GEDI's 1-based index
+        start_idxs: ArrayLike = (
+            self.l1b_beam.extract_dataset("rx_sample_start_index")
+        )
+        wf_start: int = np.int64(start_idxs[shot_index]) - 1
+
+        # Get length of waveform within all_wfs
         counts: ArrayLike = self.l1b_beam.extract_dataset("rx_sample_count")
-        full_wf: ArrayLike = self.l1b_beam.extract_dataset("rxwaveform")
         wf_count = counts[shot_index]
-        wf: ArrayLike = full_wf[wf_start: wf_start + wf_count]
+
+        wf: ArrayLike = all_wfs[wf_start: wf_start + wf_count]
+
         return wf
 
     def _get_elev(self) -> Dict[str, Union[np.float32, np.float64]]:
         shot_index = self.metadata["shot_index"]
         # Elevation of top of waveform return window
         top = np.float64(
-            self.l2a_beam.extract_dataset("elev_highestreturn")[shot_index]
+            self.l1b_beam.extract_dataset(
+                "geolocation/elevation_bin0"
+            )[shot_index]
         )
+        
         # Elevation of bottom of waveform return window
         bottom = np.float64(
-            self.l1b_beam.extract_dataset("geolocation/elevation_lastbin")[shot_index]
+            self.l1b_beam.extract_dataset(
+                "geolocation/elevation_lastbin"
+            )[shot_index]
         )
+
         # Elevation of ground, set to elevation of lowest detected waveform mode
         ground = np.float32(
             self.l2a_beam.extract_dataset("elev_lowestmode")[shot_index]
