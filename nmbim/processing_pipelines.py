@@ -105,7 +105,7 @@ pipeline_biomass_index_simple = {
                              "dz": "processed/dz"},
               "output_path" : "processed/dp_dz",
               "params" : {}},
-    "biomass_index": {"alg_fun" : algorithms.calc_biomass_index_simple,
+    "biomass_index": {"alg_fun" : algorithms.calc_biomass_index,
                       "input_map" : {"dp_dz": "processed/dp_dz",
                                      "ht": "processed/ht",
                                      "dz": "processed/dz"},
