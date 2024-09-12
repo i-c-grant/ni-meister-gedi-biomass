@@ -22,7 +22,7 @@ def calc_dz(ht: ArrayLike) -> float:
     float
         Height increment (m) between waveform returns.
     """
-    return ht[1] - ht[0]
+    return ht[0] - ht[1]
 
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # Remove mean noise from waveform,
