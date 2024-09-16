@@ -81,6 +81,9 @@ class Beam:
         """Returns the path to the file containing the beam data."""
         return self._path
 
+    def where_shot(self, shot_number: int) -> int:
+        """Returns the index of the shot number in the beam data."""
+        return np.where(self.data["shot_number"] == shot_number)[0][0]
 
     def __repr__(self) -> str:
         return (f"Beam(file={self._path}, beam={self.beam}, "
