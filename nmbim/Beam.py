@@ -1,11 +1,13 @@
 from dataclasses import dataclass
+from typing import Dict, Union
+
 import h5py
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Dict, Union
 
 # Recursive type alias for nested dictionary of numpy arrays
 BeamData = Dict[str, Union[np.ndarray, "BeamData"]]
+
 
 @dataclass
 class Beam:
@@ -23,6 +25,7 @@ class Beam:
     cache: bool
         Whether to cache the beam data in memory.
     """
+
     file: h5py.File
     beam: str
     cache: bool = False
@@ -50,10 +53,13 @@ class Beam:
                 # Load dataset into dictionary as numpy array
                 data[key] = group[key][()]
             else:
-                raise TypeError(f"Expected group or dataset, got {type(group[key])}")
+                raise TypeError(
+                    f"Expected group or dataset, got {type(group[key])}"
+                )
         return data
 
     def extract_dataset(self, path: str) -> ArrayLike:
+        """Extracts a full dataset from the beam data at the given path."""
         keys = path.split("/")
         data = self.data
         for key in keys:
@@ -62,13 +68,20 @@ class Beam:
             raise TypeError(f"Expected ArrayLike, got {type(data)}")
         return data
 
+    def extract_value(self, path: str, index: int) -> float:
+        """Extracts a value from the beam data at the given path and index."""
+        data = self.extract_dataset(path)
+        return data[index]
+
     def get_beam_name(self) -> str:
+        """Returns the name of the beam."""
         return self.beam
 
     def get_path(self) -> str:
+        """Returns the path to the file containing the beam data."""
         return self._path
 
+
     def __repr__(self) -> str:
-        return f"Beam(file={self._path}, beam={self.beam}, cache={self.cache})"
-
-
+        return (f"Beam(file={self._path}, beam={self.beam}, "
+                f"cache={self.cache})")

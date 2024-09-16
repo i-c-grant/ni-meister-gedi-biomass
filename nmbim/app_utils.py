@@ -2,38 +2,38 @@
 # Top-level functions for processing and writing waveforms #
 ############################################################
 
-import argparse
-from datetime import datetime
-import os
-from typing import Dict
-import logging
+from typing import Dict, Optional
 
 from nmbim import (
-    algorithms, processing_pipelines, Beam, Waveform,
-    WaveformProcessor, WaveformCollection, WaveformWriter, WaveformPlot
+    Waveform,
+    WaveformCollection,
+    WaveformProcessor,
+    WaveformWriter,
 )
 
-def process_waveforms(waveforms: WaveformCollection,
-                      processor_params: Dict[str, Dict]):
+def process_waveforms(
+    waveforms: WaveformCollection, processor_params: Dict[str, Dict]
+):
     """Process waveforms with a pipeline of algorithms defined by processor_params"""
 
     pipeline = []
     for proc_name in processor_params:
-        p = WaveformProcessor(**processor_params[proc_name],
-                              waveforms=waveforms)
+        p = WaveformProcessor(
+            **processor_params[proc_name], waveforms=waveforms
+        )
         pipeline.append(p)
-        
+
     for p in pipeline:
         p.process()
 
 
-def write_waveforms(waveforms: WaveformCollection,
-                    output_dir: str,
-                    output_name: str):
+def write_waveforms(
+    waveforms: WaveformCollection, output_dir: str, output_name: str
+):
     """Write processed waveforms to a GeoPackage file"""
 
     # Columns with results of interest
-    results_cols = {"biwf":"results/biomass_index"}
+    results_cols = {"biwf": "results/biomass_index"}
 
     # Columns that are always present in Waveform metadata
     context_cols = {
@@ -64,7 +64,7 @@ def define_filters():
         """Filter waveforms based on metadata or data quality."""
         if wf.get_data("metadata/flags/quality") == 1:
             return True
-        else: 
+        else:
             return False
 
     def modes_filter(wf: Waveform) -> bool:

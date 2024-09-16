@@ -1,13 +1,14 @@
 import csv
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, Iterable, Optional, Union
 
 import geopandas as gpd
-import h5py
 import numpy as np
-from nmbim.Waveform import Waveform
 from shapely.geometry import Point
+
+from nmbim.Waveform import Waveform
+
 
 @dataclass
 class WaveformWriter:
@@ -36,23 +37,26 @@ class WaveformWriter:
     waveforms: Iterable[Waveform]
 
     # Data dictionary for the current waveform
-    _waveform_data: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
+    _waveform_data: Dict[str, Any] = field(
+        default_factory=dict, init=False, repr=False
+    )
     # Iterator over the waveforms
-    _waveform_iter: Iterable[Waveform] = field(default=None, init=False, repr=False)
+    _waveform_iter: Iterable[Waveform] = field(
+        default=None, init=False, repr=False
+    )
     # Number of rows to write for the current waveform
     _n_rows: int = field(default=None, init=False, repr=False)
 
     def __post_init__(self) -> None:
         if isinstance(self.path, str):
             self.path = Path(self.path)
-        self._file_type = self.path.suffix.lstrip('.')
-        if self._file_type not in ['csv', 'gpkg']:
+        self._file_type = self.path.suffix.lstrip(".")
+        if self._file_type not in ["csv", "gpkg"]:
             raise ValueError(f"Unsupported file type {self._file_type}")
         if self.waveforms is None or len(self.waveforms) == 0:
             raise ValueError("No waveforms provided to write")
 
         self._waveform_iter = iter(self.waveforms)
-
 
     def _get_next(self):
         # Get the next waveform from the iterator
@@ -74,16 +78,17 @@ class WaveformWriter:
                 # Both are okay as long as all columns requested are of the same length,
                 # which is checked in WaveformWriter._validate_row_lengths.
                 col_data = waveform.get_data(col_path)
-                if isinstance(col_data, (int,
-                                         float,
-                                         str,
-                                         np.floating,
-                                         np.integer)):
-                    col_data = [col_data] # Cast single values to list for length validation
+                if isinstance(
+                    col_data, (int, float, str, np.floating, np.integer)
+                ):
+                    col_data = [
+                        col_data
+                    ]  # Cast single values to list for length validation
                 elif not isinstance(col_data, (list, np.ndarray)):
                     raise TypeError(
                         f"Unwritable data type {type(col_data)} in "
-                        f"column {col_name}")
+                        f"column {col_name}"
+                    )
                 self._waveform_data[col_name] = col_data
 
             # Update the number of rows based on the first column provided
@@ -113,8 +118,9 @@ class WaveformWriter:
         """
 
         # Write to the file
-        with open(self.path, "a" if self.append else "w", newline="") as csv_file:
-
+        with open(
+            self.path, "a" if self.append else "w", newline=""
+        ) as csv_file:
             writer = csv.writer(csv_file)
 
             # Load data from first waveform and store reference to it
@@ -122,7 +128,9 @@ class WaveformWriter:
 
             # Write header if file is empty
             if csv_file.tell() == 0:
-                header = ["shot_number", "beam"] + list(self._waveform_data.keys())
+                header = ["shot_number", "beam"] + list(
+                    self._waveform_data.keys()
+                )
                 writer.writerow(header)
 
             # Write data for each waveform
@@ -136,10 +144,9 @@ class WaveformWriter:
                 # Construct and write data rows for current waveform
                 wf_data: dict = self._waveform_data
                 for i in range(self._n_rows):
-                    row = (
-                        [shot_number, beam] +
-                        [col_data[i] for col_data in wf_data.values()]
-                    )
+                    row = [shot_number, beam] + [
+                        col_data[i] for col_data in wf_data.values()
+                    ]
                     writer.writerow(row)
 
                 # Load data from the next waveform
@@ -161,8 +168,11 @@ class WaveformWriter:
                 row = {
                     "shot_number": shot_number,
                     "beam": beam,
-                    **{col_name: self._waveform_data[col_name][i] for col_name in self._waveform_data},
-                    "geometry": geometry
+                    **{
+                        col_name: self._waveform_data[col_name][i]
+                        for col_name in self._waveform_data
+                    },
+                    "geometry": geometry,
                 }
 
                 rows.append(row)
@@ -173,11 +183,11 @@ class WaveformWriter:
         gdf.to_file(self.path, driver="GPKG", mode="a" if self.append else "w")
 
     def write(self) -> None:
-        if self._file_type == 'csv':
+        if self._file_type == "csv":
             self._to_csv()
-        elif self._file_type == 'gpkg':
+        elif self._file_type == "gpkg":
             self._to_gpkg()
-    
+
     def __repr__(self) -> str:
         return f"WaveformWriter(path={self.path!r}, cols={self.cols!r}, append={self.append})"
 

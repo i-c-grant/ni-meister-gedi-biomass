@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, Iterator, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 from nmbim import Waveform, WaveformCollection
+
 
 class ProcessorState:
     """Stores the state of a WaveformProcessor object, which is otherwise immutable.
@@ -66,9 +67,9 @@ class WaveformProcessor:
     output_path: str
     waveforms: WaveformCollection
 
-    _state: ProcessorState = field(init=False,
-                                   default_factory=ProcessorState,
-                                   repr=False)
+    _state: ProcessorState = field(
+        init=False, default_factory=ProcessorState, repr=False
+    )
 
     def __post_init__(self) -> None:
         self._state.set_waveform_iter(self.waveforms)
@@ -78,7 +79,9 @@ class WaveformProcessor:
         Can only be called once to prevent accidental reprocessing.
         """
         if self._state.was_processed():
-            raise RuntimeError("This WaveformProcessor has already been processed.")
+            raise RuntimeError(
+                "This WaveformProcessor has already been processed."
+            )
 
         while self._process_next() is not None:
             pass
@@ -96,7 +99,6 @@ class WaveformProcessor:
         waveform = self._get_next()
 
         if waveform is not None:
-
             # Get input data from waveform
             data: Dict[str, Any] = {}
 

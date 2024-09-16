@@ -1,7 +1,8 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from nmbim.Waveform import Waveform
+
 
 class WaveformPlot:
     """
@@ -19,11 +20,13 @@ class WaveformPlot:
     y_path: str
         The path to the data to plot on the y-axis.
     """
-    
-    def __init__(self,
-                 wf: Waveform,
-                 x_path: str = "processed/ht",
-                 y_path: str = "raw/wf") -> None:
+
+    def __init__(
+        self,
+        wf: Waveform,
+        x_path: str = "processed/ht",
+        y_path: str = "raw/wf",
+    ) -> None:
         self.wf = wf
         self.x_path = x_path
         self.y_path = y_path
@@ -39,20 +42,22 @@ class WaveformPlot:
     def segmentation_plot(self):
         # Get data
         y = self.wf.get_data("processed/ht")
-        x = self.wf.get_data("processed/dp_dz_veg_only")
+        x = self.wf.get_data("processed/dp_dz")
 
         # Get vegetation and ground separation data
         veg_top = self.wf.get_data("processed/veg_ground_sep/veg_top")
         veg_bottom = self.wf.get_data("processed/veg_ground_sep/veg_bottom")
         ground_top = self.wf.get_data("processed/veg_ground_sep/ground_top")
-        ground_bottom = self.wf.get_data("processed/veg_ground_sep/ground_bottom")
+        ground_bottom = self.wf.get_data(
+            "processed/veg_ground_sep/ground_bottom"
+        )
 
         # Get ground return data
         ground_return = self.wf.get_data("processed/ground_return")
 
         # Subtract ground return from waveform
         x = np.maximum(x - ground_return, 0)
-        
+
         # Create an array for colors
         colors = np.full_like(x, "gray", dtype=object)  # Default color is gray
 

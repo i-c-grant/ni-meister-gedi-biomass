@@ -1,13 +1,15 @@
 #################################################################
 # Algorithms for processing waveform data with the NMBIM model. #
 #################################################################
+import warnings
+from typing import Dict, Union
+
 import numpy as np
 from numpy.typing import ArrayLike
-from typing import Dict, Union
 from scipy import ndimage
-import warnings
 
 IntOrFloat = Union[int, float]
+
 
 def calc_dz(ht: ArrayLike) -> float:
     """
@@ -25,15 +27,16 @@ def calc_dz(ht: ArrayLike) -> float:
     """
     return ht[0] - ht[1]
 
+
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # Remove mean noise from waveform,
     # with floor of zero
     return np.maximum(wf - mean_noise, 0)
 
-def create_ground_return(wf: ArrayLike,
-                         ht: ArrayLike,
-                         ground_bottom: ArrayLike) -> ArrayLike:
 
+def create_ground_return(
+    wf: ArrayLike, ht: ArrayLike, ground_bottom: ArrayLike
+) -> ArrayLike:
     ground_index = np.where(np.abs(ht) == np.min(np.abs(ht)))
     ground_peak = wf[ground_index]
 
@@ -45,7 +48,7 @@ def create_ground_return(wf: ArrayLike,
 
     # Assign values as a Gaussian centered at the ground return
     for i in range(len(ground_wf)):
-        ground_wf[i] = np.exp(-(ht[i] ** 2) / (2 * sigma ** 2))
+        ground_wf[i] = np.exp(-(ht[i] ** 2) / (2 * sigma**2))
     ground_wf = np.round(ground_wf, 2)
 
     # Scale to the peak of the ground return
@@ -58,14 +61,13 @@ def smooth_waveform(wf: ArrayLike, sd: IntOrFloat) -> ArrayLike:
     # Smooth waveform using Gaussian filter
     return ndimage.gaussian_filter1d(wf, sd)
 
-def truncate_waveform(floor: IntOrFloat,
-                      ceiling: IntOrFloat,
-                      wf: ArrayLike,
-                      ht: ArrayLike) -> ArrayLike:
 
+def truncate_waveform(
+    floor: IntOrFloat, ceiling: IntOrFloat, wf: ArrayLike, ht: ArrayLike
+) -> ArrayLike:
     """
     Truncate waveform to specified height range in m, inclusive. Heights are relative to the ground return.
-    
+
     Parameters
     ----------
 
@@ -85,17 +87,16 @@ def truncate_waveform(floor: IntOrFloat,
     -------
     truncated_wf : ArrayLike
         Truncated waveform returns.
-"""
+    """
     trunc_wf = wf.copy()
     mask = (ht >= floor) & (ht <= ceiling)
     trunc_wf[~mask] = np.nan
     return trunc_wf
 
 
-def calc_biomass_index(dp_dz: ArrayLike,
-                       dz: float,
-                       ht: ArrayLike,
-                       hse: float) -> float:
+def calc_biomass_index(
+    dp_dz: ArrayLike, dz: float, ht: ArrayLike, hse: float
+) -> float:
     """
     Calculate a simple biomass index for a waveform. Sum of height raised to the HSE weighted by waveform returns.
     """
@@ -103,10 +104,10 @@ def calc_biomass_index(dp_dz: ArrayLike,
     biomass_index *= dz
     return biomass_index
 
-def calc_height(wf: ArrayLike,
-                elev_top: float,
-                elev_bottom: float,
-                elev_ground: float) -> ArrayLike:
+
+def calc_height(
+    wf: ArrayLike, elev_top: float, elev_bottom: float, elev_ground: float
+) -> ArrayLike:
     """
     Calculate height of each waveform return relative to ground.
 
@@ -129,9 +130,7 @@ def calc_height(wf: ArrayLike,
     ArrayLike
         Height (m) relative to ground for each return, beginning at top
     """
-    elev_range = np.linspace(start=elev_top,
-                             stop=elev_bottom,
-                             num=len(wf))
+    elev_range = np.linspace(start=elev_top, stop=elev_bottom, num=len(wf))
 
     return elev_range - elev_ground
 
@@ -158,7 +157,7 @@ def calc_dp_dz(wf: ArrayLike, dz: float) -> ArrayLike:
     ArrayLike
         Change in gap probability per unit height.
     """
-    
+
     # Calculate waveform returns per unit height (m)
     dp_dz = wf / dz
     # Set negative return values to zero
@@ -167,12 +166,12 @@ def calc_dp_dz(wf: ArrayLike, dz: float) -> ArrayLike:
 
 
 def separate_veg_ground(
-        wf: ArrayLike,
-        ht: ArrayLike,
-        dz: float,
-        rh: ArrayLike,
-        veg_floor: float,
-        veg_buffer: float = 0,
+    wf: ArrayLike,
+    ht: ArrayLike,
+    dz: float,
+    rh: ArrayLike,
+    veg_floor: float,
+    veg_buffer: float = 0,
 ) -> Dict:
     """
     Calculate indices of waveform returns corresponding to ground and vegetation.
@@ -214,7 +213,7 @@ def separate_veg_ground(
     # Check whether below-noise returns were found below first ground return
     if len(below_ground_noise_idxs) == 0:
         # If not, redefine noise level using full above-ground waveform
-        wf_above_ground = wf[:ground_idx - 1]
+        wf_above_ground = wf[: ground_idx - 1]
         noise = np.std(wf_above_ground) * 2
         # Find below-noise indices with new noise level
         below_ground_noise_idxs = np.where(wf[ground_idx:] < noise)[0]
@@ -225,10 +224,8 @@ def separate_veg_ground(
                 f"found below ground return"
             )
             below_ground_noise_idxs = (
-                np.where((ht[ground_idx:] > -5) &
-                         (ht[ground_idx:] < 0))
+                np.where((ht[ground_idx:] > -5) & (ht[ground_idx:] < 0))
             )[0]
-                         
 
     # Ground return index +/- ground offset gives the indices
     # in the ground return region
@@ -238,12 +235,11 @@ def separate_veg_ground(
 
     # Calculate last vegetation return index
     last_veg_height = min([veg_floor, -ht[last_ground_idx]])
-    veg_last_idx = min(np.max(np.where(ht >= last_veg_height)),
-                       len(wf) - 1)
+    veg_last_idx = min(np.max(np.where(ht >= last_veg_height)), len(wf) - 1)
 
     # Add buffer to vegetation height to account for continuous dropoff
     # in canopy between highest detected return and first empty bin
-    veg_buffer = dz * .5
+    veg_buffer = dz * 0.5
 
     ans = {
         "ground_top": ht[first_ground_idx],
@@ -255,11 +251,9 @@ def separate_veg_ground(
     return ans
 
 
-def isolate_vegetation(wf: ArrayLike,
-                       ht: ArrayLike,
-                       veg_top: float,
-                       ground_return: ArrayLike) -> ArrayLike:
-
+def isolate_vegetation(
+    wf: ArrayLike, ht: ArrayLike, veg_top: float, ground_return: ArrayLike
+) -> ArrayLike:
     """
     Isolate vegetation returns from a waveform by subtracting the ground return with a floor of zero and setting below-ground and above-canopy returns to zero.
     """
@@ -273,7 +267,7 @@ def isolate_vegetation(wf: ArrayLike,
     wf_no_ground[mask] = 0
 
     return wf_no_ground
-                       
+
 
 def calc_gap_prob(
     wf_per_height: np.ndarray,
