@@ -11,14 +11,13 @@ from nmbim.NestedDict import NestedDict
 class Waveform:
     """Stores raw and processed waveform data for one GEDI footprint.
 
-    Requires a shot number and either
-    - two Beam objects corresponding to the L1B and L2A beams, or
-    - paths to the raw h5 L1B and L2A files and the name of the beam.
-    Provide cached Beam objects for fast batch processing.
-    Provide file paths and beam names to lazily look up single Waveforms.
+    Requires a shot number and h5py file objects for the L1B and L2A
+    files or Beam objects for the beam groups in those files.
+    Provide Beam objects with caching enabled for fast batch processing.
+    Provide file paths to lazily look up single Waveforms.
 
-    Data is stored in a nested dictionary structure with string paths.
-    Data is stored in four categories: raw, processed, results, and metadata.
+    Data is stored in a nested dictionary structure with string paths, 
+    organized in four categories: raw, processed, results, and metadata.
 
     Methods:
     - get_paths(): Returns a set of terminal paths in the Waveform object.
@@ -31,12 +30,12 @@ class Waveform:
         shot_number: int,
         l1b_beam: Optional[Beam] = None,
         l2a_beam: Optional[Beam] = None,
-        l1b_path: Optional[h5py.File] = None,
-        l2a_path: Optional[h5py.File] = None,
+        l1b: Optional[h5py.File] = None,
+        l2a: Optional[h5py.File] = None,
         immutable: bool = True,
     ) -> None:
         """Initializes the Waveform object. In addition to a shot number,
-        requires either Beam objects or file paths and a beam name.
+        requires either two Beam objects or two h5py file objects.
 
         If immutable is True, data will be deepcopied when retrieved.
         """
@@ -49,7 +48,7 @@ class Waveform:
         # Store shot number
         self.save_data(data=shot_number, path="metadata/shot_number")
 
-        if signature == "beam":
+        if signature == "beams":
             # Store beams
             self.l1b_beam = l1b_beam
             self.l2a_beam = l2a_beam
@@ -70,8 +69,10 @@ class Waveform:
             self.save_data(data=l2a_beam.get_path(),
                            path="metadata/l2a_path")
 
-        if signature == "path":
-            # Store file paths
+        if signature == "files":
+            # Geta and store file paths
+            l1b_path = l1b.filename
+            l2a_path = l2a.filename
             self.save_data(data=l1b_path, path="metadata/l1b_path")
             self.save_data(data=l2a_path, path="metadata/l2a_path")
 
@@ -80,8 +81,8 @@ class Waveform:
             self.save_data(data=beam_name, path="metadata/beam")
 
             # Create beams and store
-            self.l1b_beam = Beam(file=l1b_path, beam=beam_name, cache=False)
-            self.l2a_beam = Beam(file=l2a_path, beam=beam_name, cache=False)
+            self.l1b_beam = Beam(file=l1b, beam=beam_name, cache=False)
+            self.l2a_beam = Beam(file=l2a, beam=beam_name, cache=False)
 
         # Store shot index
         l1b_index = self.l1b_beam.where_shot(shot_number)
@@ -143,24 +144,23 @@ class Waveform:
 
         # Store raw waveform data from L1B beam by subsetting the waveform
         # (subtract 1 from start index to convert to 0-based indexing)
-        wf_start: int = (
-            l1b_beam.extract_value("rx_sample_start_index", shot_index) - 1
-        )
-        wf_len: int = l1b_beam.extract_value("rx_sample_count", shot_index)
-        wf: ArrayLike = l1b_beam.extract_dataset("rxwaveform")[
-            wf_start : wf_start + wf_len
-        ]
+        all_wfs: ArrayLike = self.l1b_beam.extract_dataset("rxwaveform")
+        wf_start: int = self.l1b_beam.extract_value("rx_sample_start_index",
+                                                    shot_index) - 1
+        wf_len: int = self.l1b_beam.extract_value("rx_sample_count",
+                                                  shot_index)
+        wf = all_wfs[wf_start : wf_start + wf_len]
         self.save_data(data=wf, path="raw/wf")
 
         # Store mean noise value
         self.save_data(
-            data=l1b_beam.extract_value("noise_mean_corrected", shot_index),
+            data=self.l1b_beam.extract_value("noise_mean_corrected", shot_index),
             path="raw/mean_noise",
         )
 
         # Store relative height
         self.save_data(
-            data=l2a_beam.extract_value("rh", shot_index), path="raw/rh"
+            data=self.l2a_beam.extract_value("rh", shot_index), path="raw/rh"
         )
 
         # Store elevation
@@ -180,11 +180,11 @@ class Waveform:
         )
 
     @staticmethod
-    def _validate_signature(init_args: Dict[str, Any]) -> Literal["beam", "path"]:
+    def _validate_signature(init_args: Dict[str, Any]) -> Literal["beams", "files"]:
         # Verify that the initialization signature is valid
         # (either two Beam objects or two file paths)
         # and return the signature type
-
+        
         # Define helper functions to check for None values
         def any_none(*args: Any) -> bool:
             return any(arg is None for arg in args)
@@ -192,21 +192,32 @@ class Waveform:
         def all_none(*args: Any) -> bool:
             return all(arg is None for arg in args)
 
-        # Two options are valid:
-        # 1) two Beam objects and no file paths or beam name
-        if not any_none(
-            init_args["l1b_beam"], init_args["l2a_beam"]
-        ) and all_none(
-            init_args["l1b_path"], init_args["l2a_path"],
-        ):
-            signature = "beam"
-        # or 2) two file paths and a beam name but no Beam objects
-        elif all_none(
-            init_args["l1b_beam"], init_args["l2a_beam"]
-        ) and not any_none(
-            init_args["l1b_path"], init_args["l2a_path"],
-        ):
-            signature = "path"
+        l1b_beam = init_args["l1b_beam"]
+        l2a_beam = init_args["l2a_beam"]
+        l1b = init_args["l1b"]
+        l2a = init_args["l2a"]
+
+        # Two signatures are valid:
+        # 1) "beams": two Beam objects and no h5py files
+        if (not any_none(l1b_beam, l2a_beam) and all_none(l1b, l2a)):
+            # Type check for Beam objects
+            if isinstance(l1b_beam, Beam) and isinstance(l2a_beam, Beam):
+                signature = "beams"
+            else:
+                raise TypeError(
+                    "Type mismatch: l1b_beam and l2a_beam must be Beam objects."
+                )
+
+        # or 2) "files": two h5py files and no Beam objects
+        elif all_none(l1b_beam, l2a_beam) and not any_none(l1b, l2a):
+            # Type check for h5py files
+            if isinstance(l1b, h5py.File) and isinstance(l2a, h5py.File):
+                signature = "files"
+            else:
+                raise TypeError(
+                    "Type mismatch: l1b and l2a must be h5py.File objects."
+                )
+        # Otherwise, the signature is invalid
         else:
             raise ValueError(
                 "Invalid Waveform initialization signature. "
