@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 from nmbim import Waveform, WaveformCollection
 
@@ -22,7 +22,10 @@ class ProcessorState:
     def mark_processed(self) -> None:
         self.processed = True
 
-    def set_waveform_iter(self, waveforms: Iterable[Waveform]) -> None:
+    def set_waveform_iter(
+            self,
+            waveforms: Union[WaveformCollection, Iterable[Waveform]]
+    ) -> None:
         self.waveform_iter = iter(waveforms)
 
     def was_processed(self) -> bool:
@@ -31,28 +34,37 @@ class ProcessorState:
 
 @dataclass(frozen=True)
 class WaveformProcessor:
-    """Responsible for processing one collection of Waveforms with one algorithm.
-    Attributes are supplied at initialization and are immutable.
-    Processsing function can only be called once.
+    """Processes one collection of Waveforms in-place with one algorithm.
 
+    This class serves as an interface between a collection of Waveform
+    objects (either a WaveformCollection or an iterable of Waveforms)
+    and an algorithm function, allowing the algorithm functions to be
+    specified separately from the Waveform structure. In order to simplify
+    usage, attributes are supplied at initialization and are
+    immutable, and processing can only be done once.
     Attributes
     ----------
-    waveforms: Iterable[Waveform]
-        Collection of Waveform objects to process in place.
+    waveforms: Union[WaveformCollection, Iterable[Waveform]]
+    Collection of Waveform objects to process in place. A single
+    waveform can be supplied and will be wrapped in a list.
 
     alg_fun: Callable
-        The algorithm function to apply to each waveform in the supplied collection.
+    The algorithm function to apply to each waveform in the supplied
+    collection.
 
     params: Dict[str, Any]
-        Dictionary containing the parameters for the algorithm function.
-    Parameters are algorithm inputs other than the waveform data itself.
+    Dictionary containing the parameters for
+    the algorithm function. Parameters are algorithm inputs other
+    than the waveform data itself.
 
     input_map: Dict[str, str]
-        Dictionary mapping algorithm function arguments to Waveform data paths.
-    Together, params and input_map should contain all arguments that alg_fun requires.
+    Dictionary mapping algorithm function
+    arguments to Waveform data paths. Together, params and
+    input_map should contain all arguments that alg_fun requires.
 
     output_path: str
-        Path indicating where to save processed data in each Waveform.
+    Path indicating where to save processed data in
+    each Waveform.
 
     Methods
     -------
@@ -65,18 +77,24 @@ class WaveformProcessor:
     params: Dict[str, Any]
     input_map: Dict[str, str]
     output_path: str
-    waveforms: WaveformCollection
+    waveforms: Union[WaveformCollection, Iterable[Waveform]]
 
     _state: ProcessorState = field(
         init=False, default_factory=ProcessorState, repr=False
     )
 
     def __post_init__(self) -> None:
+        # Ensure waveforms is an iterable
+        if isinstance(self.waveforms, Waveform):
+            # TODO: fix this, maybe just get rid of frozenness?
+            object.__setattr__(self, 'waveforms', [self.waveforms])
+
         self._state.set_waveform_iter(self.waveforms)
 
     def process(self) -> None:
-        """Apply the algorithm to each waveform in the collection and save the results.
-        Can only be called once to prevent accidental reprocessing.
+        """Apply the algorithm to each waveform in the collection and
+        save the results. Can only be called once to prevent
+        accidental reprocessing.
         """
         if self._state.was_processed():
             raise RuntimeError(
