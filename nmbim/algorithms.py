@@ -35,8 +35,31 @@ def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
 
 
 def create_ground_return(
-    wf: ArrayLike, ht: ArrayLike, ground_bottom: ArrayLike
+        wf: ArrayLike,
+        ht: ArrayLike,
+        ground_return_max_height: float,
+        sd_ratio: float
 ) -> ArrayLike:
+    """
+    Create a synthetic ground return for a waveform using a Gaussian centered at the ground return.
+
+    Parameters
+    ----------
+    wf : ArrayLike
+        Waveform returns.
+
+    ht : ArrayLike
+        Height of each waveform return relative to ground.
+
+    ground_return_max_height : ArrayLike
+        Height at which the ground return is expected to fall below
+        the noise level.
+
+    sd_ratio : float
+        Standard deviation of the Gaussian as a ratio of the ground
+        return height.
+    """
+
     ground_index = np.where(np.abs(ht) == np.min(np.abs(ht)))
     ground_peak = wf[ground_index]
 
@@ -44,7 +67,7 @@ def create_ground_return(
     ground_wf = np.zeros_like(wf)
 
     # Define standard deviation for Gaussian
-    sigma = ground_bottom / 2
+    sigma = ground_return_max_height * sd_ratio
 
     # Assign values as a Gaussian centered at the ground return
     for i in range(len(ground_wf)):
