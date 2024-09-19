@@ -30,6 +30,18 @@ pipeline_test_veg_ground_sep = {
         "output_path": "processed/wf_noise_norm",
         "params": {},
     },
+    # Scale the normalized, non-smoothed waveform for visualization
+    # using dp_dz. This is just to be able to compare the raw waveform
+    # to the smoothed waveform; this is not part of the actual processing.
+    "scale_raw": {
+        "alg_fun": algorithms.calc_dp_dz,
+        "input_map": {
+            "wf": "processed/wf_noise_norm",
+            "dz": "processed/dz",
+        },
+        "output_path": "processed/wf_raw_scaled",
+        "params": {},
+    },
     "smooth": {
         "alg_fun": algorithms.smooth_waveform,
         "input_map": {"wf": "processed/wf_noise_norm"},
