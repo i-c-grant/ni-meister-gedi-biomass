@@ -46,7 +46,7 @@ pipeline_test_veg_ground_sep = {
         "alg_fun": algorithms.smooth_waveform,
         "input_map": {"wf": "processed/wf_noise_norm"},
         "output_path": "processed/wf_noise_norm_smooth",
-        "params": {"sd": 8},
+        "params": {"sd": 3},
     },
     "dp_dz": {
         "alg_fun": algorithms.calc_dp_dz,
@@ -73,10 +73,10 @@ pipeline_test_veg_ground_sep = {
         "input_map": {
             "wf": "processed/dp_dz",
             "ht": "processed/ht",
-            "ground_bottom": "processed/veg_ground_sep/ground_bottom",
+            "ground_return_max_height": "processed/veg_ground_sep/ground_bottom",
         },
         "output_path": "processed/ground_return",
-        "params": {},
+        "params": {"sd_ratio": .25},
     },
     "isolate_veg": {
         "alg_fun": algorithms.isolate_vegetation,
