@@ -83,7 +83,10 @@ class Beam:
 
     def where_shot(self, shot_number: int) -> int:
         """Returns the index of the shot number in the beam data."""
-        return np.where(self.data["shot_number"] == shot_number)[0][0]
+        # Ensure same data type for comparison
+        shot_numbers = self.extract_dataset("shot_number")
+        shot_number = np.asarray(shot_number, dtype=shot_numbers.dtype)
+        return np.where(shot_numbers == shot_number)[0][0]
 
     def __repr__(self) -> str:
         return (f"Beam(file={self._path}, beam={self.beam}, "
