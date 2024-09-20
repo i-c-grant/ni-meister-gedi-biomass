@@ -33,6 +33,21 @@ def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # with floor of zero
     return np.maximum(wf - mean_noise, 0)
 
+def calc_noise(wf: ArrayLike,
+               ht: ArrayLike,
+               veg_top: float,
+               ground_bottom: float) -> float:
+    """
+    Calculate the mean noise level of a waveform from the region above
+    the canopy and below the ground return.
+
+    Can be applied after removing the mean noise reported in the L1B
+    file to calculate residual noise.
+    """
+    # Get indices of waveform returns above canopy and below ground
+    noise_idxs = np.where((ht > veg_top) & (ht < ground_bottom))
+    noise = np.mean(wf[noise_idxs])
+    return noise
 
 def create_ground_return(
     wf: ArrayLike,
