@@ -37,13 +37,14 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     return f"{base_s3}/{basename}/{filename}"
 
 
-def copy_gedi_file(s3_url: str, s3: fsspec.filesystem) -> str:
-    basename = os.path.basename(url)
-    outfp = f"/projects/my-private-bucket/{basename}"
+def copy_gedi_file(s3_url: str,
+                   s3: fsspec.filesystem) -> str:
+    basename = os.path.basename(s3_url)
+    output_path = f"/projects/my-private-bucket/{basename}"
     print("Copying file...")
-    s3.get(url, outfp)
+    s3.get(s3_url, output_path)
     print("File copied.")
-    return outfp
+    return output_path
 
 
 def get_gedi_data(filename: str):
