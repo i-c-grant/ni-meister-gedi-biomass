@@ -46,7 +46,7 @@ biwf_pipeline = {
         "alg_fun": algorithms.smooth_waveform,
         "input_map": {"wf": "processed/wf_noise_norm"},
         "output_path": "processed/wf_noise_norm_smooth",
-        "params": {"sd": 3},
+        "params": {"sd": 5},
     },
     "dp_dz": {
         "alg_fun": algorithms.calc_dp_dz,
@@ -68,10 +68,30 @@ biwf_pipeline = {
         "params": {"veg_floor": 5},
         "output_path": "processed/veg_ground_sep",
     },
+    # Calculate the residual noise using the segmented waveform
+    "calc_resid_noise": {
+        "alg_fun": algorithms.calc_noise,
+        "input_map": {
+            "wf": "processed/dp_dz",
+            "veg_top": "processed/veg_ground_sep/veg_top",
+            "ground_bottom": "processed/veg_ground_sep/ground_bottom",
+        },
+        "output_path": "processed/residual_noise",
+        "params": {},
+    },
+    "remove_resid_noise": {
+        algorithm: algorithms.remove_noise,
+        "input_map": {
+            "wf": "processed/dp_dz",
+            "mean_noise": "processed/residual_noise",
+        },
+        "output_path": "processed/dp_dz_noise_removed",
+        params: {},
+    },
     "ground_return": {
         "alg_fun": algorithms.create_ground_return,
         "input_map": {
-            "wf": "processed/dp_dz",
+            "wf": "processed/dp_dz_noise_removed",
             "ht": "processed/ht",
             "ground_return_max_height": "processed/veg_ground_sep/ground_bottom",
         },
@@ -89,7 +109,7 @@ biwf_pipeline = {
         "output_path": "processed/dp_dz_veg_only",
         "params": {},
     },
-    "bi": {
+    "calc_biwf": {
         "alg_fun": algorithms.calc_biomass_index,
         "input_map": {
             "dp_dz": "processed/dp_dz_veg_only",
