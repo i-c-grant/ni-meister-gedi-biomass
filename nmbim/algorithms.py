@@ -35,10 +35,10 @@ def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
 
 
 def create_ground_return(
-        wf: ArrayLike,
-        ht: ArrayLike,
-        ground_return_max_height: float,
-        sd_ratio: float
+    wf: ArrayLike,
+    ht: ArrayLike,
+    ground_return_max_height: float,
+    sd_ratio: float,
 ) -> ArrayLike:
     """
     Create a synthetic ground return for a waveform using a Gaussian centered at the ground return.

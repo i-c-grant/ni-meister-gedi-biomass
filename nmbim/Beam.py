@@ -89,5 +89,7 @@ class Beam:
         return np.where(shot_numbers == shot_number)[0][0]
 
     def __repr__(self) -> str:
-        return (f"Beam(file={self._path}, beam={self.beam}, "
-                f"cache={self.cache})")
+        return (
+            f"Beam(file={self._path}, beam={self.beam}, "
+            f"cache={self.cache})"
+        )

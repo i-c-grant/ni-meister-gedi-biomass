@@ -1,6 +1,6 @@
 import nmbim.algorithms as algorithms
 
-pipeline_test_veg_ground_sep = {
+biwf_pipeline = {
     "height": {
         "alg_fun": algorithms.calc_height,
         "input_map": {
@@ -76,7 +76,7 @@ pipeline_test_veg_ground_sep = {
             "ground_return_max_height": "processed/veg_ground_sep/ground_bottom",
         },
         "output_path": "processed/ground_return",
-        "params": {"sd_ratio": .25},
+        "params": {"sd_ratio": 0.25},
     },
     "isolate_veg": {
         "alg_fun": algorithms.isolate_vegetation,

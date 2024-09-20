@@ -16,7 +16,7 @@ class Waveform:
     Provide Beam objects with caching enabled for fast batch processing.
     Provide file paths to lazily look up single Waveforms.
 
-    Data is stored in a nested dictionary structure with string paths, 
+    Data is stored in a nested dictionary structure with string paths,
     organized in four categories: raw, processed, results, and metadata.
 
     Methods:
@@ -52,7 +52,7 @@ class Waveform:
             # Store beams
             self.l1b_beam = l1b_beam
             self.l2a_beam = l2a_beam
-            
+
             # Store beam name
             l1b_beam_name = l1b_beam.get_beam_name()
             l2a_beam_name = l2a_beam.get_beam_name()
@@ -64,10 +64,8 @@ class Waveform:
             self.save_data(data=l1b_beam_name, path="metadata/beam")
 
             # Get file paths and store
-            self.save_data(data=l1b_beam.get_path(),
-                           path="metadata/l1b_path")
-            self.save_data(data=l2a_beam.get_path(),
-                           path="metadata/l2a_path")
+            self.save_data(data=l1b_beam.get_path(), path="metadata/l1b_path")
+            self.save_data(data=l2a_beam.get_path(), path="metadata/l2a_path")
 
         if signature == "files":
             # Geta and store file paths
@@ -145,16 +143,21 @@ class Waveform:
         # Store raw waveform data from L1B beam by subsetting the waveform
         # (subtract 1 from start index to convert to 0-based indexing)
         all_wfs: ArrayLike = self.l1b_beam.extract_dataset("rxwaveform")
-        wf_start: int = self.l1b_beam.extract_value("rx_sample_start_index",
-                                                    shot_index) - 1
-        wf_len: int = self.l1b_beam.extract_value("rx_sample_count",
-                                                  shot_index)
+        wf_start: int = (
+            self.l1b_beam.extract_value("rx_sample_start_index", shot_index)
+            - 1
+        )
+        wf_len: int = self.l1b_beam.extract_value(
+            "rx_sample_count", shot_index
+        )
         wf = all_wfs[wf_start : wf_start + wf_len]
         self.save_data(data=wf, path="raw/wf")
 
         # Store mean noise value
         self.save_data(
-            data=self.l1b_beam.extract_value("noise_mean_corrected", shot_index),
+            data=self.l1b_beam.extract_value(
+                "noise_mean_corrected", shot_index
+            ),
             path="raw/mean_noise",
         )
 
@@ -180,11 +183,13 @@ class Waveform:
         )
 
     @staticmethod
-    def _validate_signature(init_args: Dict[str, Any]) -> Literal["beams", "files"]:
+    def _validate_signature(
+        init_args: Dict[str, Any],
+    ) -> Literal["beams", "files"]:
         # Verify that the initialization signature is valid
         # (either two Beam objects or two file paths)
         # and return the signature type
-        
+
         # Define helper functions to check for None values
         def any_none(*args: Any) -> bool:
             return any(arg is None for arg in args)
@@ -199,7 +204,7 @@ class Waveform:
 
         # Two signatures are valid:
         # 1) "beams": two Beam objects and no h5py files
-        if (not any_none(l1b_beam, l2a_beam) and all_none(l1b, l2a)):
+        if not any_none(l1b_beam, l2a_beam) and all_none(l1b, l2a):
             # Type check for Beam objects
             if isinstance(l1b_beam, Beam) and isinstance(l2a_beam, Beam):
                 signature = "beams"
@@ -234,11 +239,13 @@ class Waveform:
 
         with h5py.File(l1b_path) as l1b_file:
             l1b_beam: str = Waveform._which_beam(
-                self.get_data("metadata/shot_number"), l1b_file)
+                self.get_data("metadata/shot_number"), l1b_file
+            )
 
         with h5py.File(l2a_path) as l2a_file:
             l2a_beam: str = Waveform._which_beam(
-                self.get_data("metadata/shot_number"), l2a_file)
+                self.get_data("metadata/shot_number"), l2a_file
+            )
 
         if l1b_beam is None or l2a_beam is None:
             raise ValueError("Unable to identify beam for L1B or L2A file.")
@@ -258,7 +265,7 @@ class Waveform:
                 beam = key
                 shot_numbers = file[beam]["shot_number"]
                 if shot_number in shot_numbers:
-                      return beam
+                    return beam
         return None
 
     def get_paths(self) -> Set[str]:

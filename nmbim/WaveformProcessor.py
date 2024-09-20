@@ -23,8 +23,7 @@ class ProcessorState:
         self.processed = True
 
     def set_waveform_iter(
-            self,
-            waveforms: Union[WaveformCollection, Iterable[Waveform]]
+        self, waveforms: Union[WaveformCollection, Iterable[Waveform]]
     ) -> None:
         self.waveform_iter = iter(waveforms)
 
@@ -87,7 +86,7 @@ class WaveformProcessor:
         # Ensure waveforms is an iterable
         if isinstance(self.waveforms, Waveform):
             # TODO: fix this, maybe just get rid of frozenness?
-            object.__setattr__(self, 'waveforms', [self.waveforms])
+            object.__setattr__(self, "waveforms", [self.waveforms])
 
         self._state.set_waveform_iter(self.waveforms)
 
