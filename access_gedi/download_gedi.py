@@ -43,19 +43,42 @@ def copy_gedi_file(s3_url: str,
     print("File copied.")
     return output_path
 
+def get_gedi_data(filename: str, retries: int = 3):
+    attempt = 0
+    delay = 5  
 
-def get_gedi_data(filename: str):
+    # Define credentials inside the function
     credentials = maap.aws.earthdata_s3_credentials(
         "https://data.lpdaac.earthdatacloud.nasa.gov/s3credentials"
     )
 
+    s3_url = gedi_filename_to_s3_url(filename)
+
     s3 = fsspec.filesystem(
         "s3",
-        key=credentials["accessKeyId"],
-        secret=credentials["secretAccessKey"],
-        token=credentials["sessionToken"],
+        key=credentials['accessKeyId'],
+        secret=credentials['secretAccessKey'],
+        token=credentials['sessionToken']
     )
 
-    outfp = f"output/{filename}"
-    s3_url = gedi_filename_to_s3_url(filename)
-    copy_gedi_file(s3_url, s3)
+    output_path = f"/projects/my-private-bucket/{filename}"
+
+    while attempt < retries:
+        try:
+            with tempfile.NamedTemporaryFile() as temp_fp:
+                s3.get(s3_url, temp_fp.name)
+                shutil.move(temp_fp.name, output_path)
+                break
+        except Exception as e:
+            attempt += 1
+            print(f"Attempt {attempt} failed: {e}")
+            if attempt < retries:
+                print(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                print("All retries failed.")
+                raise
+
+    print(f"File downloaded successfully to {output_path}")
+
+    return output_path
