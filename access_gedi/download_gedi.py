@@ -1,13 +1,16 @@
-from maap.maap import MAAP
-import h5py
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Union
+
 import boto3
 import botocore
 import fsspec
+import h5py
 import s3fs
-from pathlib import Path
-from typing import Union, List, Dict, Any
+from maap.maap import MAAP
 
 maap = MAAP(maap_host="api.maap-project.org")
+
 
 def gedi_filename_to_s3_url(filename: str) -> str:
     name_components = filename.split("_")
@@ -17,9 +20,11 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     elif name_components[0:2] == ["GEDI02", "A"]:
         gedi_type = "l2a"
     else:
-        raise ValueError(f"Unknown GEDI file type. "
-                         f"Expected 'GEDI01_B' or 'GEDI02_A', "
-                         f"got {name_components[0]}_{name_components[1]}")
+        raise ValueError(
+            f"Unknown GEDI file type. "
+            f"Expected 'GEDI01_B' or 'GEDI02_A', "
+            f"got {name_components[0]}_{name_components[1]}"
+        )
 
     base_s3 = "s3://lp-prod-protected"
     if gedi_type == "l1b":
@@ -31,6 +36,7 @@ def gedi_filename_to_s3_url(filename: str) -> str:
 
     return f"{base_s3}/{basename}/{filename}"
 
+
 def copy_gedi_file(s3_url: str, s3: fsspec.filesystem) -> str:
     basename = os.path.basename(url)
     outfp = f"/projects/my-private-bucket/{basename}"
@@ -39,19 +45,19 @@ def copy_gedi_file(s3_url: str, s3: fsspec.filesystem) -> str:
     print("File copied.")
     return outfp
 
+
 def get_gedi_data(filename: str):
     credentials = maap.aws.earthdata_s3_credentials(
-        'https://data.lpdaac.earthdatacloud.nasa.gov/s3credentials'
+        "https://data.lpdaac.earthdatacloud.nasa.gov/s3credentials"
     )
 
     s3 = fsspec.filesystem(
         "s3",
-        key=credentials['accessKeyId'],
-        secret=credentials['secretAccessKey'],
-        token=credentials['sessionToken']
+        key=credentials["accessKeyId"],
+        secret=credentials["secretAccessKey"],
+        token=credentials["sessionToken"],
     )
 
     outfp = f"output/{filename}"
     s3_url = gedi_filename_to_s3_url(filename)
     copy_gedi_file(s3_url, s3)
-    
