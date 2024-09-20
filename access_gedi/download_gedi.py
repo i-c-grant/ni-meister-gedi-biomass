@@ -1,12 +1,9 @@
 import os
-from pathlib import Path
-from typing import Any, Dict, List, Union
+import shutil
+import tempfile
+import time
 
-import boto3
-import botocore
 import fsspec
-import h5py
-import s3fs
 from maap.maap import MAAP
 
 maap = MAAP(maap_host="api.maap-project.org")
