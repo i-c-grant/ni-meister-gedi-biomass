@@ -18,7 +18,7 @@ def cli(l1b_path, l2a_path):
     the user to query shot numbers to plot.
     """
     # Processing pipeline
-    processor_params = processing_pipelines.pipeline_test_veg_ground_sep
+    processor_params = processing_pipelines.biwf_pipeline
 
     # Initialize filters (from app_utils)
     my_filters = app_utils.define_filters()
