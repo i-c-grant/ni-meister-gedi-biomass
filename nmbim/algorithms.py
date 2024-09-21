@@ -47,18 +47,36 @@ def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
 def calc_noise(wf: ArrayLike,
                ht: ArrayLike,
                veg_top: float,
-               ground_bottom: float) -> float:
+               ground_bottom: float,
+               noise_ratio: float = 1) -> float:
     """
     Calculate the mean noise level of a waveform from the region above
     the canopy and below the ground return.
 
     Can be applied after removing the mean noise reported in the L1B
     file to calculate residual noise.
+
+    Parameters
+    ----------
+    wf : ArrayLike
+        Waveform returns.
+
+    ht : ArrayLike
+        Height of each waveform return relative to ground.
+
+    veg_top : float
+        Height of the top of the vegetation in meters.
+
+    ground_bottom : float
+        Height of the ground return in meters.
+
+    noise_ratio : float, optional
+        Factor by which to multiply the mean noise level. Defaults to 1.
     """
     # Get indices of waveform returns above canopy and below ground
-    noise_idxs = np.where((ht > veg_top) & (ht < ground_bottom))
+    noise_idxs = np.where((ht > veg_top) | (ht < ground_bottom))
     noise = np.mean(wf[noise_idxs])
-    return noise
+    return noise * noise_ratio
 
 def create_ground_return(
     wf: ArrayLike,
