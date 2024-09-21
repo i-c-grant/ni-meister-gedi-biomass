@@ -1,5 +1,4 @@
 import warnings
-from pathlib import Path
 from typing import Callable, List, Optional, Union
 
 import h5py
@@ -71,18 +70,12 @@ class WaveformCollection:
 
         # If no beams are specified, process all beams
         if beams is None:
-            beams: List[str] = [
-                key for key in l1b.keys() if key != "METADATA"
-            ]
+            beams: List[str] = [key for key in l1b.keys() if key != "METADATA"]
 
         # Construct waveforms for each beam, caching a beam at a time
         for beam_name in beams:
-            l1b_beam = Beam(
-                file=l1b, beam=beam_name, cache=self.cache_beams
-            )
-            l2a_beam = Beam(
-                file=l2a, beam=beam_name, cache=self.cache_beams
-            )
+            l1b_beam = Beam(file=l1b, beam=beam_name, cache=self.cache_beams)
+            l2a_beam = Beam(file=l2a, beam=beam_name, cache=self.cache_beams)
 
             shot_numbers_l1b: ArrayLike = l1b_beam.extract_dataset(
                 "shot_number"
