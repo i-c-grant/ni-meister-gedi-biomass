@@ -1,8 +1,7 @@
 ############################################################
 # Top-level functions for processing and writing waveforms #
 ############################################################
-
-from typing import Dict, Optional
+from typing import Dict
 
 from nmbim import (
     Waveform,
@@ -11,10 +10,24 @@ from nmbim import (
     WaveformWriter,
 )
 
+def get_beam_names():
+    """Return a list of beam names"""
+    return [
+        "BEAM0000",
+        "BEAM0001",
+        "BEAM0010",
+        "BEAM0011",
+        "BEAM0101",
+        "BEAM0110",
+        "BEAM1000",
+        "BEAM1011",
+    ]
+
 def process_waveforms(
     waveforms: WaveformCollection, processor_params: Dict[str, Dict]
 ):
-    """Process waveforms with a pipeline of algorithms defined by processor_params"""
+    """Process waveforms with a pipeline of algorithms defined by
+    processor_params"""
 
     pipeline = []
     for proc_name in processor_params:
@@ -69,7 +82,7 @@ def define_filters():
 
     def modes_filter(wf: Waveform) -> bool:
         """Keep only waveforms with more than one mode."""
-        if wf.get_data("metadata/modes/num_modes") > 1:
+        if wf.get_data("metadata/modes/num_modes") > 0:
             return True
         else:
             return False
