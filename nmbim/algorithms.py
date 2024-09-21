@@ -27,6 +27,17 @@ def calc_dz(ht: ArrayLike) -> float:
     """
     return ht[0] - ht[1]
 
+def scale_raw_wf(wf_raw: ArrayLike,
+                 wf_smooth: ArrayLike,
+                 dz: float) -> ArrayLike:
+    """
+    Scale raw waveform returns to match smoothed waveform returns.
+
+    Replicates the normalization and scaling used on the smoothed waveform
+    so that the raw waveform can be compared to the smoothed waveform.
+    """
+    scaled_raw = wf_raw / (np.nansum(wf_smooth) * dz)
+    return scaled_raw
 
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # Remove mean noise from waveform,
