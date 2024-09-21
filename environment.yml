@@ -10,6 +10,7 @@ dependencies:
 
   - boto3
   - botocore
+  - click
   - fsspec
   - geopandas
   - h5py
