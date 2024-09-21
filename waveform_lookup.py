@@ -1,12 +1,7 @@
 import click
-from nmbim import (
-    processing_pipelines,
-    app_utils,
-    Waveform,
-    WaveformPlotter,
-)
-
 import h5py
+
+from nmbim import Waveform, WaveformPlotter, app_utils, processing_pipelines
 
 
 @click.command()
