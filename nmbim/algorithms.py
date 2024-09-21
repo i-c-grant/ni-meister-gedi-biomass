@@ -162,11 +162,16 @@ def truncate_waveform(
 
 
 def calc_biomass_index(
-    dp_dz: ArrayLike, dz: float, ht: ArrayLike, hse: float
+        dp_dz: ArrayLike, dz: float, ht: ArrayLike, hse: float, n_modes: int
 ) -> float:
     """
     Calculate a simple biomass index for a waveform. Sum of height raised to the HSE weighted by waveform returns.
     """
+
+    # A single-mode waveform means no vegetation is present
+    if n_modes == 1:
+        return 0
+
     biomass_index = np.nansum(dp_dz * np.abs(ht) ** hse)
     biomass_index *= dz
     return biomass_index
