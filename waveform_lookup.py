@@ -37,7 +37,7 @@ def cli(l1b_path, l2a_path):
         },
         "Raw returns": {
             "x": "processed/wf_raw_scaled",
-            "color": "gray",
+            "color": "#00ff2d",
             "type": "scatter",
         },
     }
