@@ -79,6 +79,7 @@ def get_gedi_data(filename: str,
                 s3.get(s3_url, temp_fp)
                 print(f"Downloaded. Moving to final location: {output_path}")
                 shutil.move(temp_fp, output_path)
+                break
         except Exception as e:
             attempt += 1
             print(f"Attempt {attempt} failed: {e}")
