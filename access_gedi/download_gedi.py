@@ -74,7 +74,9 @@ def get_gedi_data(filename: str,
         try:
             # Use a temporary file to avoid partial downloads
             with tempfile.NamedTemporaryFile() as temp_fp:
+                print(f"Downloading {s3_url} to {temp_fp.name}")
                 s3.get(s3_url, temp_fp.name)
+                print(f"Downloaded {s3_url} to {temp_fp.name}")
                 shutil.move(temp_fp.name, output_path)
         except Exception as e:
             attempt += 1
