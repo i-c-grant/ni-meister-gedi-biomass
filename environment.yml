@@ -8,18 +8,17 @@ dependencies:
   - python=3.12
   - pip=23.3.1
 
-  - boto3
-  - botocore
-  - click
-  - fsspec
-  - geopandas
-  - h5py
-  - mypy
-  - numpy
-  - pandas
-  - python
-  - s3fs
-  - scipy
+  - click=8.1.7
+  - dill=0.3.8
+  - fsspec=2024.9.0
+  - GDAL=3.9.1
+  - geopandas=1.0.1
+  - h5py=3.11.0
+  - maap_py=3.1.5
+  - matplotlib=3.9.2
+  - numpy=2.1.1
+  - scipy=1.14.1
+  - Shapely=2.0.6
 
   - pip:
       - git+https://git@github.com/MAAP-Project/maap-py@v4.0.0
