@@ -108,6 +108,7 @@ class WaveformPlotter:
         if self.last_fig is not None and self.last_shot is not None:
             self.last_fig.savefig(
                 f"waveform_plot_{self.last_shot}.png",
-                dpi=600,)
+                dpi=600,
+            )
         else:
             print("No plot to save.")

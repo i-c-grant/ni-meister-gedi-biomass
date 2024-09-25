@@ -13,27 +13,30 @@ from nmbim import WaveformCollection, app_utils, processing_pipelines
 try:
     from multiprocessing import Pool
     import dill
-    dill.settings['recurse'] = True
+
+    dill.settings["recurse"] = True
     MULTIPROCESSING_AVAILABLE = True
 except ImportError:
     MULTIPROCESSING_AVAILABLE = False
 
+
 # Define function for processing a single beam.
 # This function is used in both serial and parallel modes.
-def process_beam(beam: str,
-                 l1b_path: str,
-                 l2a_path: str,
-                 output_path: str,
-                 processor_params: Dict[str, Dict[str, Any]],
-                 filters: Union[Dict[str, Any], bytes]) -> None:
-
+def process_beam(
+    beam: str,
+    l1b_path: str,
+    l2a_path: str,
+    output_path: str,
+    processor_params: Dict[str, Dict[str, Any]],
+    filters: Union[Dict[str, Any], bytes],
+) -> None:
     # Unpickle the filters if necessary
     if type(filters) == bytes:
         filters = dill.loads(filters)
 
     click.echo(f"Loading waveforms for beam {beam}...")
 
-    with h5py.File(l1b_path, 'r') as l1b, h5py.File(l2a_path, 'r') as l2a:
+    with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a:
         waveforms = WaveformCollection(
             l1b,
             l2a,
@@ -55,9 +58,10 @@ def process_beam(beam: str,
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
-@click.option("--n_workers", "-n", default=4, help="Number of workers for parallel mode.")
+@click.option(
+    "--n_workers", "-n", default=4, help="Number of workers for parallel mode."
+)
 def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
-
     # Set up logging and output directory
     start_time = datetime.now()
     output_dir = Path("output")
@@ -67,14 +71,12 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
     output_name = app_utils.build_output_filename(l1b_path, l2a_path)
     output_path = (output_dir / output_name).with_suffix(".gpkg")
 
-    logging.basicConfig(filename=f"{output_dir}/{output_name}.log",
-                        level=logging.INFO)
+    logging.basicConfig(
+        filename=f"{output_dir}/{output_name}.log", level=logging.INFO
+    )
     logging.basicConfig(format="%(asctime)s - %(message)s")
 
-    logging.info(
-        f"Run started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}"
-    )
-
+    logging.info(f"Run started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Set up the processing pipeline
     processor_params = processing_pipelines.biwf_pipeline
@@ -109,12 +111,14 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
 
     else:
         for beam in beams:
-            process_beam(beam,
-                         l1b_path,
-                         l2a_path,
-                         output_path,
-                         processor_params,
-                         my_filters)
+            process_beam(
+                beam,
+                l1b_path,
+                l2a_path,
+                output_path,
+                processor_params,
+                my_filters,
+            )
 
     logging.info(f"Output written to {output_path}")
 
@@ -130,6 +134,7 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
     # Add newline to params to make log more readable
     f_processor_params = str(processor_params).replace(", ", ",\n")
     logging.info(f"Processor parameters: {f_processor_params}")
+
 
 if __name__ == "__main__":
     main()

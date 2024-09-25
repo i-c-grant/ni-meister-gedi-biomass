@@ -10,6 +10,7 @@ from nmbim import (
     WaveformWriter,
 )
 
+
 def build_output_filename(l1b_path: str, l2a_path: str) -> str:
     """Build output filename from input filenames"""
 
@@ -21,15 +22,17 @@ def build_output_filename(l1b_path: str, l2a_path: str) -> str:
 
     l1b_base = l1b_path.split("/")[-1].split(".")[0].split("_")
     l1b_base = "_".join(l1b_base[2:5])
-    
+
     l2a_base = l2a_path.split("/")[-1].split(".")[0].split("_")
     l2a_base = "_".join(l2a_base[2:5])
 
     if l1b_base == l2a_base:
         return l1b_base
     else:
-        raise ValueError("Input filenames do not match: {l1b_base}, {l2a_base}")
-    
+        raise ValueError(
+            "Input filenames do not match: {l1b_base}, {l2a_base}"
+        )
+
 
 def get_beam_names():
     """Return a list of beam names"""
@@ -43,6 +46,7 @@ def get_beam_names():
         "BEAM1000",
         "BEAM1011",
     ]
+
 
 def process_waveforms(
     waveforms: WaveformCollection, processor_params: Dict[str, Dict]

@@ -181,9 +181,7 @@ class WaveformWriter:
 
         gdf = gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:4326")
 
-        gdf.to_file(self.path,
-                    driver="GPKG",
-                    mode="a" if self.append else "w")
+        gdf.to_file(self.path, driver="GPKG", mode="a" if self.append else "w")
 
     def write(self) -> None:
         if self._file_type == "csv":

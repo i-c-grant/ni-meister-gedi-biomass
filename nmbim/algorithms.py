@@ -27,9 +27,10 @@ def calc_dz(ht: ArrayLike) -> float:
     """
     return ht[0] - ht[1]
 
-def scale_raw_wf(wf_raw: ArrayLike,
-                 wf_smooth: ArrayLike,
-                 dz: float) -> ArrayLike:
+
+def scale_raw_wf(
+    wf_raw: ArrayLike, wf_smooth: ArrayLike, dz: float
+) -> ArrayLike:
     """
     Scale raw waveform returns to match smoothed waveform returns.
 
@@ -39,16 +40,20 @@ def scale_raw_wf(wf_raw: ArrayLike,
     scaled_raw = wf_raw / (np.nansum(wf_smooth) * dz)
     return scaled_raw
 
+
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
     # Remove mean noise from waveform,
     # with floor of zero
     return np.maximum(wf - mean_noise, 0)
 
-def calc_noise(wf: ArrayLike,
-               ht: ArrayLike,
-               veg_top: float,
-               ground_bottom: float,
-               noise_ratio: float = 1) -> float:
+
+def calc_noise(
+    wf: ArrayLike,
+    ht: ArrayLike,
+    veg_top: float,
+    ground_bottom: float,
+    noise_ratio: float = 1,
+) -> float:
     """
     Calculate the mean noise level of a waveform from the region above
     the canopy and below the ground return.
@@ -77,6 +82,7 @@ def calc_noise(wf: ArrayLike,
     noise_idxs = np.where((ht > veg_top) | (ht < ground_bottom))
     noise = np.mean(wf[noise_idxs])
     return noise * noise_ratio
+
 
 def create_ground_return(
     wf: ArrayLike,
@@ -162,7 +168,7 @@ def truncate_waveform(
 
 
 def calc_biomass_index(
-        dp_dz: ArrayLike, dz: float, ht: ArrayLike, hse: float, n_modes: int
+    dp_dz: ArrayLike, dz: float, ht: ArrayLike, hse: float, n_modes: int
 ) -> float:
     """
     Calculate a simple biomass index for a waveform. Sum of height raised to the HSE weighted by waveform returns.

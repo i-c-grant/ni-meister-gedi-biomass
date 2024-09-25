@@ -43,8 +43,10 @@ biwf_pipeline = {
             "dz": "processed/dz",
             "rh": "raw/rh",
         },
-        "params": {"veg_floor": 5,
-                   "veg_buffer": 5,},
+        "params": {
+            "veg_floor": 5,
+            "veg_buffer": 5,
+        },
         "output_path": "processed/veg_ground_sep",
     },
     # Calculate and remove residual noise from smoothed waveform
@@ -81,13 +83,14 @@ biwf_pipeline = {
     # Scale the raw waveform for visualization
     "scale_raw": {
         "alg_fun": algorithms.scale_raw_wf,
-        "input_map": {"wf_raw": "processed/wf_noise_removed_raw",
-                      "wf_smooth": "processed/wf_all_noise_removed",
-                      "dz": "processed/dz"},
+        "input_map": {
+            "wf_raw": "processed/wf_noise_removed_raw",
+            "wf_smooth": "processed/wf_all_noise_removed",
+            "dz": "processed/dz",
+        },
         "output_path": "processed/wf_raw_scaled",
         "params": {},
     },
- 
     ### Post-normalization processing ###
     # Normalize the smoothed, noise-removed waveform
     "normalize": {
@@ -112,9 +115,9 @@ biwf_pipeline = {
         "input_map": {
             "wf": "processed/dp_dz",
             "ht": "processed/ht",
-            "ground_return_max_height": ("processed/"
-                                         "veg_ground_sep/"
-                                         "ground_bottom"),
+            "ground_return_max_height": (
+                "processed/" "veg_ground_sep/" "ground_bottom"
+            ),
         },
         "output_path": "processed/ground_return",
         "params": {"sd_ratio": 0.25},
