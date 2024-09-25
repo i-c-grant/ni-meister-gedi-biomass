@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime
 from typing import Any, Dict, Union
+from pathlib import Path
 
 import click
 import h5py
@@ -22,8 +23,7 @@ except ImportError:
 def process_beam(beam: str,
                  l1b_path: str,
                  l2a_path: str,
-                 output_dir: str,
-                 output_name: str,
+                 output_path: str,
                  processor_params: Dict[str, Dict[str, Any]],
                  filters: Union[Dict[str, Any], bytes]) -> None:
 
@@ -47,8 +47,8 @@ def process_beam(beam: str,
         app_utils.process_waveforms(waveforms, processor_params)
         click.echo(f"Waveforms for beam {beam} processed.")
 
-        app_utils.write_waveforms(waveforms, output_dir, output_name)
-        click.echo(f"Waveforms for beam {beam} written to {output_dir}.\n")
+        app_utils.write_waveforms(waveforms, output_path)
+        click.echo(f"Waveforms for beam {beam} written to {output_path}.\n")
 
 
 @click.command()
@@ -59,10 +59,11 @@ def process_beam(beam: str,
 def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
     # Create output directory with timestamp
     start_time = datetime.now()
-    output_dir = f"results/output_{start_time.strftime('%Y%m%d_%H%M%S')}"
+    output_dir = Path("output")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    output_name = f"test_run_{start_time.strftime('%Y%m%d_%H%M%S')}"
+    output_name = app_utils.build_output_filename(l1b_path, l2a_path)
+    output_path = (output_dir / output_name).with_suffix(".gpkg")
 
     # Set up the processing pipeline
     processor_params = processing_pipelines.biwf_pipeline
@@ -84,8 +85,7 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
                 beam,
                 l1b_path,
                 l2a_path,
-                output_dir,
-                output_name,
+                output_path,
                 processor_params,
                 pickled_filters,
             )
@@ -101,8 +101,7 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
             process_beam(beam,
                          l1b_path,
                          l2a_path,
-                         output_dir,
-                         output_name,
+                         output_path,
                          processor_params,
                          my_filters)
 

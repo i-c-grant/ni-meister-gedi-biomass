@@ -61,9 +61,7 @@ def process_waveforms(
         p.process()
 
 
-def write_waveforms(
-    waveforms: WaveformCollection, output_dir: str, output_name: str
-):
+def write_waveforms(waveforms: WaveformCollection, output_path: str):
     """Write processed waveforms to a GeoPackage file"""
 
     # Columns with results of interest
@@ -81,7 +79,7 @@ def write_waveforms(
 
     # Write processed data
     waveform_writer = WaveformWriter(
-        path=f"{output_dir}/{output_name}.gpkg",
+        path=output_path,
         append=True,
         cols={**context_cols, **results_cols},
         waveforms=waveforms,
