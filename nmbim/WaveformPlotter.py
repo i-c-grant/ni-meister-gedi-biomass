@@ -1,9 +1,9 @@
-import matplotlib.pyplot as plt
+from dataclasses import dataclass
 from typing import Dict, Optional
 
-from nmbim.Waveform import Waveform
+import matplotlib.pyplot as plt
 
-from dataclasses import dataclass
+from nmbim.Waveform import Waveform
 
 
 @dataclass

@@ -34,25 +34,24 @@ def gedi_filename_to_s3_url(filename: str) -> str:
 
     return f"{base_s3}/{basename}/{filename}"
 
+
 def open_s3_session():
     """Get a new session token from MAAP and open an s3 filesystem"""
     credentials = maap.aws.earthdata_s3_credentials(
         "https://data.lpdaac.earthdatacloud.nasa.gov/s3credentials"
     )
-    
+
     s3 = fsspec.filesystem(
         "s3",
-        key=credentials['accessKeyId'],
-        secret=credentials['secretAccessKey'],
-        token=credentials['sessionToken']
+        key=credentials["accessKeyId"],
+        secret=credentials["secretAccessKey"],
+        token=credentials["sessionToken"],
     )
 
     return s3
 
 
-def get_gedi_data(filename: str,
-                  target_dir: str,
-                  retries: int = 3):
+def get_gedi_data(filename: str, target_dir: str, retries: int = 3):
     """Download a GEDI file from the MAAP s3 bucket"""
 
     attempt = 0

@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Dict, Optional, Set, Literal
+from typing import Any, Dict, Literal, Optional, Set
 
 import h5py
 from numpy.typing import ArrayLike

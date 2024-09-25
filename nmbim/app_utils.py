@@ -3,12 +3,8 @@
 ############################################################
 from typing import Dict
 
-from nmbim import (
-    Waveform,
-    WaveformCollection,
-    WaveformProcessor,
-    WaveformWriter,
-)
+from nmbim import (Waveform, WaveformCollection, WaveformProcessor,
+                   WaveformWriter)
 
 
 def build_output_filename(l1b_path: str, l2a_path: str) -> str:
