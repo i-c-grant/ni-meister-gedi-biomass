@@ -57,13 +57,24 @@ def process_beam(beam: str,
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
 @click.option("--n_workers", "-n", default=4, help="Number of workers for parallel mode.")
 def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
-    # Create output directory with timestamp
+
+    # Set up logging and output directory
     start_time = datetime.now()
     output_dir = Path("output")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
+
     output_name = app_utils.build_output_filename(l1b_path, l2a_path)
     output_path = (output_dir / output_name).with_suffix(".gpkg")
+
+    logging.basicConfig(filename=f"{output_dir}/{output_name}.log",
+                        level=logging.INFO)
+    logging.basicConfig(format="%(asctime)s - %(message)s")
+
+    logging.info(
+        f"Run started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
+
 
     # Set up the processing pipeline
     processor_params = processing_pipelines.biwf_pipeline
@@ -71,9 +82,9 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
     my_filters = app_utils.define_filters()
 
     if not MULTIPROCESSING_AVAILABLE and parallel:
-        click.echo(
+        logging.warning(
             "Multiprocessing is not available on this system. "
-            "Running in serial mode."
+            "Switching to serial mode."
         )
         parallel = False
 
@@ -105,10 +116,9 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
                          processor_params,
                          my_filters)
 
-    click.echo(f"Run completed.")
+    logging.info(f"Output written to {output_path}")
 
     # Log the run
-    logging.basicConfig(filename=f"{output_dir}/run.log", level=logging.INFO)
     finish_time = datetime.now()
     logging.info(
         f"Run completed at {finish_time.strftime('%Y-%m-%d %H:%M:%S')}"
@@ -117,8 +127,9 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
     logging.info(
         f"Command line arguments: l1b_path={l1b_path}, " f"l2a_path={l2a_path}"
     )
-    logging.info(f"Processor parameters: {processor_params}")
-
+    # Add newline to params to make log more readable
+    f_processor_params = str(processor_params).replace(", ", ",\n")
+    logging.info(f"Processor parameters: {f_processor_params}")
 
 if __name__ == "__main__":
     main()
