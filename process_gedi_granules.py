@@ -1,3 +1,9 @@
+##########################################################################
+# This script processes paired GEDI L1B and L2A granules (i.e. files)    #
+# to calculate the Ni-Meister Biomass Index (NMBI) for each footprint in #
+# the granules. The NMBI is a metric of above-ground biomass density.    #
+##########################################################################
+
 import logging
 import os
 from datetime import datetime
@@ -18,7 +24,6 @@ try:
     MULTIPROCESSING_AVAILABLE = True
 except ImportError:
     MULTIPROCESSING_AVAILABLE = False
-
 
 # Define function for processing a single beam.
 # This function is used in both serial and parallel modes.
