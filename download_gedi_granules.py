@@ -20,10 +20,14 @@ def main(l1b_ur, l2a_ur, output_dir):
 
     l1b_granule: Granule = maap_utils.find_unique_granule(l1b_ur,
                                                           l1b_collection)
+
     l2a_granule: Granule = maap_utils.find_unique_granule(l2a_ur,
                                                           l2a_collection)
     
+    click.echo(f"Downloading {l1b_ur} to {output_dir}")
     l1b_granule.getData(destpath=output_dir)
+
+    click.echo(f"Downloading {l2a_ur} to {output_dir}")
     l2a_granule.getData(destpath=output_dir)
 
 if __name__ == '__main__':
