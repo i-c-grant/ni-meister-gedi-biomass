@@ -9,7 +9,7 @@ from access_gedi import maap_utils
 @click.argument('l1b_ur', type=str)
 @click.argument('l2a_ur', type=str)
 @click.argument('output_dir', type=str)
-def main(l1b_ur, l2a_ur):
+def main(l1b_ur, l2a_ur, output_dir):
     l1b_collection: str = maap_utils.get_collection("l1b")
     l2a_collection: str = maap_utils.get_collection("l2a")
 
