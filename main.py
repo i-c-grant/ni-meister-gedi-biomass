@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 import h5py
 
-from nmbim import WaveformCollection, app_utils, processing_pipelines
+from nmbim import WaveformCollection, app_utils, processing_pipelines, filters
 
 # Import modules for parallel processing if available
 try:
@@ -57,9 +57,19 @@ def process_beam(
 @click.command()
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
+@click.option("boundary", "-b", type=click.Path(exists=True),
+              help=("Path to a shapefile or GeoPackage containing "
+                    "a boundary polygon."))
+@click.option("start_time", "-s", type=click.DateTime(formats=["%Y-%m-%d"]),
+                help="Start time for temporal filtering.")
+@click.option("end_time", "-e", type=click.DateTime(formats=["%Y-%m-%d"]),
+                help="End time for temporal filtering.")
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
 @click.option(
-    "--n_workers", "-n", default=4, help="Number of workers for parallel mode."
+    "--n_workers",
+    "-n",
+    default=4,
+    help="Number of workers for parallel mode."
 )
 def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
     # Set up logging and output directory
@@ -81,7 +91,7 @@ def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
     # Set up the processing pipeline
     processor_params = processing_pipelines.biwf_pipeline
     beams = app_utils.get_beam_names()
-    my_filters = app_utils.define_filters()
+    my_filters = filters.define_filters()
 
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
