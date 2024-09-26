@@ -10,7 +10,10 @@ maap = MAAP(maap_host="api.maap-project.org")
 
 
 def gedi_filename_to_s3_url(filename: str) -> str:
-    """Convert a GEDI filename to an s3 URL"""
+    """Convert a GEDI filename to an s3 URL.
+    Filename can include .h5 extension (as in the proper GEDI filenames)
+    or not (as in the granule URs from the NASA CMR).
+    """
     name_components = filename.split("_")
 
     if name_components[0:2] == ["GEDI01", "B"]:
@@ -30,7 +33,9 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     elif gedi_type == "l2a":
         base_s3 += "/GEDI02_A.002"
 
-    basename = filename.split(".")[0]  # remove the .h5 extension
+    # Remove the .h5 extension if present
+    if filename.endswith(".h5"):
+        basename = filename[:-3]
 
     return f"{base_s3}/{basename}/{filename}"
 
