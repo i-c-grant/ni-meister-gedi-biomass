@@ -77,7 +77,14 @@ class Waveform:
             self.save_data(data=l2a_path, path="metadata/l2a_path")
 
             # Store beam name
-            beam_name = self._identify_waveform_beam()
+            beam_name_l1b = Waveform._which_beam(shot_number, file=l1b)
+            beam_name_l2a = Waveform._which_beam(shot_number, file=l2a)
+            if beam_name_l1b != beam_name_l2a:
+                raise ValueError(
+                    f"Beam mismatch: L1B beam {beam_name_l1b} "
+                    f"!= L2A beam {beam_name_l2a}"
+                )
+            beam_name = beam_name_l1b
             self.save_data(data=beam_name, path="metadata/beam")
 
             # Create beams and store
@@ -246,43 +253,6 @@ class Waveform:
             )
         return signature
 
-    def _identify_waveform_beam(self) -> Optional[str]:
-        """Determine which beam the waveform belongs to"""
-        l1b_path = self.get_data("metadata/l1b_path")
-        l2a_path = self.get_data("metadata/l2a_path")
-        shot_number = self.get_data("metadata/shot_number")
-
-        with h5py.File(l1b_path) as l1b_file:
-            l1b_beam: str = Waveform._which_beam(
-                self.get_data("metadata/shot_number"), l1b_file
-            )
-
-        with h5py.File(l2a_path) as l2a_file:
-            l2a_beam: str = Waveform._which_beam(
-                self.get_data("metadata/shot_number"), l2a_file
-            )
-
-        if l1b_beam is None or l2a_beam is None:
-            raise ValueError("Unable to identify beam for L1B or L2A file.")
-
-        if l1b_beam != l2a_beam:
-            raise ValueError(
-                f"Beam mismatch: L1B beam {l1b_beam} != L2A beam {l2a_beam}"
-            )
-
-        return l1b_beam
-
-    @staticmethod
-    def _which_beam(shot_number: int, file: h5py.File) -> Optional[str]:
-        """Determine which beam a waveform belongs to"""
-        for key in file.keys():
-            if key != "METADATA":
-                beam = key
-                shot_numbers = file[beam]["shot_number"]
-                if shot_number in shot_numbers:
-                    return beam
-        return None
-
     def get_paths(self) -> Set[str]:
         """Returns a set of terminal paths in the Waveform object."""
         return self._data.get_paths()
@@ -320,6 +290,18 @@ class Waveform:
         lat = self.get_data("metadata/coords/lat")
         lon = self.get_data("metadata/coords/lon")
         return Point(lon, lat)
+
+    @staticmethod
+    def _which_beam(shot_number: int, file: h5py.File) -> Optional[str]:
+        """Determine which beam a waveform belongs to"""
+        for key in file.keys():
+            if key != "METADATA":
+                beam = key
+                shot_numbers = file[beam]["shot_number"]
+                if shot_number in shot_numbers:
+                    return beam
+        return None
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Waveform):
             return False
