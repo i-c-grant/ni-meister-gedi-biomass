@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import h5py
 from numpy.typing import ArrayLike
+from shapely.geometry import Point
 
 from nmbim.Beam import Beam
 from nmbim.NestedDict import NestedDict
@@ -313,6 +314,12 @@ class Waveform:
             seconds=self.get_data("metadata/gps_timedelta"))
         gps_time = gps_epoch + time_delta
         return gps_time
+        
+    def as_point(self) -> Point:
+        """Returns a Point object representing the center of the waveform."""
+        lat = self.get_data("metadata/coords/lat")
+        lon = self.get_data("metadata/coords/lon")
+        return Point(lon, lat)
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Waveform):
             return False
