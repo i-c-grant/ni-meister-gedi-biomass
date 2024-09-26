@@ -10,7 +10,7 @@ def get_collection_id(product: str):
         raise ValueError(f"Invalid product: {product}"
                          f"Expected 'l1b' or 'l2a'")
 
-    collection = maap.SearchCollection(
+    collection = maap.searchCollection(
         short_name=short_name,
         version="002",
         cmr_host="cmr.earthdata.nasa.gov",
@@ -28,7 +28,7 @@ def find_unique_granule(granule_ur: str,
     Note: the UR is equivalent to the filename without the h5 extension.
     """
     
-    granules = maap.SearchGranule(granule_ur=granule_ur,
+    granules = maap.searchGranule(granule_ur=granule_ur,
                                   concept_id=collection_id,
                                   cmr_host='cmr.earthdata.nasa.gov')
     if len(granules) == 0:
