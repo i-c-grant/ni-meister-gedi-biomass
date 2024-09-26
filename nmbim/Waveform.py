@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import Any, Dict, Literal, Optional, Set
+from datetime import datetime, timedelta
 
 import h5py
 from numpy.typing import ArrayLike
@@ -107,6 +108,19 @@ class Waveform:
             data={"lat": lat, "lon": lon},
             path="metadata/coords",
         )
+        
+        # Extract and store GPS time
+        # Note: master_time_epoch is an offset from GPS epoch
+        # (1980-01-06) and delta_time is the shot's time since
+        # master_time_epoch in seconds.
+        master_time_epoch = self.l1b_beam.extract_value(
+            "ancillary/master_time_epoch", 0
+        )
+        delta_time = self.l1b_beam.extract_value(
+            "geolocation/delta_time", shot_index
+        )
+        gps_timedelta = master_time_epoch + delta_time
+        self.save_data(data=gps_timedelta, path="metadata/gps_timedelta")
 
         # Store quality flags
         qual_flag = self.l2a_beam.extract_value("quality_flag", shot_index)
@@ -292,6 +306,13 @@ class Waveform:
 
         self._data.save_data(data, path, overwrite=False)
 
+    def get_time(self) -> datetime:
+        """Returns a datetime representing the GPS time of the waveform."""
+        gps_epoch = datetime(1980, 1, 6)
+        time_delta = timedelta(
+            seconds=self.get_data("metadata/gps_timedelta"))
+        gps_time = gps_epoch + time_delta
+        return gps_time
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Waveform):
             return False
