@@ -11,10 +11,10 @@ from nmbim.NestedDict import NestedDict
 class Waveform:
     """Stores raw and processed waveform data for one GEDI footprint.
 
-    Requires a shot number and h5py file objects for the L1B and L2A
-    files or Beam objects for the beam groups in those files.
-    Provide Beam objects with caching enabled for fast batch processing.
-    Provide file paths to lazily look up single Waveforms.
+    Requires either 1) a shot number and h5py file objects for the L1B
+    and L2A files or 2) Beam objects for the beam groups in those files.
+    Provide Beam objects with caching enabled for fast batch
+    processing. Provide file paths to lazily look up single Waveforms.
 
     Data is stored in a nested dictionary structure with string paths,
     organized in four categories: raw, processed, results, and metadata.
@@ -202,7 +202,7 @@ class Waveform:
         l1b = init_args["l1b"]
         l2a = init_args["l2a"]
 
-        # Two signatures are valid:
+        # Two signatures are valid (both must include a shot number):
         # 1) "beams": two Beam objects and no h5py files
         if not any_none(l1b_beam, l2a_beam) and all_none(l1b, l2a):
             # Type check for Beam objects
