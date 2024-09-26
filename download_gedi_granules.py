@@ -15,8 +15,8 @@ def main(l1b_ur, l2a_ur, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    l1b_s3_url = download_gedi.ged_filename_to_s3_url(l1b_ur)
-    l2a_s3_url = download_gedi.ged_filename_to_s3_url(l2a_ur)
+    l1b_s3_url = download_gedi.gedi_filename_to_s3_url(l1b_ur)
+    l2a_s3_url = download_gedi.gedi_filename_to_s3_url(l2a_ur)
 
     download_gedi.get_gedi_data(l1b_s3_url, output_dir)
     download_gedi.get_gedi_data(l2a_s3_url, output_dir)
