@@ -86,33 +86,3 @@ def write_waveforms(waveforms: WaveformCollection, output_path: str):
     )
 
     waveform_writer.write()
-
-
-def define_filters():
-    """Define filters that determine which waveforms are processed"""
-
-    # Quality control filters
-    def flag_filter(wf: Waveform) -> bool:
-        """Filter waveforms based on metadata or data quality."""
-        if wf.get_data("metadata/flags/quality") == 1:
-            return True
-        else:
-            return False
-
-    def modes_filter(wf: Waveform) -> bool:
-        """Keep only waveforms with more than one mode."""
-        if wf.get_data("metadata/modes/num_modes") > 0:
-            return True
-        else:
-            return False
-
-    def landcover_filter(wf: Waveform) -> bool:
-        """Keep only waveforms with more than 50% tree cover."""
-        if wf.get_data("metadata/landcover/modis_treecover") > 10:
-            return True
-        else:
-            return False
-
-    filters = [flag_filter, modes_filter, landcover_filter]
-
-    return filters
