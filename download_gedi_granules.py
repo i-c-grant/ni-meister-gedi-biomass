@@ -1,3 +1,5 @@
+import os
+
 import click
 from maap.maap import MAAP
 maap = MAAP(maap_host='api.maap-project.org')
@@ -10,6 +12,9 @@ from access_gedi import maap_utils
 @click.argument('l2a_ur', type=str)
 @click.argument('output_dir', type=str)
 def main(l1b_ur, l2a_ur, output_dir):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     l1b_collection: str = maap_utils.get_collection_id("l1b")
     l2a_collection: str = maap_utils.get_collection_id("l2a")
 
@@ -23,4 +28,3 @@ def main(l1b_ur, l2a_ur, output_dir):
 
 if __name__ == '__main__':
     main()
-    
