@@ -33,11 +33,14 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     elif gedi_type == "l2a":
         base_s3 += "/GEDI02_A.002"
 
-    # Remove the .h5 extension if present
+    # Distinguish between granule UR (no extension) and filename (with extension)
     if filename.endswith(".h5"):
-        basename = filename[:-3]
+        granule_ur = filename[:-3]
+    else:
+        granule_ur = filename
+        filename += ".h5"
 
-    return f"{base_s3}/{basename}/{filename}"
+    return f"{base_s3}/{granule_ur}/{filename}"
 
 
 def open_s3_session():
