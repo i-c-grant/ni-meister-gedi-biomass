@@ -7,14 +7,14 @@ def get_collection_id(product: str):
     elif product == 'l2a':
         short_name = "GEDI02_A"
     else:
-        raise ValueError(f"Invalid product: {product}"
+        raise ValueError(f"Invalid GEDI product: {product}. "
                          f"Expected 'l1b' or 'l2a'")
 
     collection = maap.searchCollection(
         short_name=short_name,
         version="002",
         cmr_host="cmr.earthdata.nasa.gov",
-        cloud_hosted=True
+        cloud_hosted="true"
     )[0]
 
     return collection['concept-id']
