@@ -54,7 +54,8 @@ class WaveformWriter:
         if self._file_type not in ["csv", "gpkg"]:
             raise ValueError(f"Unsupported file type {self._file_type}")
         if self.waveforms is None or len(self.waveforms) == 0:
-            raise ValueError("No waveforms provided to write")
+            warnings.warn(f"No waveforms provided to write in {self}",
+                          UserWarning)
 
         self._waveform_iter = iter(self.waveforms)
 
