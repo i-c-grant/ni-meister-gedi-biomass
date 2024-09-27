@@ -1,7 +1,7 @@
 import click
 import h5py
 
-from nmbim import Waveform, WaveformPlotter, app_utils, processing_pipelines
+from nmbim import Waveform, WaveformPlotter, app_utils, processing_pipelines, filters
 
 
 @click.command()
@@ -16,7 +16,7 @@ def cli(l1b_path, l2a_path):
     processor_params = processing_pipelines.biwf_pipeline
 
     # Initialize filters (from app_utils)
-    my_filters = app_utils.define_filters()
+    my_filters = filters.define_filters()
 
     # Define the layers for plotting
     layers = {
