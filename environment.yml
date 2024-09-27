@@ -15,6 +15,7 @@ dependencies:
   - matplotlib=3.9.2
   - numpy=2.1.1
   - scipy=1.14.1
+  - s3fs
 
   - pip:
       - git+https://git@github.com/MAAP-Project/maap-py@v4.0.0
