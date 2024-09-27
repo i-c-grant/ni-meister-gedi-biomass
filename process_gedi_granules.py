@@ -107,6 +107,9 @@ def main(l1b_path: str,
     beams = app_utils.get_beam_names()
     my_filters = filters.define_filters()
 
+    if boundary:
+        my_filters.append(filters.generate_spatial_filter(boundary))
+    
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
             "Multiprocessing is not available on this system. "
