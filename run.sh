@@ -3,10 +3,16 @@
 # Get directory of run script
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
-# Create output directory if it doesn't exist
+# Create input and output directories if they don't exist
+mkdir -p input
 mkdir -p output
 
-# Find the L1B, L2A, and boundary files in the basedir/input directory based on correct patterns
+# Download GEDI granules to the input directory
+conda run --live-stream -n nmbim-env \
+      python "${basedir}/download_gedi_granules.py" "${1}" "${2}" \
+      "${basedir}/input"
+
+# Find the L1B, L2A, and boundary files in the basedir/input directory
 L1B=$(find "${basedir}/input" -name "GEDI01_B*.h5" | head -n 1)
 L2A=$(find "${basedir}/input" -name "GEDI02_A*.h5" | head -n 1)
 boundary=$(find "${basedir}/input" \( -name "*.gpkg" -o -name "*.shp" \) \
@@ -39,5 +45,5 @@ if [ -n "$boundary" ]; then
     cmd+=("--boundary" "$boundary")
 fi
 
-# Execute the command
+# Execute the processing command
 "${cmd[@]}"
