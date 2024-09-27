@@ -3,20 +3,41 @@
 # Get directory of run script
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
-# Activate environment created in build-env.sh
-conda activate nmbim-env
-
-# Create input and output directories
-mkdir -p input
+# Create output directory if it doesn't exist
 mkdir -p output
 
-# Provide filenames to L1B and L2A files
-L1B=$1
-L2A=$2
+# Find the L1B, L2A, and boundary files in the basedir/input directory based on correct patterns
+L1B=$(find "${basedir}/input" -name "GEDI01_B*.h5" | head -n 1)
+L2A=$(find "${basedir}/input" -name "GEDI02_A*.h5" | head -n 1)
+boundary=$(find "${basedir}/input" \( -name "*.gpkg" -o -name "*.shp" \) \
+	       | head -n 1)
 
-# Download GEDI files
-python ${basedir}/download_gedi_granules.py ${L1B} ${L2A} ${basedir}/input
+# Check if the required files are found
+if [ -z "$L1B" ] || [ -z "$L2A" ]; then
+    echo "L1B or L2A file not found in input directory!"
+    exit 1
+fi
 
-# Process GEDI files
-python ${basedir}/process_gedi_granules.py ${basedir}/input/${L1B} \
-       ${basedir}/input/${L2A} ${basedir}/output
+if [ -z "$boundary" ]; then
+    echo "Boundary file not found! Proceeding without boundary file."
+fi
+
+# Display the files that were found
+echo "L1B file: $L1B"
+echo "L2A file: $L2A"
+echo "Boundary file: ${boundary:-none}"
+
+cmd=(
+  conda run -n nmbim-env
+  python "${basedir}/process_gedi_granules.py"
+  "${L1B}"
+  "${L2A}"
+  "${basedir}/output"
+)
+
+if [ -n "$boundary" ]; then
+    cmd+=("--boundary" "$boundary")
+fi
+
+# Execute the command
+"${cmd[@]}"
