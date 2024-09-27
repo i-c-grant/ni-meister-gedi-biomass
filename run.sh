@@ -1,16 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env -S bash --login
 
 # Get directory of run script
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
-# Activate environment that was created in the build-env.sh file
+# Activate environment created in build-env.sh
 conda activate nmbim-env
 
-# Create output dir
+# Create input and output directories
+mkdir -p input
 mkdir -p output
 
-# URLs to L1B and L2A input files
-L1B_URL=$1
-L2A_URL=$2
+# Provide filenames to L1B and L2A files
+L1B=$1
+L2A=$2
 
-python ${basedir}/main.py ${L1B_URL} ${L2A_URL} output
+# Download GEDI files
+python ${basedir}/download_gedi_granules.py ${L1B} ${L2A} ${basedir}/input
+
+# Process GEDI files
+python ${basedir}/process_gedi_granules.py ${basedir}/input/${L1B} \
+       ${basedir}/input/${L2A} ${basedir}/output
