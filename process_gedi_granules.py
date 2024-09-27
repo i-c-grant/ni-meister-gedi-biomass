@@ -62,6 +62,7 @@ def process_beam(
 @click.command()
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
+@click.argument("output_dir", type=click.Path(exists=True))
 @click.option("boundary", "-b", type=click.Path(exists=True),
               help=("Path to a shapefile or GeoPackage containing "
                     "a boundary polygon."))
@@ -76,14 +77,21 @@ def process_beam(
     default=4,
     help="Number of workers for parallel mode."
 )
-def main(l1b_path: str, l2a_path: str, parallel: bool, n_workers: int):
+def main(l1b_path: str,
+         l2a_path: str,
+         output_dir: str,
+         parallel: bool,
+         n_workers: int):
+    """Process GEDI L1B and L2A granules to calculate the Ni-Meister Biomass
+    Index (NMBI) for each footprint in the granules."""
+
     # Set up logging and output directory
     start_time = datetime.now()
-    output_dir = Path("output")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    output_name = app_utils.build_output_filename(l1b_path, l2a_path)
+    output_name = Path(app_utils.build_output_filename(l1b_path, l2a_path))
+    output_dir = Path(output_dir)
     output_path = (output_dir / output_name).with_suffix(".gpkg")
 
     logging.basicConfig(
