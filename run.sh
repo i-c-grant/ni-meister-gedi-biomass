@@ -28,7 +28,7 @@ echo "L2A file: $L2A"
 echo "Boundary file: ${boundary:-none}"
 
 cmd=(
-  conda run -n nmbim-env
+  conda run --live-stream -n nmbim-env
   python "${basedir}/process_gedi_granules.py"
   "${L1B}"
   "${L2A}"
