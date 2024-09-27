@@ -68,7 +68,7 @@ def process_beam(
                     "a boundary polygon."))
 @click.option("date_range", "-d", type=str,
               help=("Date range for filtering granules. Format as specified "
-                    "by NASA Common Metadata Repository API.")),
+                    "by NASA Common Metadata Repository API."))
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
 @click.option(
     "--n_workers",
