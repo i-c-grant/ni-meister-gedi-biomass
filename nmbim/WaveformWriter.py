@@ -54,9 +54,6 @@ class WaveformWriter:
         self._file_type = self.path.suffix.lstrip(".")
         if self._file_type not in ["csv", "gpkg"]:
             raise ValueError(f"Unsupported file type {self._file_type}")
-        if self.waveforms is None or len(self.waveforms) == 0:
-            warnings.warn(f"No waveforms provided to write in {self}",
-                          UserWarning)
 
         self._waveform_iter = iter(self.waveforms)
 
@@ -186,10 +183,15 @@ class WaveformWriter:
         gdf.to_file(self.path, driver="GPKG", mode="a" if self.append else "w")
 
     def write(self) -> None:
-        if self._file_type == "csv":
-            self._to_csv()
-        elif self._file_type == "gpkg":
-            self._to_gpkg()
+        """Write the waveforms to the file if there are any."""
+        if len(self.waveforms) > 0:
+            if self._file_type == "csv":
+                self._to_csv()
+            elif self._file_type == "gpkg":
+                self._to_gpkg()
+        else:
+            warnings.warn(f"No waveforms provided to write in {self}",
+                          UserWarning)
 
     def __repr__(self) -> str:
         return f"WaveformWriter(path={self.path!r}, cols={self.cols!r}, append={self.append})"
