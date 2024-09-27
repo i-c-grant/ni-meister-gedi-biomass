@@ -63,10 +63,10 @@ def process_beam(
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("output_dir", type=click.Path(exists=True))
-@click.option("boundary", "-b", type=click.Path(exists=True),
+@click.option("--boundary", "-b", type=click.Path(exists=True),
               help=("Path to a shapefile or GeoPackage containing "
                     "a boundary polygon."))
-@click.option("date_range", "-d", type=str,
+@click.option("--date_range", "-d", type=str,
               help=("Date range for filtering granules. Format as specified "
                     "by NASA Common Metadata Repository API."))
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
