@@ -7,13 +7,15 @@
 # determine which waveforms to include.                              #
 ######################################################################
 
-import geopandas as gpd
-from shapely.geometry import Point, Polygon, MultiPolygon
-from typing import Callable
 from datetime import datetime
-from typing import List, Optional
+from typing import Callable, List, Optional
+
+import geopandas as gpd
+from osgeo import ogr
+from shapely.geometry import MultiPolygon, Point, Polygon
 
 from nmbim.Waveform import Waveform
+
 
 # Quality control filters
 def flag_filter(wf: Waveform) -> bool:
@@ -41,27 +43,27 @@ def generate_spatial_filter(file_path: str,
                             waveform_crs: str = "EPSG:4326") -> Callable:
     """Generate a spatial filter based on a polygon from a GeoPackage or 
        Shapefile. File must contain only polygons and one layer."""
-    
+
     # Check layer count (for formats with multiple layers like GPKG)
-    layers = gpd.io.file.fiona.listlayers(file_path)
-    if len(layers) > 1:
-        raise ValueError(f"The boundary file contains multiple layers: ",
-                         f"{layers}. Please provide a file with a ",
-                         f"single layer.")
+    with ogr.Open(file_path) as boundary_data:
+        n_layers = boundary_data.GetLayerCount()
+        if n_layers > 1:
+            raise ValueError(f"The boundary file contains multiple layers: ",
+                             f"{layers}. Please provide a file with a ",
+                             f"single layer.")
     
     # Read the polygons from the file (only the first layer)
-    poly_gdf = gpd.read_file(file_path, layer=layers[0])
+    poly_gdf = gpd.read_file(file_path)
     
     # Ensure the geometry type is Polygon or MultiPolygon
     if not poly_gdf.geom_type.isin(["Polygon", "MultiPolygon"]).all():
         raise ValueError("The file contains non-polygon geometries. "
                          "Ensure all geometries are polygons.")
    
-    # Ensure the polygon GeoDataFrame has a CRS
-    if poly_gdf.crs is None:
+    # Get the CRS of the polygon file and check if it is specified
+    poly_crs = poly_gdf.crs
+    if poly_crs is None:
         raise ValueError("The polygon file does not have a CRS specified.")
-    
-    poly_crs = poly_gdf.crs  # Get the CRS of the polygon
 
     # Define the spatial filter
     def spatial_filter(wf: 'Waveform') -> bool:
