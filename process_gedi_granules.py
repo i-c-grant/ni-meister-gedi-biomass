@@ -66,10 +66,9 @@ def process_beam(
 @click.option("boundary", "-b", type=click.Path(exists=True),
               help=("Path to a shapefile or GeoPackage containing "
                     "a boundary polygon."))
-@click.option("start_time", "-s", type=click.DateTime(formats=["%Y-%m-%d"]),
-                help="Start time for temporal filtering.")
-@click.option("end_time", "-e", type=click.DateTime(formats=["%Y-%m-%d"]),
-                help="End time for temporal filtering.")
+@click.option("date_range", "-d", type=str,
+              help=("Date range for filtering granules. Format as specified "
+                    "by NASA Common Metadata Repository API."),
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
 @click.option(
     "--n_workers",
@@ -80,6 +79,8 @@ def process_beam(
 def main(l1b_path: str,
          l2a_path: str,
          output_dir: str,
+         boundary: str,
+         date_range: str,
          parallel: bool,
          n_workers: int):
     """Process GEDI L1B and L2A granules to calculate the Ni-Meister Biomass
