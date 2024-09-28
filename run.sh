@@ -3,6 +3,10 @@
 # Get directory of run script
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
+# Redirect stdout and stderr to a log file
+logfile="${basedir}/output.log"
+exec > >(tee -i "${logfile}") 2>&1
+
 # Create input and output directories if they don't exist
 mkdir -p "${basedir}/input"
 mkdir -p "${basedir}/output"
@@ -21,7 +25,7 @@ L2A_path=$(find "${basedir}/input" -name "GEDI02_A*.h5" | head -n 1)
 boundary_path=$(find "${basedir}/input" \(-name "*.gpkg" -o -name "*.shp" \) \
 	       | head -n 1)
 
-# Check if the required files are found
+# Check if the required files were found
 if [ -z "$L1B_path" ] || [ -z "$L2A_path" ]; then
     echo "L1B or L2A file not found in input directory!"
     exit 1
@@ -31,11 +35,11 @@ if [ -z "$boundary_path" ]; then
     echo "Boundary file not found! Proceeding without boundary file."
 fi
 
-# Display the files that were found
 echo "L1B file: $L1B_path"
 echo "L2A file: $L2A_path"
 echo "Boundary file: ${boundary_path:-none}"
 
+# Run the processing script
 cmd=(
     conda
     run
@@ -53,5 +57,4 @@ if [ -n "$boundary_path" ]; then
     cmd+=("--boundary" "$boundary_path")
 fi
 
-# Execute the processing command
 "${cmd[@]}"
