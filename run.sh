@@ -4,45 +4,52 @@
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
 # Create input and output directories if they don't exist
-mkdir -p input
-mkdir -p output
+mkdir -p "${basedir}/input"
+mkdir -p "${basedir}/output"
 
 # Download GEDI granules to the input directory
+L1B_name=$1
+L2A_name=$2
+
 conda run --live-stream -n nmbim-env \
-      python "${basedir}/download_gedi_granules.py" "${1}" "${2}" \
-      "${basedir}/input"
+      python "${basedir}/download_gedi_granules.py" "$L1B_name" "$L2A_name"
 
 # Find the L1B, L2A, and boundary files in the basedir/input directory
-L1B=$(find "${basedir}/input" -name "GEDI01_B*.h5" | head -n 1)
-L2A=$(find "${basedir}/input" -name "GEDI02_A*.h5" | head -n 1)
-boundary=$(find "${basedir}/input" \( -name "*.gpkg" -o -name "*.shp" \) \
+L1B_path=$(find "${basedir}/input" -name "GEDI01_B*.h5" | head -n 1)
+L2A_path=$(find "${basedir}/input" -name "GEDI02_A*.h5" | head -n 1)
+boundary_path=$(find "${basedir}/input" \(-name "*.gpkg" -o -name "*.shp" \) \
 	       | head -n 1)
 
 # Check if the required files are found
-if [ -z "$L1B" ] || [ -z "$L2A" ]; then
+if [ -z "$L1B_path" ] || [ -z "$L2A_path" ]; then
     echo "L1B or L2A file not found in input directory!"
     exit 1
 fi
 
-if [ -z "$boundary" ]; then
+if [ -z "$boundary_path" ]; then
     echo "Boundary file not found! Proceeding without boundary file."
 fi
 
 # Display the files that were found
-echo "L1B file: $L1B"
-echo "L2A file: $L2A"
-echo "Boundary file: ${boundary:-none}"
+echo "L1B file: $L1B_path"
+echo "L2A file: $L2A_path"
+echo "Boundary file: ${boundary_path:-none}"
 
 cmd=(
-  conda run --live-stream -n nmbim-env
-  python "${basedir}/process_gedi_granules.py"
-  "${L1B}"
-  "${L2A}"
-  "${basedir}/output"
+    conda
+    run
+    --live-stream
+    -n
+    nmbim-env
+    python
+    "${basedir}/process_gedi_granules.py"
+    "${L1B_path}"
+    "${L2A_path}"
+    "${basedir}/output"
 )
 
-if [ -n "$boundary" ]; then
-    cmd+=("--boundary" "$boundary")
+if [ -n "$boundary_path" ]; then
+    cmd+=("--boundary" "$boundary_path")
 fi
 
 # Execute the processing command
