@@ -12,7 +12,8 @@ L1B_name=$1
 L2A_name=$2
 
 conda run --live-stream -n nmbim-env \
-      python "${basedir}/download_gedi_granules.py" "$L1B_name" "$L2A_name"
+      python "${basedir}/download_gedi_granules.py" \
+      "$L1B_name" "$L2A_name" "${basedir}/input"
 
 # Find the L1B, L2A, and boundary files in the basedir/input directory
 L1B_path=$(find "${basedir}/input" -name "GEDI01_B*.h5" | head -n 1)
