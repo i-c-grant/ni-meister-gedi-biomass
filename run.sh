@@ -20,10 +20,28 @@ conda run --live-stream -n nmbim-env \
       "$L1B_name" "$L2A_name" "${basedir}/input"
 
 # Find the L1B, L2A, and boundary files in the basedir/input directory
-L1B_path=$(find "${basedir}/input" -name "GEDI01_B*.h5" | head -n 1)
-L2A_path=$(find "${basedir}/input" -name "GEDI02_A*.h5" | head -n 1)
-boundary_path=$(find "${basedir}/input" \(-name "*.gpkg" -o -name "*.shp" \) \
-	       | head -n 1)
+# Function to find exactly one file matching a pattern
+find_single_file() {
+    local search_path=$1
+    local file_pattern=$2
+    local files=($(find "$search_path" $file_pattern))
+
+    if [ ${#files[@]} -gt 1 ]; then
+        echo "Error: Multiple files found for pattern '$file_pattern': ${files[@]}"
+        exit 1
+    elif [ ${#files[@]} -eq 0 ]; then
+        echo "Error: No file found for pattern '$file_pattern'!"
+        exit 1
+    fi
+
+    # Return the found file
+    echo "${files[0]}"
+}
+
+# Find the L1B, L2A, and boundary files
+L1B_path=$(find_single_file "${basedir}/input" "-name 'GEDI01_B*.h5'")
+L2A_path=$(find_single_file "${basedir}/input" "-name 'GEDI02_A*.h5'")
+boundary_path=$(find_single_file "${basedir}/input" "\( -name '*.gpkg' -o -name '*.shp' \)")
 
 # Check if the required files were found
 if [ -z "$L1B_path" ] || [ -z "$L2A_path" ]; then
