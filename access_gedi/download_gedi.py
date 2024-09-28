@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import time
 
+import backoff
 import fsspec
 from maap.maap import MAAP
 
@@ -58,16 +59,11 @@ def open_s3_session():
 
     return s3
 
-
-def get_gedi_data(filename: str, target_dir: str, retries: int = 3):
-    """Download a GEDI file from the MAAP s3 bucket"""
-
-    attempt = 0
-    delay = 5
-
-    # Open the s3 filesystem and get the s3 URL
-    s3 = open_s3_session()
-    s3_url = gedi_filename_to_s3_url(filename)
+def get_gedi_data(filename: str,
+                  target_dir: str,
+                  retries: int = 5,
+                  max_delay: int = 120):
+    """Download a GEDI file from with exponential backoff"""
 
     # Prepare the output path
     if not os.path.exists(target_dir):
@@ -76,27 +72,33 @@ def get_gedi_data(filename: str, target_dir: str, retries: int = 3):
     if os.path.exists(output_path):
         raise FileExistsError(f"File already exists at {output_path}")
 
-    # Download the file
-    while attempt < retries:
-        try:
-            # Use a temporary file to avoid partial downloads
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_fp = os.path.join(temp_dir, "tempfile")
-                print(f"Downloading {s3_url} to {temp_fp}")
-                s3.get(s3_url, temp_fp)
-                print(f"Downloaded. Moving to final location: {output_path}")
-                shutil.move(temp_fp, output_path)
-                break
-        except Exception as e:
-            attempt += 1
-            print(f"Attempt {attempt} failed: {e}")
-            if attempt < retries:
-                print(f"Retrying in {delay} seconds...")
-                time.sleep(delay)
-            else:
-                print("All retries failed.")
-                raise
+    # Open the S3 filesystem and get the S3 URL
+    s3_url = gedi_filename_to_s3_url(filename)
+
+    # Define the backoff handler
+    @backoff.on_exception(
+        backoff.expo,  # Exponential backoff
+        Exception,  # Retry on any exception
+        max_tries=retries,  # Max number of attempts
+        max_time=max_delay  # Max total wait time
+    )
+    def download_file():
+        s3 = open_s3_session()
+
+        # Use a temporary file to avoid partial downloads
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_fp = os.path.join(temp_dir, "tempfile")
+            print(f"Downloading {s3_url} to {temp_fp}")
+            s3.get(s3_url, temp_fp)
+            print(f"Downloaded. Moving to final location: {output_path}")
+            shutil.move(temp_fp, output_path)
+
+    # Download the file with retries
+    try:
+        download_file()
+    except Exception as e:
+        print(f"All retries failed. Last error: {e}")
+        raise
 
     print(f"File downloaded successfully to {output_path}")
-
     return output_path
