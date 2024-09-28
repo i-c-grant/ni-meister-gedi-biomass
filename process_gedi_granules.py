@@ -96,7 +96,7 @@ def main(l1b_path: str,
     output_path = (output_dir / output_name).with_suffix(".gpkg")
 
     logging.basicConfig(
-        filename=f"{output_dir}/{output_name}.log", level=logging.INFO
+        filename=f"{output_dir}/run.log", level=logging.INFO
     )
     logging.basicConfig(format="%(asctime)s - %(message)s")
 
