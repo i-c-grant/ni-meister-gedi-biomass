@@ -15,6 +15,12 @@ exec > >(tee -i "$logfile") 2>&1
 L1B_name=$1
 L2A_name=$2
 
+# Check that the L1B and L2A names were provided
+if [ -z "$L1B_name" ] || [ -z "$L2A_name" ]; then
+	echo "Error: L1B and L2A names must be provided!"
+	exit 1
+fi
+
 conda run --live-stream -n nmbim-env \
       python "${basedir}/download_gedi_granules.py" \
       "$L1B_name" "$L2A_name" "${basedir}/input"
