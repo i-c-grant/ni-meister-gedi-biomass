@@ -63,7 +63,7 @@ def get_gedi_data(filename: str,
                   target_dir: str,
                   retries: int = 5,
                   max_delay: int = 120):
-    """Download a GEDI file from with exponential backoff"""
+    """Download a GEDI file from S3 with exponential backoff"""
 
     # Prepare the output path
     if not os.path.exists(target_dir):
