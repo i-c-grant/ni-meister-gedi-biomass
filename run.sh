@@ -28,10 +28,10 @@ conda run --live-stream -n nmbim-env \
 # Find the files in the input directory
 L1B_path=$(find input -type f -name 'GEDI01_B*.h5')
 L2A_path=$(find input -type f -name 'GEDI02_A*.h5')
-boundary_path=$(find -L input -type f \( \
-    -name '*.shp' -o \
-    -name '*.gpkg' \
-\))
+boundary_path=$(find input \( \
+    -type f -name '*.gpkg' -o -name '*.shp' \) -o \( \
+    -type l -lname '*.gpkg' -o -lname '*.shp' \) \
+)
 
 # Check if unique L1B file was found
 if [ -z "$L1B_path" ]; then
