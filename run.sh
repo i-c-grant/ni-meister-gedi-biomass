@@ -21,27 +21,29 @@ conda run --live-stream -n nmbim-env \
 
 # Find the L1B, L2A, and boundary files in the basedir/input directory
 # Function to find exactly one file matching a pattern
+# Function to find exactly one file matching a regex pattern
 find_single_file() {
     local search_path=$1
-    local file_pattern=$2
-    local files=($(find "$search_path" $file_pattern))
+    local regex=$2
+    local files=($(find "$search_path" -regex "$regex"))
 
     if [ ${#files[@]} -gt 1 ]; then
-        echo "Error: Multiple files found for pattern '$file_pattern': ${files[@]}"
-        exit 1
+        echo "Warning: Multiple files found for regex '$regex': ${files[@]}"
     elif [ ${#files[@]} -eq 0 ]; then
-        echo "Error: No file found for pattern '$file_pattern'!"
-        exit 1
+        echo "No file found for regex '$regex'!"
     fi
 
     # Return the found file
     echo "${files[0]}"
 }
 
-# Find the L1B, L2A, and boundary files
-L1B_path=$(find_single_file "${basedir}/input" "-name 'GEDI01_B*.h5'")
-L2A_path=$(find_single_file "${basedir}/input" "-name 'GEDI02_A*.h5'")
-boundary_path=$(find_single_file "${basedir}/input" "\( -name '*.gpkg' -o -name '*.shp' \)")
+# Set the base directory
+basedir=$( cd "$(dirname "$0")" ; pwd -P)
+
+# Find the L1B, L2A, and boundary files using regex
+L1B_path=$(find_single_file "${basedir}/input" ".*GEDI01_B.*\.h5$")
+L2A_path=$(find_single_file "${basedir}/input" ".*GEDI02_A.*\.h5$")
+boundary_path=$(find_single_file "${basedir}/input" ".*\(shp\|gpkg\)$")
 
 # Check if the required files were found
 if [ -z "$L1B_path" ] || [ -z "$L2A_path" ]; then
