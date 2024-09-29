@@ -28,7 +28,7 @@ conda run --live-stream -n nmbim-env \
 # Find the files in the input directory
 L1B_path=$(find input -type f -name 'GEDI01_B*.h5')
 L2A_path=$(find input -type f -name 'GEDI02_A*.h5')
-boundary_path=$(find input -type f \( \
+boundary_path=$(find input -L -type f \( \
     -name '*.shp' -o \
     -name '*.gpkg' \
 \))
