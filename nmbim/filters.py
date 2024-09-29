@@ -49,12 +49,12 @@ def generate_spatial_filter(file_path: str,
     file_path = os.path.realpath(file_path)
 
     # Check layer count (for formats with multiple layers like GPKG)
-    # with ogr.Open(file_path) as boundary_data:
-        # n_layers = boundary_data.GetLayerCount()
-        # if n_layers > 1:
-            # raise ValueError(f"The boundary file contains multiple layers: ",
-                             # f"{layers}. Please provide a file with a ",
-                             # f"single layer.")
+    with ogr.Open(file_path) as boundary_data:
+        n_layers = boundary_data.GetLayerCount()
+        if n_layers > 1:
+            raise ValueError(f"The boundary file contains multiple layers: ",
+                             f"{layers}. Please provide a file with a ",
+                             f"single layer.")
     
     # Read the polygons from the file (only the first layer)
     poly_gdf = gpd.read_file(file_path)
