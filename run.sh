@@ -19,45 +19,60 @@ conda run --live-stream -n nmbim-env \
       python "${basedir}/download_gedi_granules.py" \
       "$L1B_name" "$L2A_name" "${basedir}/input"
 
-# Find the L1B, L2A, and boundary files in the basedir/input directory
-# Function to find exactly one file matching a pattern
-# Function to find exactly one file matching a regex pattern
-find_single_file() {
-    local search_path=$1
-    local regex=$2
-    local files=($(find "$search_path" -regex "$regex"))
+# Find the files in the input directory
+L1B_path=$(find "${basedir}/input" -type f -name 'GEDI01_B*.h5')
+L2A_path=$(find "${basedir}/input" -type f -name 'GEDI02_A*.h5')
+boundary_path=$(find "${basedir}/input" -type f \( \
+    -name '*.shp' -o \
+    -name '*.gpkg' \
+\))
 
-    if [ ${#files[@]} -gt 1 ]; then
-        echo "Warning: Multiple files found for regex '$regex': ${files[@]}"
-    elif [ ${#files[@]} -eq 0 ]; then
-        echo "No file found for regex '$regex'!"
-    fi
-
-    # Return the found file
-    echo "${files[0]}"
-}
-
-# Set the base directory
-basedir=$( cd "$(dirname "$0")" ; pwd -P)
-
-# Find the L1B, L2A, and boundary files using regex
-L1B_path=$(find_single_file "${basedir}/input" ".*GEDI01_B.*\.h5$")
-L2A_path=$(find_single_file "${basedir}/input" ".*GEDI02_A.*\.h5$")
-boundary_path=$(find_single_file "${basedir}/input" ".*\(shp\|gpkg\)$")
-
-# Check if the required files were found
-if [ -z "$L1B_path" ] || [ -z "$L2A_path" ]; then
-    echo "L1B or L2A file not found in input directory!"
+# Check if unique L1B file was found
+if [ -z "$L1B_path" ]; then
+    echo "Error: No L1B file found!"
     exit 1
 fi
 
-if [ -z "$boundary_path" ]; then
-    echo "Boundary file not found! Proceeding without boundary file."
+if [ $(echo "$L1B_path" | wc -l) -gt 1 ]; then
+    echo "Warning: Multiple L1B files found:"
+    echo "$L1B_path"
+    exit 1
 fi
 
+# Check if unique L2A file was found
+if [ -z "$L2A_path" ]; then
+    echo "Error: No L2A file found!"
+    exit 1
+fi
+
+if [ $(echo "$L2A_path" | wc -l) -gt 1 ]; then
+    echo "Warning: Multiple L2A files found:"
+    echo "$L2A_path"
+    exit 1
+fi
+
+# Check if boundary file was found, but allow for none
+if [ -z "$boundary_path" ]; then
+    echo "No boundary file found; proceeding without it."
+else
+    if [ $(echo "$boundary_path" | wc -l) -gt 1 ]; then
+        echo "Warning: Multiple boundary files found; using the first one."
+        boundary_path=$(echo "$boundary_path" | head -n 1)
+    fi
+fi
+
+# Print the identified paths
 echo "L1B file: $L1B_path"
 echo "L2A file: $L2A_path"
-echo "Boundary file: ${boundary_path:-none}"
+if [ -n "$boundary_path" ]; then
+    echo "Boundary file: $boundary_path"
+else
+    echo "No boundary file specified."
+fi
+
+# Print the total contents of input directory
+echo "Input directory contents:"
+ls -lh "${basedir}/input"
 
 # Run the processing script
 cmd=(
