@@ -9,6 +9,7 @@
 
 from datetime import datetime
 from typing import Callable, List, Optional
+import os
 
 import geopandas as gpd
 from osgeo import ogr
@@ -43,6 +44,9 @@ def generate_spatial_filter(file_path: str,
                             waveform_crs: str = "EPSG:4326") -> Callable:
     """Generate a spatial filter based on a polygon from a GeoPackage or 
        Shapefile. File must contain only polygons and one layer."""
+
+    # Resolve the file path
+    file_path = os.path.realpath(file_path)
 
     # Check layer count (for formats with multiple layers like GPKG)
     with ogr.Open(file_path) as boundary_data:
