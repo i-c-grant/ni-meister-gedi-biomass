@@ -77,8 +77,10 @@ else
 fi
 
 # Print the total contents of input directory
+echo "\n"
 echo "Input directory contents:"
 ls -lh "${basedir}/input"
+echo "\n"
 
 # Run the processing script
 cmd=(
