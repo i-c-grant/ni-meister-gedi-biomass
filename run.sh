@@ -5,7 +5,7 @@ basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
 # Redirect stdout and stderr to a log file
 logfile="${basedir}/output.log"
-exec > >(tee -i "${logfile}") 2>&1
+exec > "${logfile}" 2>&1
 
 # Create input and output directories if they don't exist
 mkdir -p "${basedir}/input"
