@@ -4,11 +4,11 @@
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
 # Create input and output directories if they don't exist
-mkdir -p "${basedir}/input"
-mkdir -p "${basedir}/output"
+mkdir -p input
+mkdir -p output
 
 # Redirect stdout and stderr to a log file
-logfile="${basedir}/output/output.log"
+logfile="output/output.log"
 exec > >(tee -i "$logfile") 2>&1
 
 # Download GEDI granules to the input directory
@@ -23,12 +23,12 @@ fi
 
 conda run --live-stream -n nmbim-env \
       python "${basedir}/download_gedi_granules.py" \
-      "$L1B_name" "$L2A_name" "${basedir}/input"
+      "$L1B_name" "$L2A_name" input
 
 # Find the files in the input directory
-L1B_path=$(find "${basedir}/input" -type f -name 'GEDI01_B*.h5')
-L2A_path=$(find "${basedir}/input" -type f -name 'GEDI02_A*.h5')
-boundary_path=$(find "${basedir}/input" -type f \( \
+L1B_path=$(find input -type f -name 'GEDI01_B*.h5')
+L2A_path=$(find input -type f -name 'GEDI02_A*.h5')
+boundary_path=$(find input -type f \( \
     -name '*.shp' -o \
     -name '*.gpkg' \
 \))
@@ -79,7 +79,7 @@ fi
 # Print the total contents of input directory
 echo "\n"
 echo "Input directory contents:"
-ls -lh "${basedir}/input"
+ls -lh input
 echo "\n"
 
 # Run the processing script
@@ -93,7 +93,7 @@ cmd=(
     "${basedir}/process_gedi_granules.py"
     "${L1B_path}"
     "${L2A_path}"
-    "${basedir}/output"
+    "output"
 )
 
 if [ -n "$boundary_path" ]; then
