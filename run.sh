@@ -3,13 +3,13 @@
 # Get directory of run script
 basedir=$( cd "$(dirname "$0")" ; pwd -P)
 
-# Redirect stdout and stderr to a log file
-logfile="${basedir}/output.log"
-exec > "${logfile}" 2>&1
-
 # Create input and output directories if they don't exist
 mkdir -p "${basedir}/input"
 mkdir -p "${basedir}/output"
+
+# Redirect stdout and stderr to a log file
+logfile="${basedir}/output/output.log"
+exec > "${logfile}" 2>&1
 
 # Download GEDI granules to the input directory
 L1B_name=$1
