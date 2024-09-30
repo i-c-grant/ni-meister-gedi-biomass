@@ -5,10 +5,10 @@
 ##########################################################################
 
 import logging
-import os
 from datetime import datetime
 from typing import Any, Dict, Union
 from pathlib import Path
+import warnings
 
 import click
 import h5py
@@ -92,10 +92,10 @@ def main(l1b_path: str,
     """Process GEDI L1B and L2A granules to calculate the Ni-Meister Biomass
     Index (NMBI) for each footprint in the granules."""
 
-    # Set up logging and output directory
-    start_time = datetime.now()
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # Set up output directory and log file
+    start_time: datetime = datetime.now()
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     output_name = Path(app_utils.build_output_filename(l1b_path, l2a_path))
     output_dir = Path(output_dir)
