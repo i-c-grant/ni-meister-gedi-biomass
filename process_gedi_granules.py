@@ -64,11 +64,17 @@ def process_beam(
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("output_dir", type=click.Path(exists=True))
 @click.option("--boundary", "-b", type=click.Path(exists=True),
-              help=("Path to a shapefile or GeoPackage containing "
-                    "a boundary polygon."))
+              help=("Path to a Shapefile or GeoPackage containing "
+                    "a boundary polygon. Must contain only one layer "
+                    "and only polygon or multipolygon geometry."))
 @click.option("--date_range", "-d", type=str,
-              help=("Date range for filtering granules. Format as specified "
-                    "by NASA Common Metadata Repository API."))
+              help=("Date range for filtering granules. Format for one "
+                    "date is %Y-%m-%dT%H:%M:%SZ. 'date1, date2' provides a "
+                    "range, 'date1,' provides a start date, and ',date2' "
+                    "provides an end date. See NASA CMR search "
+                    "documentation for more information: "
+                    "https://cmr.earthdata.nasa.gov/search/site/docs/search/"
+                    "api.html#temporal-range-searches"))
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
 @click.option(
     "--n_workers",
