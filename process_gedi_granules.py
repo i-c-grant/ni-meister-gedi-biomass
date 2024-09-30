@@ -179,7 +179,8 @@ def main(l1b_path: str,
                 my_filters,
             )
 
-    logging.info(f"Output written to {output_path}")
+    click.echo(f"Output written to {output_path}")
+    click.echo(f"Run complete.")
 
     # Log the run
     finish_time = datetime.now()
@@ -188,8 +189,10 @@ def main(l1b_path: str,
     )
     logging.info(f"Run duration: {finish_time - start_time}")
     logging.info(
-        f"Command line arguments: l1b_path={l1b_path}, " f"l2a_path={l2a_path}"
+        f"Command line arguments: l1b_path={l1b_path}, "
+        f"l2a_path={l2a_path}"
     )
+
     # Add newline to params to make log more readable
     f_processor_params = str(processor_params).replace(", ", ",\n")
     logging.info(f"Processor parameters: {f_processor_params}")
