@@ -81,19 +81,23 @@ def generate_spatial_filter(file_path: str,
 
     return spatial_filter
 
-def generate_temporal_filter(time_start: datetime,
-                         time_end: datetime) -> Callable:
-    """Generate a time filter based on a start and end time."""
-    
+def generate_temporal_filter(time_start: Optional[datetime],
+                             time_end: Optional[datetime]) -> Callable:
+    """Generate a temporal filter based on start, end time, or both."""
+        
     def temporal_filter(wf: 'Waveform') -> bool:
         # Extract waveform time
-        # wf_time = datetime.strptime(wf.get_data("metadata/datetime"),
-                                    # "%Y-%m-%dT%H:%M:%S")
+        wf_time = wf.get_time()
         
         # Check if the waveform time is within the specified time range
-        if time_start <= wf_time <= time_end:
-            return True
-        return False
+        after_start, before_end = True, True
+        if time_start and wf_time < time_start:
+            after_start = False
+
+        if time_end and wf_time > time_end:
+            before_end = False
+
+        return after_start and before_end
 
     return temporal_filter
 
