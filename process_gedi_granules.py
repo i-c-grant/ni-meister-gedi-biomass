@@ -102,11 +102,13 @@ def main(l1b_path: str,
     output_path = (output_dir / output_name).with_suffix(".gpkg")
 
     logging.basicConfig(
-        filename=f"{output_dir}/run.log", level=logging.INFO
+        filename=f"{output_dir}/run.log",
+        format="%(asctime)s - %(message)s",
+        level=logging.INFO,
     )
-    logging.basicConfig(format="%(asctime)s - %(message)s")
 
-    logging.info(f"Run started at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"Run started at "
+                 f"{start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # Set up the processing pipeline
     processor_params = processing_pipelines.biwf_pipeline
