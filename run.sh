@@ -77,10 +77,10 @@ else
 fi
 
 # Print the total contents of input directory
-echo "\n"
+echo
 echo "Input directory contents:"
 ls -lh input
-echo "\n"
+echo
 
 # Run the processing script
 cmd=(
