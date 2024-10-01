@@ -126,11 +126,23 @@ def main(l1b_path: str,
                       f"{boundary}.")
 
     if date_range:
-        my_filters.append(filters.generate_temporal_filter(time_start,
-                                                           time_end))
-        log_and_print(f"Filtering for granules within date range: "
-                        f"{date_range}.")
+        time_start, time_end = filters.parse_date_range(date_range)
+        temporal_filter: Callable = (
+            filters.generate_temporal_filter(time_start, time_end)
+        )
+        my_filters.append(temporal_filter)
 
+        # Log and print depending on temporal range
+        if time_start and time_end:
+            log_and_print(f"Filtering for granules acquired between "
+                          f"{time_start} and {time_end}.")
+        elif time_start:
+            log_and_print(f"Filtering for granules acquired after "
+                          f"{time_start}.")
+        elif time_end:
+            log_and_print(f"Filtering for granules acquired before "
+                          f"{time_end}.")
+           
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
             "Multiprocessing is not available on this system. "
