@@ -122,7 +122,8 @@ def generate_spatial_filter(file_path: str,
 
     # Define the spatial filter
     def spatial_filter(wf: 'Waveform') -> bool:
-        point_gdf = gpd.GeoSeries([wf.as_point()], crs=waveform_crs)
+        wf_point = wf.get_data("metadata/point_geom")
+        point_gdf = gpd.GeoSeries([wf_point], crs=waveform_crs)
         point_gdf = point_gdf.to_crs(poly_crs)
         return poly_gdf.contains(point_gdf.iloc[0]).any()
 
