@@ -25,6 +25,11 @@ try:
 except ImportError:
     MULTIPROCESSING_AVAILABLE = False
 
+def log_and_print(message: str) -> None:
+    """Log a message and print it to the console."""
+    logging.info(message)
+    click.echo(message)
+
 # Define function for processing a single beam.
 # This function is used in both serial and parallel modes.
 def process_beam(
@@ -117,11 +122,12 @@ def main(l1b_path: str,
 
     if boundary:
         my_filters.append(filters.generate_spatial_filter(boundary))
+        log_and_print(f"Filtering for granules within polygon(s) in "
+                      f"{boundary}.")
 
     if date_range:
         my_filters.append(filters.generate_temporal_filter(time_start,
                                                            time_end))
-
         log_and_print(f"Filtering for granules within date range: "
                         f"{date_range}.")
 
