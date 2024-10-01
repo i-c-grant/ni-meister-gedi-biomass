@@ -119,29 +119,12 @@ def main(l1b_path: str,
         my_filters.append(filters.generate_spatial_filter(boundary))
 
     if date_range:
-        time_start, time_end = None, None
-        dates = date_range.split(",")
-        if len(dates) > 2:
-            raise ValueError("Invalid date range. Please provide a single "
-                             "date, a date range, or a start and end date.")
-        if len(dates) == 1:
-            warnings.warn("Only one date provided. This will be treated as "
-                          "a start date. Using a leading or trailing comma "
-                          "to specify how a single date should be handled.")
-            dates.append(None)
-
-        date_spec = "%Y-%m-%dT%H:%M:%SZ"
-        if dates[0]:
-            time_start: datetime = datetime.strptime(dates[0], date_spec)
-        if dates[1]:
-            time_end: datetime = datetime.strptime(dates[1], date_spec)
-
-        if time_start and time_end and time_start > time_end:
-            raise ValueError("The start date must be before the end date.")
-            
         my_filters.append(filters.generate_temporal_filter(time_start,
                                                            time_end))
-    
+
+        log_and_print(f"Filtering for granules within date range: "
+                        f"{date_range}.")
+
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
             "Multiprocessing is not available on this system. "

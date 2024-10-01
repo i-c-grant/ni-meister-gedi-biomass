@@ -17,6 +17,53 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 
 from nmbim.Waveform import Waveform
 
+DateInterval = Tuple[Optional[datetime], Optional[datetime]] 
+
+def parse_date_range(date_str: str) -> DateInterval:
+    """Parse a date range string into a start and end date."""
+    time_start, time_end = None, None
+    dates = date_range.split(",")
+    if len(dates) > 2:
+        raise ValueError("Invalid date range. Please provide a single "
+                         "date, a date range, or a start and end date.")
+    if len(dates) == 1:
+        warnings.warn("Only one date provided. This will be treated as "
+                      "a start date. Using a leading or trailing comma "
+                      "to specify how a single date should be handled.")
+        dates.append(None)
+
+    date_spec = "%Y-%m-%dT%H:%M:%SZ"
+    if dates[0]:
+        time_start: datetime = datetime.strptime(dates[0], date_spec)
+    if dates[1]:
+        time_end: datetime = datetime.strptime(dates[1], date_spec)
+
+    if time_start and time_end and time_start > time_end:
+        raise ValueError("The start date must be before the end date.")
+
+    return time_start, time_end
+
+
+def generate_temporal_filter(date_range: str) -> Callable:
+    """Generate a temporal filter based on start, end time, or both."""
+    
+    
+    def temporal_filter(wf: 'Waveform') -> bool:
+        # Extract waveform time
+        wf_time = wf.get_time()
+        
+        # Check if the waveform time is within the specified time range
+        after_start, before_end = True, True
+        if time_start and wf_time < time_start:
+            after_start = False
+
+        if time_end and wf_time > time_end:
+            before_end = False
+
+        return after_start and before_end
+
+    return temporal_filter
+
 
 # Quality control filters
 def flag_filter(wf: Waveform) -> bool:
@@ -81,25 +128,6 @@ def generate_spatial_filter(file_path: str,
 
     return spatial_filter
 
-def generate_temporal_filter(time_start: Optional[datetime],
-                             time_end: Optional[datetime]) -> Callable:
-    """Generate a temporal filter based on start, end time, or both."""
-        
-    def temporal_filter(wf: 'Waveform') -> bool:
-        # Extract waveform time
-        wf_time = wf.get_time()
-        
-        # Check if the waveform time is within the specified time range
-        after_start, before_end = True, True
-        if time_start and wf_time < time_start:
-            after_start = False
-
-        if time_end and wf_time > time_end:
-            before_end = False
-
-        return after_start and before_end
-
-    return temporal_filter
 
 def define_filters(poly_file: Optional[str] = None,
                    time_start: Optional[datetime] = None,
