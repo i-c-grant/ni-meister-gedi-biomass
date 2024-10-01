@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Union
 import warnings
+from datetime import datetime
 
 import geopandas as gpd
 import numpy as np
@@ -72,17 +73,23 @@ class WaveformWriter:
         if waveform is not None:
             self._waveform_data.clear()
             for col_name, col_path in self.cols.items():
-                # Depending on requested column, data might be a single value
-                # (e.g. biomass index) or an array of values (e.g. raw waveform).
-                # Both are okay as long as all columns requested are of the same length,
-                # which is checked in WaveformWriter._validate_row_lengths.
+                # Depending on requested column, data might be a
+                # single value (e.g. biomass index) or an array of
+                # values (e.g. raw waveform). Both are okay as long as
+                # all columns requested are of the same length, which
+                # is checked in WaveformWriter._validate_row_lengths.
                 col_data = waveform.get_data(col_path)
-                if isinstance(
-                    col_data, (int, float, str, np.floating, np.integer)
-                ):
-                    col_data = [
-                        col_data
-                    ]  # Cast single values to list for length validation
+                # Cast single values to list for length validation
+                single_val_types = (int,
+                                    float,
+                                    str,
+                                    np.floating,
+                                    np.integer,
+                                    datetime)
+                if isinstance(col_data, single_val_types):
+                    col_data = [col_data] 
+                
+                # Check if data is a list or numpy array
                 elif not isinstance(col_data, (list, np.ndarray)):
                     raise TypeError(
                         f"Unwritable data type {type(col_data)} in "
