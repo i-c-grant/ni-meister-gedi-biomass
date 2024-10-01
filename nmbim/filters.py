@@ -8,7 +8,7 @@
 ######################################################################
 
 from datetime import datetime
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 import os
 
 import geopandas as gpd
@@ -17,9 +17,8 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 
 from nmbim.Waveform import Waveform
 
-DateInterval = Tuple[Optional[datetime], Optional[datetime]] 
-
-def parse_date_range(date_str: str) -> DateInterval:
+DateInterval = Tuple[Optional[datetime], Optional[datetime]]
+def parse_date_range(date_range: str) -> DateInterval:
     """Parse a date range string into a start and end date."""
     time_start, time_end = None, None
     dates = date_range.split(",")
@@ -44,13 +43,13 @@ def parse_date_range(date_str: str) -> DateInterval:
     return time_start, time_end
 
 
-def generate_temporal_filter(date_range: str) -> Callable:
+def generate_temporal_filter(time_start: Optional[datetime], 
+                             time_end: Optional[datetime]) -> Callable:
     """Generate a temporal filter based on start, end time, or both."""
-    
-    
+
     def temporal_filter(wf: 'Waveform') -> bool:
         # Extract waveform time
-        wf_time = wf.get_time()
+        wf_time = wf.get_data('metadata/time')
         
         # Check if the waveform time is within the specified time range
         after_start, before_end = True, True
