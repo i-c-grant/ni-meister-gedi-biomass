@@ -11,16 +11,22 @@ mkdir -p output
 logfile="output/output.log"
 exec > >(tee -i "$logfile") 2>&1
 
-# Download GEDI granules to the input directory
+# Get L1B and L2A names from command line arguments
 L1B_name=$1
 L2A_name=$2
 
-# Check that the L1B and L2A names were provided
 if [ -z "$L1B_name" ] || [ -z "$L2A_name" ]; then
 	echo "Error: L1B and L2A names must be provided!"
 	exit 1
 fi
 
+# Get temporal bounds from command line arguments, if provided
+date_range=""
+if [ -n "$3" ]; then
+    date_range=$3
+fi
+   
+# Download GEDI granules to the input directory
 conda run --live-stream -n nmbim-env \
       python "${basedir}/download_gedi_granules.py" \
       "$L1B_name" "$L2A_name" input
@@ -28,6 +34,8 @@ conda run --live-stream -n nmbim-env \
 # Find the files in the input directory
 L1B_path=$(find input -type f -name 'GEDI01_B*.h5')
 L2A_path=$(find input -type f -name 'GEDI02_A*.h5')
+# Since DPS uses symlinks for file arguments,
+# we need to check for file or link for the boundary file
 boundary_path=$(find input \( \
     -type f -name '*.gpkg' -o -name '*.shp' \) -o \( \
     -type l -lname '*.gpkg' -o -lname '*.shp' \) \
@@ -57,7 +65,7 @@ if [ $(echo "$L2A_path" | wc -l) -gt 1 ]; then
     exit 1
 fi
 
-# Check if boundary file was found, but allow for none
+# Check if unique boundary file was found, but allow for no boundary
 if [ -z "$boundary_path" ]; then
     echo "No boundary file found; proceeding without it."
 else
@@ -95,6 +103,10 @@ cmd=(
     "${L2A_path}"
     "output"
 )
+
+if [ -n "$date_range" ]; then
+	cmd+=("--date_range" "$date_range")
+fi
 
 if [ -n "$boundary_path" ]; then
     cmd+=("--boundary" "$boundary_path")
