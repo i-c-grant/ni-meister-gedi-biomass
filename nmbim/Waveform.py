@@ -123,18 +123,20 @@ class Waveform:
             path="metadata/point_geom",
         )
         
-        # Extract and store GPS time
-        # Note: master_time_epoch is an offset from GPS epoch
-        # (1980-01-06) and delta_time is the shot's time since
-        # master_time_epoch in seconds.
-        master_time_epoch = self.l1b_beam.extract_value(
+        # Extract and store GPS time for the waveform
+        # Define the GPS epoch and calculate the GEDI epoch
+        gps_epoch: datetime = datetime(1980, 1, 6)
+        gedi_epoch_offset: int = self.l1b_beam.extract_value(
             "ancillary/master_time_epoch", 0
         )
-        delta_time = self.l1b_beam.extract_value(
+        gedi_epoch: datetime = gps_epoch + timedelta(seconds=gedi_epoch_offset)
+
+        # Calculate the waveform time
+        wf_timedelta: int = self.l1b_beam.extract_value(
             "geolocation/delta_time", shot_index
         )
-        gps_timedelta = master_time_epoch + delta_time
-        self.save_data(data=gps_timedelta, path="metadata/gps_timedelta")
+        wf_time: datetime = gedi_epoch + timedelta(seconds=wf_timedelta)
+        self.save_data(data=wf_time, path="metadata/time")
 
         # Store quality flags
         qual_flag = self.l2a_beam.extract_value("quality_flag", shot_index)
@@ -283,14 +285,6 @@ class Waveform:
 
         self._data.save_data(data, path, overwrite=False)
 
-    def get_time(self) -> datetime:
-        """Returns a datetime representing the GPS time of the waveform."""
-        gps_epoch = datetime(1980, 1, 6)
-        time_delta = timedelta(
-            seconds=self.get_data("metadata/gps_timedelta"))
-        gps_time = gps_epoch + time_delta
-        return gps_time
-        
     @staticmethod
     def _which_beam(shot_number: int, file: h5py.File) -> Optional[str]:
         """Determine which beam a waveform belongs to"""
