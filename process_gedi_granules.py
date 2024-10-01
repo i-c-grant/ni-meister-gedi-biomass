@@ -122,7 +122,7 @@ def main(l1b_path: str,
 
     if boundary:
         my_filters.append(filters.generate_spatial_filter(boundary))
-        log_and_print(f"Filtering for granules within polygon(s) in "
+        log_and_print(f"Filtering for captures within polygon(s) in "
                       f"{boundary}.")
 
     if date_range:
@@ -134,13 +134,13 @@ def main(l1b_path: str,
 
         # Log and print depending on temporal range
         if time_start and time_end:
-            log_and_print(f"Filtering for granules acquired between "
+            log_and_print(f"Filtering for captures acquired between "
                           f"{time_start} and {time_end}.")
         elif time_start:
-            log_and_print(f"Filtering for granules acquired after "
+            log_and_print(f"Filtering for captures acquired after "
                           f"{time_start}.")
         elif time_end:
-            log_and_print(f"Filtering for granules acquired before "
+            log_and_print(f"Filtering for captures acquired before "
                           f"{time_end}.")
            
     if not MULTIPROCESSING_AVAILABLE and parallel:
