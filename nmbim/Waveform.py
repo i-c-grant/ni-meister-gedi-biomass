@@ -116,6 +116,12 @@ class Waveform:
             data={"lat": lat, "lon": lon},
             path="metadata/coords",
         )
+
+        # Store point geometry
+        self.save_data(
+            data=Point(lon, lat),
+            path="metadata/point_geom",
+        )
         
         # Extract and store GPS time
         # Note: master_time_epoch is an offset from GPS epoch
@@ -285,12 +291,6 @@ class Waveform:
         gps_time = gps_epoch + time_delta
         return gps_time
         
-    def as_point(self) -> Point:
-        """Returns a Point object representing the center of the waveform."""
-        lat = self.get_data("metadata/coords/lat")
-        lon = self.get_data("metadata/coords/lon")
-        return Point(lon, lat)
-
     @staticmethod
     def _which_beam(shot_number: int, file: h5py.File) -> Optional[str]:
         """Determine which beam a waveform belongs to"""
