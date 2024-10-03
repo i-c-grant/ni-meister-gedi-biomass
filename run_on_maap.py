@@ -197,9 +197,11 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
               f"Total jobs: {total_jobs}.")
 
         # If all jobs are done (Succeeded or Failed), exit loop
+        completed = ['Succeeded', 'Failed', 'Deleted']
+
         total_completed = sum(status_counts[status]
                               for status in status_counts
-                              if status != 'Running')
+                              if status in completed)
 
         if total_completed == total_jobs:
             break
