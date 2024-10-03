@@ -201,6 +201,10 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     failed_job_ids = [job_id for job_id in job_ids
                       if job_status_for(job_id) == "Failed"]
 
+    other_job_ids = [job_id for job_id in job_ids
+                     if job_status_for(job_id)
+                     not in ["Succeeded", "Failed"]]
+
     gpkg_paths = []
     for job_id in succeeded_job_ids:
         job_result_url = job_result_for(job_id)
@@ -228,6 +232,8 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     logging.info(f"Succeeded job IDs: {succeeded_job_ids}\n")
     logging.info(f"{len(failed_job_ids)} jobs failed.")
     logging.info(f"Failed job IDs: {failed_job_ids}\n")
+    logging.info(f"{len(other_job_ids)} jobs in other states.")
+    logging.info(f"Other job IDs: {other_job_ids}\n")
 
     end_time = datetime.datetime.now()
 
