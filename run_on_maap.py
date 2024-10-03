@@ -95,15 +95,17 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
         cloud_hosted="true"
     )[0]['concept-id']
 
+    max_results = 10000
     kwargs = {'concept_id': [l1b_id, l2a_id],
-              'cmr_host': 'cmr.earthdata.nasa.gov',}
+              'cmr_host': 'cmr.earthdata.nasa.gov',
+              'limit': max_results}
 
     if date_range:
         kwargs['temporal'] = date_range
 
     if boundary:
         # Get bounding box of boundary to restrict granule search
-        boundary_gdf: GeoDataFrame = gpd.read_file(boundary)
+        boundary_gdf: GeoDataFrame = gpd.read_file(boundary,driver='GPKG')
         boundary_bbox: tuple = boundary_gdf.total_bounds
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
         kwargs['bounding_box'] = boundary_bbox_str
@@ -165,7 +167,6 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     jobs = []
     for job_kwargs in job_kwargs_list[:job_limit]:
         job = maap.submitJob(**job_kwargs)
-        print(f"Submitted job {job.id}.")
         jobs.append(job)
 
     print(f"Submitted {len(jobs)} jobs.")
@@ -210,13 +211,17 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
             if gpkg_file:
                 gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
 
-    # Combine all .gpkg files into one
-    combined_gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(path)
-                                               for path in gpkg_paths],
-                                              ignore_index=True))
-    combined_gdf.to_file("run_output.gpkg", driver="GPKG")
-    print("All jobs completed, combined GeoPackage saved as "
-          "'run_output.gpkg'.")
+    # Copy all GeoPackages to a new local directory
+    output_dir = f"run_output_{start_time}"
+    os.makedirs(output_dir, exist_ok=False)
+    for gpkg_path in gpkg_paths:
+        shutil.copy(gpkg_path, output_dir)
+
+    # Get a list of ids of all failed jobs
+    failed_job_ids = []
+    for job_id in job_ids:
+        if job_status_for(job_id) == "Failed":
+            failed_job_urls.append(maap.getJobResult(job_id)[0])
 
     logging.info(f"Failed job IDs: {failed_job_ids}")
     click.echo(f"{len(failed_job_ids)} jobs failed. See log for details.")
@@ -224,5 +229,6 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     end_time = datetime.datetime.now()
 
     log_and_print(f"Model run completed at {end_time}.")
+    
 if __name__ == "__main__":
     main()
