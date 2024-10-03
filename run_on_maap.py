@@ -96,25 +96,25 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     )[0]['concept-id']
 
     max_results = 10000
-    kwargs = {'concept_id': [l1b_id, l2a_id],
-              'cmr_host': 'cmr.earthdata.nasa.gov',
-              'limit': max_results}
+    search_kwargs = {'concept_id': [l1b_id, l2a_id],
+                     'cmr_host': 'cmr.earthdata.nasa.gov',
+                     'limit': max_results}
 
     if date_range:
-        kwargs['temporal'] = date_range
+        search_kwargs['temporal'] = date_range
 
     if boundary:
         # Get bounding box of boundary to restrict granule search
         boundary_gdf: GeoDataFrame = gpd.read_file(boundary,driver='GPKG')
         boundary_bbox: tuple = boundary_gdf.total_bounds
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
-        kwargs['bounding_box'] = boundary_bbox_str
+        search_kwargs['bounding_box'] = boundary_bbox_str
 
     log_and_print(f"Searching for granules with the following parameters: "
-                  "{kwargs}")
+                  "{search_kwargs}")
     click.echo("(This may take a few minutes.)")
 
-    granules: List[Granule] = maap.searchGranule(**kwargs)
+    granules: List[Granule] = maap.searchGranule(**search_kwargs)
 
     log_and_print(f"Found {len(granules)} granules.")
 
@@ -149,7 +149,8 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     for pair in paired_granule_ids:
         job_kwargs = {
             "identifier": "nmbim_gedi_processing",
-            "algo_id": "gedi_nmbim",
+            "algo_id": "nmbim_biomass_index",
+            "version": "main",
             "username": username,
             "queue": "maap-dps-worker-8gb",
             "l1b_id": pair['l1b'],
