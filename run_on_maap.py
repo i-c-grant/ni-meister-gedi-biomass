@@ -153,8 +153,8 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
             "version": "main",
             "username": username,
             "queue": "maap-dps-worker-8gb",
-            "l1b_id": pair['l1b'],
-            "l2a_id": pair['l2a'],
+            "L1B": pair['l1b'],
+            "L2A": pair['l2a'],
         }
 
         if boundary:
