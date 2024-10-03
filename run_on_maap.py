@@ -173,6 +173,10 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     print(f"Submitted {len(jobs)} jobs.")
 
     job_ids = [job.id for job in jobs]
+
+    # Give the jobs time to start
+    click.echo("Waiting for jobs to start...")
+    time.sleep(30)
     
     while True:
         status_counts = check_jobs_status(job_ids)
