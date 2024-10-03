@@ -36,6 +36,7 @@ def check_jobs_status(job_ids: list) -> dict:
     """Check the status of all jobs and return a count of each status."""
     status_counts = {"Succeeded": 0,
                      "Failed": 0,
+                     "Accepted": 0,
                      "Running": 0,
                      "Deleted": 0,
                      "Other": 0}
@@ -187,9 +188,11 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
         status_counts = check_jobs_status(job_ids)
         total_jobs = len(job_ids)
 
-        print(f"Job Status Update: {status_counts['Succeeded']} Succeeded, "
-              f"{status_counts['Failed']} Failed, "
+        print(f"Job Status Update: "
+              f"{status_counts['Accepted']} Queued, "
               f"{status_counts['Running']} Running, "
+              f"{status_counts['Succeeded']} Succeeded, "
+              f"{status_counts['Failed']} Failed, "
               f"{status_counts['Deleted']} Deleted. "
               f"Total jobs: {total_jobs}.")
 
