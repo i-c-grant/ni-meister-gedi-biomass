@@ -1,3 +1,5 @@
+import datetime
+import logging
 import os
 import time
 from typing import Dict, List
@@ -46,10 +48,14 @@ def check_jobs_status(job_ids: list) -> dict:
 
     return status_counts
 
+def log_and_print(message: str):
+    logging.info(message)
+    click.echo(message)
+
 @click.command()
-@click.option("username", "-u", type=str, required=True)
-@click.option("boundary", "-b", type=click.Path(exists=True),
-              help=("Path to a shapefile or GeoPackage containing "
+@click.option("username", "-u", type=str, required=True, help="MAAP username.")
+@click.option("boundary", "-b", type=str,
+              help=("Path or URL to a shapefile or GeoPackage containing "
                     "a boundary polygon. Note: should be accessible "
                     "to MAAP DPS workers."))
 @click.option("date_range", "-d", type=str,
@@ -62,6 +68,19 @@ def check_jobs_status(job_ids: list) -> dict:
 @click.option("check_interval", "-i", type=int, default=120,
               help="Time interval (in seconds) between job status checks.")
 def main(username: str, boundary: str, date_range: str, job_limit: int, check_interval: int):
+
+    # Set up log
+    logging.basicConfig(filename='run_on_maap.log',
+                        level=logging.INFO,
+                        format='%(asctime)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S')
+
+    start_time = datetime.datetime.now()
+
+    log_and_print(f"Starting new model run at MAAP at {start_time}.")
+    log_and_print(f"Boundary: {boundary}")
+    log_and_print(f"Date Range: {date_range}")
+    
     l1b_id = maap.searchCollection(
             short_name="GEDI01_B",
             version="002",
@@ -89,7 +108,13 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
         kwargs['bounding_box'] = boundary_bbox_str
 
+    log_and_print(f"Searching for granules with the following parameters: "
+                  "{kwargs}")
+    click.echo("(This may take a few minutes.)")
+
     granules: List[Granule] = maap.searchGranule(**kwargs)
+
+    log_and_print(f"Found {len(granules)} granules.")
 
     # pair corresponding L1B and L2A granules
     l1b_granules = (
@@ -111,10 +136,13 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
                                            "l2a": l2a_granule['concept-id']})
                 break
                 
-    click.echo(f"Found {len(paired_granule_ids)} matching "
-               f"pairs of granules.")
+    log_and_print(f"Found {len(paired_granule_ids)} matching "
+                  f"pairs of granules.")
 
     # Submit jobs for each pair of granules
+    log_and_print(f"Submitting {min(len(paired_granule_ids), job_limit)} "
+                  f"jobs.")
+
     job_kwargs_list = []
     for pair in paired_granule_ids:
         job_kwargs = {
@@ -190,5 +218,11 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     print("All jobs completed, combined GeoPackage saved as "
           "'run_output.gpkg'.")
 
+    logging.info(f"Failed job IDs: {failed_job_ids}")
+    click.echo(f"{len(failed_job_ids)} jobs failed. See log for details.")
+
+    end_time = datetime.datetime.now()
+
+    log_and_print(f"Model run completed at {end_time}.")
 if __name__ == "__main__":
     main()
