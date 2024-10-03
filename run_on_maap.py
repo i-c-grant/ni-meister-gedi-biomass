@@ -195,22 +195,27 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
         time.sleep(check_interval)
     
     # Process the results once all jobs are completed
+    succeeded_job_ids = [job_id for job_id in job_ids
+                         if job_status_for(job_id) == "Succeeded"]
+    
+    failed_job_ids = [job_id for job_id in job_ids
+                      if job_status_for(job_id) == "Failed"]
+
     gpkg_paths = []
-    for job_id in job_ids:
-        if job_status_for(job_id) == "Succeeded":
-            job_result_url = job_result_for(job_id)
-            job_output_dir = to_job_output_dir(job_result_url, username)
-            # Find .gpkg file in the output dir
-            gpkg_file = [f for f in os.listdir(job_output_dir)
-                         if f.endswith('.gpkg')]
-            if len(gpkg_file) > 1:
-                warnings.warn(f"Multiple .gpkg files found in "
-                              f"{job_output_dir}.")
-            if len(gpkg_file) == 0:
-                warnings.warn(f"No .gpkg files found in "
-                              "{job_output_dir}.")
-            if gpkg_file:
-                gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
+    for job_id in succeeded_job_ids:
+        job_result_url = job_result_for(job_id)
+        job_output_dir = to_job_output_dir(job_result_url, username)
+        # Find .gpkg file in the output dir
+        gpkg_file = [f for f in os.listdir(job_output_dir)
+                     if f.endswith('.gpkg')]
+        if len(gpkg_file) > 1:
+            warnings.warn(f"Multiple .gpkg files found in "
+                          f"{job_output_dir}.")
+        if len(gpkg_file) == 0:
+            warnings.warn(f"No .gpkg files found in "
+                          "{job_output_dir}.")
+        if gpkg_file:
+            gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
 
     # Copy all GeoPackages to a new local directory
     output_dir = f"run_output_{start_time}"
@@ -218,14 +223,11 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     for gpkg_path in gpkg_paths:
         shutil.copy(gpkg_path, output_dir)
 
-    # Get a list of ids of all failed jobs
-    failed_job_ids = []
-    for job_id in job_ids:
-        if job_status_for(job_id) == "Failed":
-            failed_job_urls.append(maap.getJobResult(job_id)[0])
-
-    logging.info(f"Failed job IDs: {failed_job_ids}")
-    click.echo(f"{len(failed_job_ids)} jobs failed. See log for details.")
+    # Log the succeeded and failed job IDs
+    logging.info(f"{len(succeeded_job_ids)} jobs succeeded.")
+    logging.info(f"Succeeded job IDs: {succeeded_job_ids}\n")
+    logging.info(f"{len(failed_job_ids)} jobs failed.")
+    logging.info(f"Failed job IDs: {failed_job_ids}\n")
 
     end_time = datetime.datetime.now()
 
