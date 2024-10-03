@@ -4,6 +4,7 @@ import os
 import time
 from typing import Dict, List
 import warnings
+from pathlib import Path
 
 import click
 import geopandas as gpd
@@ -69,13 +70,17 @@ def log_and_print(message: str):
               help="Time interval (in seconds) between job status checks.")
 def main(username: str, boundary: str, date_range: str, job_limit: int, check_interval: int):
 
+    start_time = datetime.datetime.now()
+
+    # Set up output directory
+    output_dir = Path(f"run_output_{start_time}")
+    os.makedirs(output_dir, exist_ok=False)
+
     # Set up log
-    logging.basicConfig(filename='run_on_maap.log',
+    logging.basicConfig(filename=output_dir / "run.log",
                         level=logging.INFO,
                         format='%(asctime)s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
-
-    start_time = datetime.datetime.now()
 
     log_and_print(f"Starting new model run at MAAP at {start_time}.")
     log_and_print(f"Boundary: {boundary}")
@@ -225,9 +230,7 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
         if gpkg_file:
             gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
 
-    # Copy all GeoPackages to a new local directory
-    output_dir = f"run_output_{start_time}"
-    os.makedirs(output_dir, exist_ok=False)
+    # Copy all GeoPackages to the output directory
     for gpkg_path in gpkg_paths:
         shutil.copy(gpkg_path, output_dir)
 
