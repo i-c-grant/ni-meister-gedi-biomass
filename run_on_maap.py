@@ -1,7 +1,7 @@
 import os
 import time
 from typing import Dict, List
-from urllib.parse import urlparse
+import warnings
 
 import click
 import geopandas as gpd
@@ -66,17 +66,18 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
             short_name="GEDI01_B",
             version="002",
             cmr_host="cmr.earthdata.nasa.gov",
-            cloud_hosted=True
+            cloud_hosted="true"
         )[0]['concept-id']
 
     l2a_id = maap.searchCollection(
         short_name="GEDI02_A",
         version="002",
         cmr_host="cmr.earthdata.nasa.gov",
-        cloud_hosted=True
+        cloud_hosted="true"
     )[0]['concept-id']
 
-    kwargs = {'concept_id': [l1b_id, l2a_id]}
+    kwargs = {'concept_id': [l1b_id, l2a_id],
+              'cmr_host': 'cmr.earthdata.nasa.gov',}
 
     if date_range:
         kwargs['temporal'] = date_range
@@ -93,12 +94,12 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     # pair corresponding L1B and L2A granules
     l1b_granules = (
         [granule for granule in granules
-         if granule['collection']['short_name'] == 'GEDI01_B']
+         if granule['Granule']['Collection']['ShortName'] == 'GEDI01_B']
     )
 
     l2a_granules = (
         [granule for granule in granules
-         if granule['collection']['short_name'] == 'GEDI02_A']
+         if granule['Granule']['Collection']['ShortName'] == 'GEDI02_A']
     )
 
     paired_granule_ids: List[Dict[str, str]] = []
@@ -114,7 +115,7 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
                f"pairs of granules.")
 
     # Submit jobs for each pair of granules
-    jobs = []
+    job_kwargs_list = []
     for pair in paired_granule_ids:
         job_kwargs = {
             "identifier": "nmbim_gedi_processing",
@@ -131,10 +132,13 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
         if date_range:
             job_kwargs['date_range'] = date_range
 
+        job_kwargs_list.append(job_kwargs)
+
+    jobs = []
+    for job_kwargs in job_kwargs_list[:job_limit]:
         job = maap.submitJob(**job_kwargs)
+        print(f"Submitted job {job.id}.")
         jobs.append(job)
-        if job_limit and len(jobs) >= job_limit:
-            break
 
     print(f"Submitted {len(jobs)} jobs.")
 
@@ -143,13 +147,13 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     while True:
         status_counts = check_jobs_status(job_ids)
         total_jobs = len(job_ids)
-        
+
         print(f"Job Status Update: {status_counts['Succeeded']} Succeeded, "
               f"{status_counts['Failed']} Failed, "
               f"{status_counts['Running']} Running, "
               f"{status_counts['Deleted']} Deleted. "
               f"Total jobs: {total_jobs}.")
-        
+
         # If all jobs are done (Succeeded or Failed), exit loop
         total_completed = sum(status_counts[status]
                               for status in status_counts
@@ -169,6 +173,12 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
             # Find .gpkg file in the output dir
             gpkg_file = [f for f in os.listdir(job_output_dir)
                          if f.endswith('.gpkg')]
+            if len(gpkg_file) > 1:
+                warnings.warn(f"Multiple .gpkg files found in "
+                              f"{job_output_dir}.")
+            if len(gpkg_file) == 0:
+                warnings.warn(f"No .gpkg files found in "
+                              "{job_output_dir}.")
             if gpkg_file:
                 gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
 
