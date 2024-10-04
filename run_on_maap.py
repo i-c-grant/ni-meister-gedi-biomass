@@ -151,7 +151,11 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
                   f"pairs of granules.")
 
     # Submit jobs for each pair of granules
-    log_and_print(f"Submitting {min(len(paired_granule_ids), job_limit)} "
+    if job_limit:
+        n_jobs = min(len(paired_granule_ids), job_limit)
+    else:
+        n_jobs = len(paired_granule_ids)
+    log_and_print(f"Submitting {n_jobs} "
                   f"jobs.")
 
     job_kwargs_list = []
