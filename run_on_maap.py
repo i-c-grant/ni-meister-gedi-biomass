@@ -187,30 +187,30 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     click.echo("Waiting for jobs to start...")
     time.sleep(30)
     
-    while True:
-        status_counts = check_jobs_status(job_ids)
-        total_jobs = len(job_ids)
+    with tqdm(total=len(job_ids), desc="Jobs Completed", unit="job") as pbar:
+        completed_jobs = 0
+        while completed_jobs < len(job_ids):
+            status_counts = check_jobs_status(job_ids)
+            new_completed = (status_counts['Succeeded'] + 
+                             status_counts['Failed'] + 
+                             status_counts['Deleted']) - completed_jobs
 
-        print(f"Job Status Update: "
-              f"{status_counts['Accepted']} Queued, "
-              f"{status_counts['Running']} Running, "
-              f"{status_counts['Succeeded']} Succeeded, "
-              f"{status_counts['Failed']} Failed, "
-              f"{status_counts['Deleted']} Deleted. "
-              f"Total jobs: {total_jobs}.")
+            if new_completed > 0:
+                pbar.update(new_completed)
+                completed_jobs += new_completed
 
-        # If all jobs are done (Succeeded or Failed), exit loop
-        completed = ['Succeeded', 'Failed', 'Deleted']
+            pbar.set_postfix({
+                "Queued": status_counts['Accepted'],
+                "Running": status_counts['Running'],
+                "Succeeded": status_counts['Succeeded'],
+                "Failed": status_counts['Failed'],
+                "Deleted": status_counts['Deleted']
+            }, refresh=True)
 
-        total_completed = sum(status_counts[status]
-                              for status in status_counts
-                              if status in completed)
+            if completed_jobs == len(job_ids):
+                break
 
-        if total_completed == total_jobs:
-            break
-
-        time.sleep(check_interval)
-    
+            time.sleep(check_interval)    
     # Process the results once all jobs are completed
     succeeded_job_ids = [job_id for job_id in job_ids
                          if job_status_for(job_id) == "Succeeded"]
