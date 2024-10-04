@@ -1,14 +1,16 @@
 import datetime
 import logging
 import os
+import shutil
 import time
-from typing import Dict, List
 import warnings
 from pathlib import Path
+from typing import Dict, List
 
 import click
 import geopandas as gpd
 import pandas as pd
+from tqdm import tqdm
 from geopandas import GeoDataFrame
 from maap.maap import MAAP
 from maap.Result import Granule
@@ -117,8 +119,7 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
         search_kwargs['bounding_box'] = boundary_bbox_str
 
-    log_and_print(f"Searching for granules with the following parameters: "
-                  "{search_kwargs}")
+    log_and_print(f"Searching for granules.")
     click.echo("(This may take a few minutes.)")
 
     granules: List[Granule] = maap.searchGranule(**search_kwargs)
@@ -238,7 +239,8 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
             gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
 
     # Copy all GeoPackages to the output directory
-    for gpkg_path in gpkg_paths:
+    click.echo(f"Copying {len(gpkg_paths)} GeoPackages to {output_dir}.")
+    for gpkg_path in tqdm(gpkg_paths):
         shutil.copy(gpkg_path, output_dir)
 
     # Log the succeeded and failed job IDs
