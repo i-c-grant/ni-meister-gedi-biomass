@@ -242,7 +242,7 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
                           f"{job_output_dir}.")
         if len(gpkg_file) == 0:
             warnings.warn(f"No .gpkg files found in "
-                          "{job_output_dir}.")
+                          f"{job_output_dir}.")
         if gpkg_file:
             gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
 
