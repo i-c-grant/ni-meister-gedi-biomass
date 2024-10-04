@@ -74,7 +74,8 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     start_time = datetime.datetime.now()
 
     # Set up output directory
-    output_dir = Path(f"run_output_{start_time}")
+    output_dir = Path(f"run_output_"
+                      f"{start_time.strftime('%Y%m%d_%H%M%S')}")
     os.makedirs(output_dir, exist_ok=False)
 
     # Set up log
