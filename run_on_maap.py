@@ -226,8 +226,12 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
                      if job_status_for(job_id)
                      not in ["Succeeded", "Failed"]]
 
+    click.echo(f"Processing results for {len(succeeded_job_ids)} "
+               f"succeeded jobs.")
+
+    click.echo(f"Gathering GeoPackage paths from succeeded jobs.")
     gpkg_paths = []
-    for job_id in succeeded_job_ids:
+    for job_id in tqdm(succeeded_job_ids):
         job_result_url = job_result_for(job_id)
         job_output_dir = to_job_output_dir(job_result_url, username)
         # Find .gpkg file in the output dir
