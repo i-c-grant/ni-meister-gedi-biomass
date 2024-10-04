@@ -140,8 +140,9 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     for l1b_granule in l1b_granules:
         for l2a_granule in l2a_granules:
             if granules_match(l1b_granule, l2a_granule):
-                paired_granule_ids.append({"l1b": l1b_granule['concept-id'],
-                                           "l2a": l2a_granule['concept-id']})
+                paired_granule_ids.append(
+                    {"l1b": l1b_granule['Granule']['GranuleUR'],
+                     "l2a": l2a_granule['Granule']['GranuleUR']})
                 break
                 
     log_and_print(f"Found {len(paired_granule_ids)} matching "
