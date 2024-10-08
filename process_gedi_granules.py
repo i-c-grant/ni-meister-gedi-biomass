@@ -114,7 +114,7 @@ def main(l1b_path: str,
     processor_params = processing_pipelines.biwf_pipeline
     beams = app_utils.get_beam_names()
     
-    # Read the filter configuration
+    # Read the configuration
     with open(config, 'r') as config_file:
         full_config: Dict[str, Any] = yaml.safe_load(config_file)
     
@@ -134,7 +134,7 @@ def main(l1b_path: str,
 
     # Generate filters
     my_filters: Dict[str, Optional[Callable]] = (
-        filters.generate_filters(filters.get_filter_generators(), {'filters': filter_config})
+        filters.generate_filters(filters.get_filter_generators(), filter_config)
     )
     
     # Log applied filters
