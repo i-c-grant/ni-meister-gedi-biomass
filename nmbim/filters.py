@@ -41,7 +41,7 @@ def parse_date_range(date_range: str) -> DateInterval:
 
     return time_start, time_end
 
-
+# Filter generators
 def generate_temporal_filter(time_start: Optional[datetime], 
                              time_end: Optional[datetime]) -> Callable:
     """Generate a temporal filter based on start, end time, or both."""
