@@ -128,15 +128,50 @@ def generate_spatial_filter(file_path: str,
     return spatial_filter
 
 
-def define_filters(poly_file: Optional[str] = None,
-                   time_start: Optional[datetime] = None,
-                   time_end: Optional[datetime] = None) -> List[Callable]:
+def get_filter_generators() -> Dict[str, Callable]:
+    """Get a dictionary of filter generators."""
+    return {
+        "temporal": generate_temporal_filter,
+        "flag": generate_flag_filter,
+        "modes": generate_modes_filter,
+        "landcover": generate_landcover_filter,
+        "spatial": generate_spatial_filter,
+    }
+
+
+def generate_filters(
+    generators: Dict[str, Callable], config: Dict[str, Any]
+) -> List[Callable]:
+    """Generate a list of filters based on a configuration dictionary."""
+    filters = []
+    for filter_name, generator in generators.items():
+        if filter_name in config:
+            filter_config = config[filter_name]
+            if isinstance(filter_config, dict):
+                filters.append(generator(**filter_config))
+            elif filter_config is None:
+                filters.append(generator())
+            else:
+                raise ValueError(
+                    f"Invalid configuration for filter '{filter_name}'. "
+                    f"Expected a dictionary or None, got {type(filter_config)}"
+                )
+    return filters
+
+
+def define_filters(
+    poly_file: Optional[str] = None,
+    time_start: Optional[datetime] = None,
+    time_end: Optional[datetime] = None,
+) -> List[Callable]:
     """Define filters that determine which waveforms are processed"""
 
     # Invariant filters
-    filters = [generate_flag_filter(),
-               generate_modes_filter(),
-               generate_landcover_filter()]
+    filters = [
+        generate_flag_filter(),
+        generate_modes_filter(),
+        generate_landcover_filter(),
+    ]
 
     # Dynamic filters
     if poly_file:
