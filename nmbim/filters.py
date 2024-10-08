@@ -22,12 +22,16 @@ def parse_date_range(date_range: str) -> DateInterval:
     time_start, time_end = None, None
     dates = date_range.split(",")
     if len(dates) > 2:
-        raise ValueError("Invalid date range. Please provide a single "
-                         "date, a date range, or a start and end date.")
+        raise ValueError(
+            "Invalid date range. Please provide a single "
+            "date, a date range, or a start and end date."
+        )
     if len(dates) == 1:
-        warnings.warn("Only one date provided. This will be treated as "
-                      "a start date. Using a leading or trailing comma "
-                      "to specify how a single date should be handled.")
+        warnings.warn(
+            "Only one date provided. This will be treated as "
+            "a start date. Using a leading or trailing comma "
+            "to specify how a single date should be handled."
+        )
         dates.append(None)
 
     date_spec = "%Y-%m-%dT%H:%M:%SZ"
@@ -41,15 +45,17 @@ def parse_date_range(date_range: str) -> DateInterval:
 
     return time_start, time_end
 
+
 # Filter generators
-def generate_temporal_filter(time_start: Optional[datetime], 
-                             time_end: Optional[datetime]) -> Callable:
+def generate_temporal_filter(
+    time_start: Optional[datetime], time_end: Optional[datetime]
+) -> Callable:
     """Generate a temporal filter based on start, end time, or both."""
 
-    def temporal_filter(wf: 'Waveform') -> bool:
+    def temporal_filter(wf: "Waveform") -> bool:
         # Extract waveform time
-        wf_time = wf.get_data('metadata/time')
-        
+        wf_time = wf.get_data("metadata/time")
+
         # Check if the waveform time is within the specified time range
         after_start, before_end = True, True
         if time_start and wf_time < time_start:
@@ -66,33 +72,43 @@ def generate_temporal_filter(time_start: Optional[datetime],
 # Quality control filters
 def generate_flag_filter() -> Callable:
     """Generate a filter based on metadata or data quality."""
+
     def flag_filter(wf: Waveform) -> bool:
         if wf.get_data("metadata/flags/quality") == 1:
             return True
         else:
             return False
+
     return flag_filter
+
 
 def generate_modes_filter() -> Callable:
     """Generate a filter to keep only waveforms with more than one mode."""
+
     def modes_filter(wf: Waveform) -> bool:
         if wf.get_data("metadata/modes/num_modes") > 0:
             return True
         else:
             return False
+
     return modes_filter
+
 
 def generate_landcover_filter() -> Callable:
     """Generate a filter to keep only waveforms with more than 50% tree cover."""
+
     def landcover_filter(wf: Waveform) -> bool:
         if wf.get_data("metadata/landcover/modis_treecover") > 10:
             return True
         else:
             return False
+
     return landcover_filter
 
-def generate_spatial_filter(file_path: str, 
-                            waveform_crs: str = "EPSG:4326") -> Callable:
+
+def generate_spatial_filter(
+    file_path: str, waveform_crs: str = "EPSG:4326"
+) -> Callable:
     """Generate a spatial filter based on a polygon layer.
 
     Acceptable formats are GeoPackage and Shapefile. File must contain
@@ -105,21 +121,24 @@ def generate_spatial_filter(file_path: str,
     poly_gdf = gpd.read_file(file_path)
 
     if poly_gdf is None:
-        raise ValueError("The polygon file at {file_path} "
-                         "could not be read.")
-    
+        raise ValueError(
+            "The polygon file at {file_path} " "could not be read."
+        )
+
     # Ensure the geometry type is Polygon or MultiPolygon
     if not poly_gdf.geom_type.isin(["Polygon", "MultiPolygon"]).all():
-        raise ValueError("The file contains non-polygon geometries. "
-                         "Ensure all geometries are polygons.")
-   
+        raise ValueError(
+            "The file contains non-polygon geometries. "
+            "Ensure all geometries are polygons."
+        )
+
     # Get the CRS of the polygon file and check if it is specified
     poly_crs = poly_gdf.crs
     if poly_crs is None:
         raise ValueError("The polygon file does not have a CRS specified.")
 
     # Define the spatial filter
-    def spatial_filter(wf: 'Waveform') -> bool:
+    def spatial_filter(wf: "Waveform") -> bool:
         wf_point = wf.get_data("metadata/point_geom")
         point_gdf = gpd.GeoSeries([wf_point], crs=waveform_crs)
         point_gdf = point_gdf.to_crs(poly_crs)
