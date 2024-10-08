@@ -120,6 +120,19 @@ def generate_spatial_filter(
 
     return spatial_filter
 
+def generate_ht_window_filter(window_start: float, window_end: float) -> Callable:
+    """Generate a filter based on the position of the first positive value in the ht array."""
+    if not 0 <= window_start < window_end <= 1:
+        raise ValueError("Window start and end must be between 0 and 1, with start < end.")
+
+    def ht_window_filter(wf: "Waveform") -> bool:
+        ht_array = wf.get_data("raw/ht")
+        first_positive_index = np.argmax(ht_array > 0)
+        array_length = len(ht_array)
+        relative_position = first_positive_index / array_length
+        return window_start <= relative_position <= window_end
+
+    return ht_window_filter
 
 def get_filter_generators() -> Dict[str, Callable]:
     """Get a dictionary of filter generators."""
@@ -129,6 +142,7 @@ def get_filter_generators() -> Dict[str, Callable]:
         "modes": generate_modes_filter,
         "landcover": generate_landcover_filter,
         "spatial": generate_spatial_filter,
+        "ht_window": generate_ht_window_filter,
     }
 
 
