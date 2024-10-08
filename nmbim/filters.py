@@ -64,26 +64,32 @@ def generate_temporal_filter(time_start: Optional[datetime],
 
 
 # Quality control filters
-def flag_filter(wf: Waveform) -> bool:
-    """Filter waveforms based on metadata or data quality."""
-    if wf.get_data("metadata/flags/quality") == 1:
-        return True
-    else:
-        return False
+def generate_flag_filter() -> Callable:
+    """Generate a filter based on metadata or data quality."""
+    def flag_filter(wf: Waveform) -> bool:
+        if wf.get_data("metadata/flags/quality") == 1:
+            return True
+        else:
+            return False
+    return flag_filter
 
-def modes_filter(wf: Waveform) -> bool:
-    """Keep only waveforms with more than one mode."""
-    if wf.get_data("metadata/modes/num_modes") > 0:
-        return True
-    else:
-        return False
+def generate_modes_filter() -> Callable:
+    """Generate a filter to keep only waveforms with more than one mode."""
+    def modes_filter(wf: Waveform) -> bool:
+        if wf.get_data("metadata/modes/num_modes") > 0:
+            return True
+        else:
+            return False
+    return modes_filter
 
-def landcover_filter(wf: Waveform) -> bool:
-    """Keep only waveforms with more than 50% tree cover."""
-    if wf.get_data("metadata/landcover/modis_treecover") > 10:
-        return True
-    else:
-        return False
+def generate_landcover_filter() -> Callable:
+    """Generate a filter to keep only waveforms with more than 50% tree cover."""
+    def landcover_filter(wf: Waveform) -> bool:
+        if wf.get_data("metadata/landcover/modis_treecover") > 10:
+            return True
+        else:
+            return False
+    return landcover_filter
 
 def generate_spatial_filter(file_path: str, 
                             waveform_crs: str = "EPSG:4326") -> Callable:
@@ -128,9 +134,9 @@ def define_filters(poly_file: Optional[str] = None,
     """Define filters that determine which waveforms are processed"""
 
     # Invariant filters
-    filters = [flag_filter,
-               modes_filter,
-               landcover_filter]
+    filters = [generate_flag_filter(),
+               generate_modes_filter(),
+               generate_landcover_filter()]
 
     # Dynamic filters
     if poly_file:
