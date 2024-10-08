@@ -9,7 +9,7 @@
 
 import warnings
 from datetime import datetime
-from typing import Callable, List, Optional, Tuple, Dict, Any
+from typing import Callable, Optional, Tuple, Dict, Any
 import os
 
 import geopandas as gpd
@@ -50,36 +50,27 @@ def parse_date_range(date_range: str) -> DateInterval:
 
 # Filter generators
 def generate_temporal_filter(
-    time_start: Optional[datetime], time_end: Optional[datetime]
+    time_start: Optional[str], time_end: Optional[str]
 ) -> Callable:
     """Generate a temporal filter based on start, end time, or both."""
+    date_spec = "%Y-%m-%dT%H:%M:%SZ"
+    start = datetime.strptime(time_start, date_spec) if time_start else None
+    end = datetime.strptime(time_end, date_spec) if time_end else None
 
     def temporal_filter(wf: "Waveform") -> bool:
-        # Extract waveform time
         wf_time = wf.get_data("metadata/time")
-
-        # Check if the waveform time is within the specified time range
-        after_start, before_end = True, True
-        if time_start and wf_time < time_start:
-            after_start = False
-
-        if time_end and wf_time > time_end:
-            before_end = False
-
+        after_start = start is None or wf_time >= start
+        before_end = end is None or wf_time <= end
         return after_start and before_end
 
     return temporal_filter
 
 
-# Quality control filters
 def generate_flag_filter() -> Callable:
     """Generate a filter based on metadata or data quality."""
 
     def flag_filter(wf: Waveform) -> bool:
-        if wf.get_data("metadata/flags/quality") == 1:
-            return True
-        else:
-            return False
+        return wf.get_data("metadata/flags/quality") == 1
 
     return flag_filter
 
@@ -88,10 +79,7 @@ def generate_modes_filter() -> Callable:
     """Generate a filter to keep only waveforms with more than one mode."""
 
     def modes_filter(wf: Waveform) -> bool:
-        if wf.get_data("metadata/modes/num_modes") > 0:
-            return True
-        else:
-            return False
+        return wf.get_data("metadata/modes/num_modes") > 0
 
     return modes_filter
 
@@ -100,10 +88,7 @@ def generate_landcover_filter() -> Callable:
     """Generate a filter to keep only waveforms with more than 50% tree cover."""
 
     def landcover_filter(wf: Waveform) -> bool:
-        if wf.get_data("metadata/landcover/modis_treecover") > 10:
-            return True
-        else:
-            return False
+        return wf.get_data("metadata/landcover/modis_treecover") > 10
 
     return landcover_filter
 
@@ -111,35 +96,22 @@ def generate_landcover_filter() -> Callable:
 def generate_spatial_filter(
     file_path: str, waveform_crs: str = "EPSG:4326"
 ) -> Callable:
-    """Generate a spatial filter based on a polygon layer.
-
-    Acceptable formats are GeoPackage and Shapefile. File must contain
-    only polygons and are assumed to contain a single layer."""
-
-    # Resolve the file path
+    """Generate a spatial filter based on a polygon layer."""
     file_path = os.path.realpath(file_path)
-
-    # Read the polygons from the file (only the first layer)
     poly_gdf = gpd.read_file(file_path)
 
     if poly_gdf is None:
-        raise ValueError(
-            "The polygon file at {file_path} " "could not be read."
-        )
+        raise ValueError(f"The polygon file at {file_path} could not be read.")
 
-    # Ensure the geometry type is Polygon or MultiPolygon
     if not poly_gdf.geom_type.isin(["Polygon", "MultiPolygon"]).all():
         raise ValueError(
-            "The file contains non-polygon geometries. "
-            "Ensure all geometries are polygons."
+            "The file contains non-polygon geometries. Ensure all geometries are polygons."
         )
 
-    # Get the CRS of the polygon file and check if it is specified
     poly_crs = poly_gdf.crs
     if poly_crs is None:
         raise ValueError("The polygon file does not have a CRS specified.")
 
-    # Define the spatial filter
     def spatial_filter(wf: "Waveform") -> bool:
         wf_point = wf.get_data("metadata/point_geom")
         point_gdf = gpd.GeoSeries([wf_point], crs=waveform_crs)
