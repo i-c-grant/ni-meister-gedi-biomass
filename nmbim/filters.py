@@ -84,11 +84,11 @@ def generate_modes_filter() -> Callable:
     return modes_filter
 
 
-def generate_landcover_filter() -> Callable:
+def generate_landcover_filter(min_treecover) -> Callable:
     """Generate a filter to keep only waveforms with more than 50% tree cover."""
 
     def landcover_filter(wf: Waveform) -> bool:
-        return wf.get_data("metadata/landcover/modis_treecover") > 10
+        return wf.get_data("metadata/landcover/modis_treecover") >= min_treecover
 
     return landcover_filter
 
