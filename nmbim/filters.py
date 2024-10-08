@@ -75,11 +75,11 @@ def generate_flag_filter() -> Callable:
     return flag_filter
 
 
-def generate_modes_filter() -> Callable:
+def generate_modes_filter(min_modes) -> Callable:
     """Generate a filter to keep only waveforms with more than one mode."""
 
     def modes_filter(wf: Waveform) -> bool:
-        return wf.get_data("metadata/modes/num_modes") > 0
+        return wf.get_data("metadata/modes/num_modes") >= min_modes
 
     return modes_filter
 
