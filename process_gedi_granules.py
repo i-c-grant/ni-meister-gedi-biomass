@@ -122,13 +122,20 @@ def main(l1b_path: str,
 
     # Update configuration if boundary or date_range are provided
     if boundary:
-        if 'spatial' in filter_config and filter_config['spatial'] is not None:
-            log_and_print("Warning: Overwriting existing spatial filter configuration.")
+        if 'spatial' in filter_config:
+            if filter_config['spatial']:
+                log_and_print("Warning: Overwriting existing spatial filter configuration.")
+            else:
+                log_and_print("Adding spatial filter configuration from boundary file supplied at runtime.")
         filter_config['spatial'] = {'file_path': boundary}
 
     if date_range:
-        if 'temporal' in filter_config and filter_config['temporal'] is not None:
-            log_and_print("Warning: Overwriting existing temporal filter configuration.")
+        if 'temporal' in filter_config:
+            if filter_config['temporal']:
+                log_and_print("Warning: Overwriting existing temporal filter configuration.")
+            else:
+                log_and_print("Adding temporal filter configuration from date range supplied at runtime.")
+
         start, end = date_range.split(',')
         filter_config['temporal'] = {'time_start': start, 'time_end': end}
 
@@ -144,6 +151,11 @@ def main(l1b_path: str,
             log_and_print(f"{filter_name.capitalize()} filter applied")
     else:
         log_and_print("No filters applied")
+
+    # Create a backup of the original configuration
+    backup_config = f"{config}.bak"
+    with open(config, 'r') as original_file, open(backup_config, 'w') as backup_file:
+        backup_file.write(original_file.read())
 
     # Update the full configuration and write it back to file
     full_config['filters'] = filter_config
