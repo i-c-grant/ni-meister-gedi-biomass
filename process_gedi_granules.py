@@ -6,7 +6,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, Callable, List, Optional
 from pathlib import Path
 import warnings
 
@@ -38,10 +38,10 @@ def process_beam(
     l2a_path: str,
     output_path: str,
     processor_params: Dict[str, Dict[str, Any]],
-    filters: Union[Dict[str, Any], bytes],
+    filters: Union[Dict[str, Optional[Callable]], bytes],
 ) -> None:
     # Unpickle the filters if necessary
-    if type(filters) == bytes:
+    if isinstance(filters, bytes):
         filters = dill.loads(filters)
 
     click.echo(f"Loading waveforms for beam {beam}...")
@@ -142,6 +142,10 @@ def main(l1b_path: str,
         elif time_end:
             log_and_print(f"Filtering for captures acquired before "
                           f"{time_end}.")
+    # Generate filters
+    my_filters: Dict[str, Optional[Callable]] = (
+        filters.generate_filters(filters.get_filter_generators(), filter_config)
+    )
            
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
