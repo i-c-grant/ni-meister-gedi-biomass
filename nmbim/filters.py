@@ -134,45 +134,27 @@ def get_filter_generators() -> Dict[str, Callable]:
 
 def generate_filters(
     generators: Dict[str, Callable], config: Dict[str, Any]
-) -> List[Callable]:
-    """Generate a list of filters based on a configuration dictionary."""
-    filters = []
-    for filter_name, generator in generators.items():
-        if filter_name in config:
-            filter_config = config[filter_name]
+) -> Dict[str, Optional[Callable]]:
+    """Generate a dictionary of filters based on a configuration dictionary."""
+    filters = {}
+
+    for filter_name, filter_config in config.items():
+        if filter_name in generators:
             if isinstance(filter_config, dict):
-                filters.append(generator(**filter_config))
+                filters[filter_name] = generators[filter_name](**filter_config)
             elif filter_config is None:
-                filters.append(generator())
+                filters[filter_name] = None
             else:
                 raise ValueError(
                     f"Invalid configuration for filter '{filter_name}'. "
                     f"Expected a dictionary or None, got {type(filter_config)}"
                 )
-    return filters
-
-
-def define_filters(
-    poly_file: Optional[str] = None,
-    time_start: Optional[datetime] = None,
-    time_end: Optional[datetime] = None,
-) -> List[Callable]:
-    """Define filters that determine which waveforms are processed"""
-
-    # Invariant filters
-    filters = [
-        generate_flag_filter(),
-        generate_modes_filter(),
-        generate_landcover_filter(),
-    ]
-
-    # Dynamic filters
-    if poly_file:
-        spatial_filter = generate_spatial_filter(poly_file)
-        filters.append(spatial_filter)
-
-    if time_start and time_end:
-        temporal_filter = generate_temporal_filter(time_start, time_end)
-        filters.append(temporal_filter)
+        else:
+            filters[filter_name] = None
+            warnings.warn(
+                f"Filter '{filter_name}' specified in configuration "
+                f"but no matching generator was defined. This filter "
+                f"will be ignored."
+            )
 
     return filters
