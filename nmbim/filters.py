@@ -158,3 +158,12 @@ def generate_filters(
             )
 
     return filters
+
+def get_registered_filters() -> Dict[str, Dict[str, Any]]:
+    """
+    Get a dictionary of all registered filters and their configurations.
+    
+    Returns:
+        Dict[str, Dict[str, Any]]: The dictionary of registered filters and their configurations.
+    """
+    return {name: {} for name in get_filter_generators().keys()}
