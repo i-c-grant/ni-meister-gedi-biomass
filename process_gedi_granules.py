@@ -128,6 +128,7 @@ def main(l1b_path: str,
             else:
                 log_and_print("Adding spatial filter configuration from boundary file supplied at runtime.")
         filter_config['spatial'] = {'file_path': boundary}
+        log_and_print(f"Spatial filter applied with boundary file: {boundary}")
 
     if date_range:
         if 'temporal' in filter_config:
@@ -138,6 +139,7 @@ def main(l1b_path: str,
 
         start, end = date_range.split(',')
         filter_config['temporal'] = {'time_start': start, 'time_end': end}
+        log_and_print(f"Temporal filter applied with date range: {date_range}")
 
     # Generate filters
     my_filters: Dict[str, Optional[Callable]] = (
@@ -161,6 +163,10 @@ def main(l1b_path: str,
     full_config['filters'] = filter_config
     with open(config, 'w') as config_file:
         yaml.dump(full_config, config_file)
+    
+    # Log the updated configuration
+    log_and_print("Updated configuration:")
+    log_and_print(yaml.dump(full_config))
            
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
