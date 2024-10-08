@@ -7,16 +7,18 @@
 # determine which waveforms to include.                              #
 ######################################################################
 
+import warnings
 from datetime import datetime
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Dict, Any
 import os
 
 import geopandas as gpd
-from shapely.geometry import MultiPolygon, Point, Polygon
 
 from nmbim.Waveform import Waveform
 
 DateInterval = Tuple[Optional[datetime], Optional[datetime]]
+
+
 def parse_date_range(date_range: str) -> DateInterval:
     """Parse a date range string into a start and end date."""
     time_start, time_end = None, None
