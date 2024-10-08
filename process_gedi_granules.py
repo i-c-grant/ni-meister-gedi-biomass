@@ -12,6 +12,7 @@ import warnings
 
 import click
 import h5py
+import yaml
 
 from nmbim import WaveformCollection, app_utils, processing_pipelines, filters
 
@@ -68,18 +69,9 @@ def process_beam(
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("output_dir", type=click.Path(exists=True))
-@click.option("--boundary", "-b", type=click.Path(exists=True),
-              help=("Path to a Shapefile or GeoPackage containing "
-                    "a boundary polygon. Must contain only one layer "
-                    "and only polygon or multipolygon geometry."))
-@click.option("--date_range", "-d", type=str,
-              help=("Date range for filtering granules. Format for one "
-                    "date is %Y-%m-%dT%H:%M:%SZ. 'date1, date2' provides a "
-                    "range, 'date1,' provides a start date, and ',date2' "
-                    "provides an end date. See NASA CMR search "
-                    "documentation for more information: "
-                    "https://cmr.earthdata.nasa.gov/search/site/docs/search/"
-                    "api.html#temporal-range-searches"))
+@click.option("--config", "-c", type=click.Path(exists=True),
+              default="nmbim/filter_config.yaml",
+              help="Path to the filter configuration YAML file.")
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
 @click.option(
     "--n_workers",
@@ -87,13 +79,16 @@ def process_beam(
     default=4,
     help="Number of workers for parallel mode."
 )
+@click.option("--boundary", type=click.Path(exists=True), help="Path to boundary file (e.g., .gpkg)")
+@click.option("--date_range", help="Date range in format 'YYYY-MM-DDTHH:MM:SSZ,YYYY-MM-DDTHH:MM:SSZ'")
 def main(l1b_path: str,
          l2a_path: str,
          output_dir: str,
-         boundary: str,
-         date_range: str,
+         config: str,
          parallel: bool,
-         n_workers: int):
+         n_workers: int,
+         boundary: Optional[str],
+         date_range: Optional[str]):
     """Process GEDI L1B and L2A granules to calculate the Ni-Meister Biomass
     Index (NMBI) for each footprint in the granules."""
 
@@ -118,34 +113,42 @@ def main(l1b_path: str,
     # Set up the processing pipeline
     processor_params = processing_pipelines.biwf_pipeline
     beams = app_utils.get_beam_names()
-    my_filters = filters.define_filters()
+    
+    # Read the filter configuration
+    with open(config, 'r') as config_file:
+        full_config: Dict[str, Any] = yaml.safe_load(config_file)
+    
+    filter_config: Dict[str, Any] = full_config.get('filters', {})
 
+    # Update configuration if boundary or date_range are provided
     if boundary:
-        my_filters.append(filters.generate_spatial_filter(boundary))
-        log_and_print(f"Filtering for captures within polygon(s) in "
-                      f"{boundary}.")
+        if 'spatial' in filter_config and filter_config['spatial'] is not None:
+            log_and_print("Warning: Overwriting existing spatial filter configuration.")
+        filter_config['spatial'] = {'file_path': boundary}
 
     if date_range:
-        time_start, time_end = filters.parse_date_range(date_range)
-        temporal_filter: Callable = (
-            filters.generate_temporal_filter(time_start, time_end)
-        )
-        my_filters.append(temporal_filter)
+        if 'temporal' in filter_config and filter_config['temporal'] is not None:
+            log_and_print("Warning: Overwriting existing temporal filter configuration.")
+        start, end = date_range.split(',')
+        filter_config['temporal'] = {'time_start': start, 'time_end': end}
 
-        # Log and print depending on temporal range
-        if time_start and time_end:
-            log_and_print(f"Filtering for captures acquired between "
-                          f"{time_start} and {time_end}.")
-        elif time_start:
-            log_and_print(f"Filtering for captures acquired after "
-                          f"{time_start}.")
-        elif time_end:
-            log_and_print(f"Filtering for captures acquired before "
-                          f"{time_end}.")
     # Generate filters
     my_filters: Dict[str, Optional[Callable]] = (
-        filters.generate_filters(filters.get_filter_generators(), filter_config)
+        filters.generate_filters(filters.get_filter_generators(), {'filters': filter_config})
     )
+    
+    # Log applied filters
+    applied_filters = [name for name, f in my_filters.items() if f is not None]
+    if applied_filters:
+        for filter_name in applied_filters:
+            log_and_print(f"{filter_name.capitalize()} filter applied")
+    else:
+        log_and_print("No filters applied")
+
+    # Update the full configuration and write it back to file
+    full_config['filters'] = filter_config
+    with open(config, 'w') as config_file:
+        yaml.dump(full_config, config_file)
            
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(

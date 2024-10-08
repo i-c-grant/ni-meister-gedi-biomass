@@ -133,12 +133,12 @@ def get_filter_generators() -> Dict[str, Callable]:
 
 
 def generate_filters(
-    generators: Dict[str, Callable], config: Dict[str, Any]
+    generators: Dict[str, Callable], config: Dict[str, Dict[str, Any]]
 ) -> Dict[str, Optional[Callable]]:
     """Generate a dictionary of filters based on a configuration dictionary."""
     filters = {}
 
-    for filter_name, filter_config in config.items():
+    for filter_name, filter_config in config.get('filters', {}).items():
         if filter_name in generators:
             if isinstance(filter_config, dict):
                 filters[filter_name] = generators[filter_name](**filter_config)
