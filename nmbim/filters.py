@@ -13,6 +13,7 @@ from typing import Callable, Optional, Tuple, Dict, Any
 import os
 
 import geopandas as gpd
+import numpy as np
 
 from nmbim.Waveform import Waveform
 
@@ -120,19 +121,33 @@ def generate_spatial_filter(
 
     return spatial_filter
 
-def generate_ht_window_filter(window_start: float, window_end: float) -> Callable:
-    """Generate a filter based on the position of the first positive value in the ht array."""
+def generate_plausible_ground_filter(window_start: float, window_end: float) -> Callable:
+    """Generate a filter to keep only waveforms with a plausible
+    ground return.
+
+    Plausible ground returns are defined as lowest modes within a
+    specified relative distance window between the top and bottom of
+    the waveform. This filters out waveforms with lowest modes that
+    are too close to the top or bottom of the waveform to plausibly
+    represent ground returns. """
+
     if not 0 <= window_start < window_end <= 1:
         raise ValueError("Window start and end must be between 0 and 1, with start < end.")
 
-    def ht_window_filter(wf: "Waveform") -> bool:
-        ht_array = wf.get_data("raw/ht")
-        first_positive_index = np.argmax(ht_array > 0)
-        array_length = len(ht_array)
-        relative_position = first_positive_index / array_length
-        return window_start <= relative_position <= window_end
+    def plausible_ground_filter(wf: Waveform) -> bool:
+        ground: float = wf.get_data("raw/elev/ground")
+        top: float = wf.get_data("raw/elev/top")
+        bottom: float = wf.get_data("raw/elev/bottom")
 
-    return ht_window_filter
+        if ground is None or top is None or bottom is None:
+            return False
+
+        wf_height = top - bottom
+        
+        ground_relative_height = (ground - bottom) / wf_height
+        return window_start < ground_relative_height < window_end
+
+    return plausible_ground_filter
 
 def get_filter_generators() -> Dict[str, Callable]:
     """Get a dictionary of filter generators."""
@@ -142,7 +157,7 @@ def get_filter_generators() -> Dict[str, Callable]:
         "modes": generate_modes_filter,
         "landcover": generate_landcover_filter,
         "spatial": generate_spatial_filter,
-        "ht_window": generate_ht_window_filter,
+        "plausible_ground": generate_plausible_ground_filter,
     }
 
 
@@ -152,16 +167,16 @@ def generate_filters(
     """Generate a dictionary of filters based on a configuration dictionary."""
     filters = {}
 
-    for filter_name, filter_config in config.get('filters', {}).items():
+    for filter_name, filter_kwargs in config.items():
         if filter_name in generators:
-            if isinstance(filter_config, dict):
-                filters[filter_name] = generators[filter_name](**filter_config)
-            elif filter_config is None:
+            if isinstance(filter_kwargs, dict):
+                filters[filter_name] = generators[filter_name](**filter_kwargs)
+            elif filter_kwargs is None:
                 filters[filter_name] = None
             else:
                 raise ValueError(
                     f"Invalid configuration for filter '{filter_name}'. "
-                    f"Expected a dictionary or None, got {type(filter_config)}"
+                    f"Expected a dictionary or None, got {type(filter_kwargs)}"
                 )
         else:
             filters[filter_name] = None
