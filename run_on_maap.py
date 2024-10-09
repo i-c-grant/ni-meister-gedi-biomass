@@ -190,6 +190,9 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
     # Give the jobs time to start
     click.echo("Waiting for jobs to start...")
     time.sleep(10)
+
+    # can refactor this to use a dict tracking the last known status
+    # of each job, only check the ones that are not in a final state
     
     with tqdm(total=len(job_ids), desc="Jobs Completed", unit="job") as pbar:
         completed_jobs = 0
