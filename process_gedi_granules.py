@@ -8,13 +8,12 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Union, Callable, List, Optional
 from pathlib import Path
-import warnings
 
 import click
 import h5py
 import yaml
 
-from nmbim import WaveformCollection, app_utils, processing_pipelines, filters
+from nmbim import WaveformCollection, app_utils, filters, algorithms
 
 # Import modules for parallel processing if available
 try:
@@ -43,7 +42,7 @@ def process_beam(
     l1b_path: str,
     l2a_path: str,
     output_path: str,
-    processor_params: Dict[str, Dict[str, Any]],
+    processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
 ) -> None:
     # Unpickle the filters if necessary
@@ -93,7 +92,7 @@ def main(l1b_path: str,
          parallel: bool,
          n_workers: int,
          boundary: Optional[str],
-         date_range: Optional[str]):
+         date_range: Optional[str]) -> None:
     """Process GEDI L1B and L2A granules to calculate the Ni-Meister Biomass
     Index (NMBI) for each footprint in the granules."""
 
@@ -115,13 +114,21 @@ def main(l1b_path: str,
     logging.info(f"Run started at "
                  f"{start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
-    # Set up the processing pipeline
-    processor_params = processing_pipelines.biwf_pipeline
-    beams = app_utils.get_beam_names()
-    
+
+    #####################################
+    # Configure the processing pipeline #
+    #####################################
     # Read the configuration
-    with open(config, 'r') as config_file:
-        full_config: Dict[str, Any] = yaml.safe_load(config_file)
+    full_config: Dict[str, Any] = load_config(config)
+
+    # Get the processor configuration
+    processor_config = full_config.get('processing_pipeline', {})
+    # replace the 'algorithm' key with the actual algorithm function
+    processor_kwargs_dict = processor_config.copy()
+    for proc_name, proc_config in processor_kwargs_dict.items():
+        alg_name: str = proc_config['alg_fun']
+        alg_fun: Callable = getattr(algorithms, alg_name)
+        proc_config['alg_fun'] = alg_fun
     
     filter_config: Dict[str, Any] = full_config.get('filters', {})
 
@@ -145,11 +152,19 @@ def main(l1b_path: str,
         start, end = date_range.split(',')
         filter_config['temporal'] = {'time_start': start, 'time_end': end}
         log_and_print(f"Temporal filter applied with date range: {date_range}")
+        
+    # Handle case where spatial or temporal filters are specified without parameters,
+    # but no parameters are supplied at runtime either
+    if not boundary and 'spatial' in filter_config and not filter_config['spatial']:
+        filter_config.pop('spatial')
+        log_and_print("Spatial filter removed because no boundary file was supplied.")
 
-    # Generate filters
-    my_filters: Dict[str, Optional[Callable]] = (
-        filters.generate_filters(filters.get_filter_generators(), filter_config)
-    )
+    if not date_range and 'temporal' in filter_config and not filter_config['temporal']:
+        filter_config.pop('temporal')
+        log_and_print("Temporal filter removed because no date range was supplied.")
+
+    # Generate and log filters
+    my_filters: Dict[str, Optional[Callable]] = filters.generate_filters(filter_config)
     
     # Log applied filters
     applied_filters = [name for name, f in my_filters.items() if f is not None]
@@ -160,19 +175,17 @@ def main(l1b_path: str,
     else:
         log_and_print("No filters applied")
 
-    # Create a backup of the original configuration
-    backup_config = f"{config}.bak"
-    with open(config, 'r') as original_file, open(backup_config, 'w') as backup_file:
-        backup_file.write(original_file.read())
-
-    # Update the full configuration and write it back to file for logging
+    # Update the full configuration with runtime filters
     full_config['filters'] = filter_config
-    with open(config, 'w') as config_file:
-        yaml.dump(full_config, config_file)
-    
+
     # Log the updated configuration
     log_and_print("Updated configuration:")
     log_and_print(yaml.dump(full_config))
+
+    ###############################
+    # Run the processing pipeline #
+    ###############################
+    beams = app_utils.get_beam_names()
            
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
@@ -190,7 +203,7 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 output_path,
-                processor_params,
+                processor_kwargs_dict,
                 pickled_filters,
             )
             for beam in beams
@@ -199,7 +212,6 @@ def main(l1b_path: str,
         # Process the beams concurrently
         with Pool(pool_size) as pool:
             pool.starmap(process_beam, pool_args_list)
-
     else:
         for beam in beams:
             process_beam(
@@ -207,12 +219,12 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 output_path,
-                processor_params,
+                processor_kwargs_dict,
                 my_filters,
             )
 
     click.echo(f"Output written to {output_path}")
-    click.echo(f"Run complete.")
+    click.echo("Run complete.")
 
     # Log the run
     finish_time = datetime.now()
@@ -224,11 +236,6 @@ def main(l1b_path: str,
         f"Command line arguments: l1b_path={l1b_path}, "
         f"l2a_path={l2a_path}"
     )
-
-    # Add newline to params to make log more readable
-    f_processor_params = str(processor_params).replace(", ", ",\n")
-    logging.info(f"Processor parameters: {f_processor_params}")
-
 
 if __name__ == "__main__":
     main()
