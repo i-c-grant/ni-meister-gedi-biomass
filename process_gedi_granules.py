@@ -32,8 +32,15 @@ def log_and_print(message: str) -> None:
 
 def load_config(config_path: str) -> Dict[str, Any]:
     """Load and return the configuration from a YAML file."""
-    with open(config_path, 'r') as config_file:
-        return yaml.safe_load(config_file)
+    try:
+        with open(config_path, 'r') as config_file:
+            return yaml.safe_load(config_file)
+    except IOError as e:
+        logging.error(f"Error opening config file: {e}")
+        raise
+    except yaml.YAMLError as e:
+        logging.error(f"Error parsing YAML in config file: {e}")
+        raise
 
 # Define function for processing a single beam.
 # This function is used in both serial and parallel modes.
@@ -51,22 +58,29 @@ def process_beam(
 
     click.echo(f"Loading waveforms for beam {beam}...")
 
-    with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a:
-        waveforms = WaveformCollection(
-            l1b,
-            l2a,
-            cache_beams=True,
-            beams=[beam],
-            filters=filters.values(),
-        )
+    try:
+        with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a:
+            waveforms = WaveformCollection(
+                l1b,
+                l2a,
+                cache_beams=True,
+                beams=[beam],
+                filters=filters.values(),
+            )
+    except IOError as e:
+        logging.error(f"Error opening HDF5 files: {e}")
+        raise
+    except Exception as e:
+        logging.error(f"Error creating WaveformCollection: {e}")
+        raise
 
-        click.echo(f"{len(waveforms)} waveforms loaded for beam {beam}.")
-        click.echo(f"Processing waveforms for beam {beam}...")
-        app_utils.process_waveforms(waveforms, processor_params)
-        click.echo(f"Waveforms for beam {beam} processed.")
+    click.echo(f"{len(waveforms)} waveforms loaded for beam {beam}.")
+    click.echo(f"Processing waveforms for beam {beam}...")
+    app_utils.process_waveforms(waveforms, processor_kwargs_dict)
+    click.echo(f"Waveforms for beam {beam} processed.")
 
-        app_utils.write_waveforms(waveforms, output_path)
-        click.echo(f"Waveforms for beam {beam} written to {output_path}.\n")
+    app_utils.write_waveforms(waveforms, output_path)
+    click.echo(f"Waveforms for beam {beam} written to {output_path}.\n")
 
 
 @click.command()
