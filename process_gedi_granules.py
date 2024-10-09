@@ -53,7 +53,7 @@ def process_beam(
             l2a,
             cache_beams=True,
             beams=[beam],
-            filters=filters,
+            filters=filters.values(),
         )
 
         click.echo(f"{len(waveforms)} waveforms loaded for beam {beam}.")
