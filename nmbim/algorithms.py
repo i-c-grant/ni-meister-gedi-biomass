@@ -37,7 +37,12 @@ def scale_raw_wf(
     Replicates the normalization and scaling used on the smoothed waveform
     so that the raw waveform can be compared to the smoothed waveform.
     """
-    scaled_raw = wf_raw / (np.nansum(wf_smooth) * dz)
+    if (np.nansum(wf_smooth) * dz) == 0:
+        warnings.warn("Smoothed waveform sum is zero, returning zero array.")
+        scaled_raw = np.zeros_like(wf_raw)
+    else:
+        scaled_raw = wf_raw / (np.nansum(wf_smooth) * dz)
+    
     return scaled_raw
 
 
@@ -212,10 +217,14 @@ def calc_height(
 
     return elev_range - elev_ground
 
-
 def normalize_waveform(wf: ArrayLike) -> ArrayLike:
     # Normalize waveform by dividing by total waveform sum
-    return np.divide(wf, np.nansum(wf))
+    if np.nansum(wf) == 0:
+        warnings.warn("Waveform sum is zero, returning zero array.")
+        normalized = np.zeros_like(wf)
+    else:
+        normalized = np.divide(wf, np.nansum(wf))
+    return normalized
 
 
 def calc_dp_dz(wf: ArrayLike, dz: float) -> ArrayLike:
