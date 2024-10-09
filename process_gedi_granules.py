@@ -31,6 +31,11 @@ def log_and_print(message: str) -> None:
     logging.info(message)
     click.echo(message)
 
+def load_config(config_path: str) -> Dict[str, Any]:
+    """Load and return the configuration from a YAML file."""
+    with open(config_path, 'r') as config_file:
+        return yaml.safe_load(config_file)
+
 # Define function for processing a single beam.
 # This function is used in both serial and parallel modes.
 def process_beam(
