@@ -149,6 +149,32 @@ def generate_plausible_ground_filter(window_start: float, window_end: float) -> 
 
     return plausible_ground_filter
 
+def generate_ground_to_top_filter(min_height: float) -> Callable:
+    """
+    Generate a filter to keep only waveforms where the difference between
+    the ground and top of the waveform is greater than a specified minimum height.
+
+    Parameters
+    ----------
+    min_height : float
+        The minimum height difference between ground and top of the waveform.
+
+    Returns
+    -------
+    Callable
+        A filter function that takes a Waveform object and returns a boolean.
+    """
+    def ground_to_top_filter(wf: Waveform) -> bool:
+        ground: float = wf.get_data("raw/elev/ground")
+        top: float = wf.get_data("raw/elev/top")
+
+        if ground is None or top is None:
+            return False
+
+        return (top - ground) > min_height
+
+    return ground_to_top_filter
+
 def get_filter_generators() -> Dict[str, Callable]:
     """Get a dictionary of filter generators."""
     return {
@@ -158,16 +184,16 @@ def get_filter_generators() -> Dict[str, Callable]:
         "landcover": generate_landcover_filter,
         "spatial": generate_spatial_filter,
         "plausible_ground": generate_plausible_ground_filter,
+        "ground_to_top": generate_ground_to_top_filter,
     }
 
 
-def generate_filters(
-    generators: Dict[str, Callable], config: Dict[str, Dict[str, Any]]
-) -> Dict[str, Optional[Callable]]:
+def generate_filters(filter_config: Dict[str, Dict[str, Any]]) -> Dict[str, Optional[Callable]]:
     """Generate a dictionary of filters based on a configuration dictionary."""
+    generators = get_filter_generators()
     filters = {}
 
-    for filter_name, filter_kwargs in config.items():
+    for filter_name, filter_kwargs in filter_config.items():
         if filter_name in generators:
             if isinstance(filter_kwargs, dict):
                 filters[filter_name] = generators[filter_name](**filter_kwargs)
