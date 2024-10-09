@@ -88,7 +88,6 @@ def process_beam(
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("output_dir", type=click.Path(exists=True))
 @click.option("--config", "-c", type=click.Path(exists=True),
-              default="nmbim/filter_config.yaml",
               help="Path to the filter configuration YAML file.")
 @click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
 @click.option(
