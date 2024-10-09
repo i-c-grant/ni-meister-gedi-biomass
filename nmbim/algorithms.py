@@ -257,7 +257,8 @@ def separate_veg_ground(
     ht: ArrayLike,
     dz: float,
     rh: ArrayLike,
-    veg_floor: float,
+    min_veg_bottom: float,
+    max_veg_bottom: float,
     veg_buffer: float = 0,
 ) -> Dict:
     """
@@ -272,14 +273,16 @@ def separate_veg_ground(
         Height of each wf return relative to ground.
     rh : ArrayLike
         Relative height values for waveform.
-    veg_floor : IntOrFloat, optional
+    min_veg_bottom : IntOrFloat, optional
         Minimum height above ground of bottom-most (i.e. last) veg. return.
+    veg_buffer : float, optional
+        Buffer to add to the top of vegetation.
 
     Returns
     -------
     Dict
         Dictionary with keys "ground_top", "ground_bottom", "veg_top", and "veg_bottom"
-    and values giving the corresponding indices within the waveform.
+    and values giving the corresponding heights within the waveform.
     """
 
     # Get index of first vegetation return (top of canopy)
@@ -321,8 +324,28 @@ def separate_veg_ground(
     first_ground_idx = max(ground_idx - ground_offset, 0)
 
     # Calculate last vegetation return index
-    last_veg_height = min([veg_floor, -ht[last_ground_idx]])
-    veg_last_idx = min(np.max(np.where(ht >= last_veg_height)), len(wf) - 1)
+    last_veg_height = -ht[last_ground_idx]
+    if last_veg_height < min_veg_bottom:
+        last_veg_height = min_veg_bottom
+    elif last_veg_height > max_veg_bottom:
+        last_veg_height = max_veg_bottom
+    
+    veg_indices = np.where(ht >= last_veg_height)[0]
+    if len(veg_indices) > 0:
+        veg_last_idx = min(np.max(veg_indices), len(wf) - 1)
+    else:
+        warnings.warn(
+            f"No returns found above last vegetation height {last_veg_height},"
+            f"using lowest positive height return as vegetation bottom."
+        )
+        positive_indices = np.where(ht > 0)[0]
+        if len(positive_indices) > 0:
+            veg_last_idx = np.min(positive_indices)
+        else:
+            warnings.warn(
+                f"No positive height returns found. Using ground index as vegetation bottom."
+            )
+            veg_last_idx = ground_idx
 
     ans = {
         "ground_top": ht[first_ground_idx],
