@@ -4,6 +4,11 @@ filters:
     min_modes: 1
   spatial: {}
   temporal: {}
+  plausible_ground:
+    window_start: 0.1
+    window_end: 0.9
+  ground_to_top:
+    min_height: 5
 
 
 processing_pipeline:
@@ -44,7 +49,8 @@ processing_pipeline:
       dz: processed/dz
       rh: raw/rh
     params:
-      veg_floor: 5
+      min_veg_bottom: 5
+      max_veg_bottom: 15
       veg_buffer: 5
     output_path: processed/veg_ground_sep
   calc_resid_noise:
