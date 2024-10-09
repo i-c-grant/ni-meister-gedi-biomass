@@ -75,9 +75,13 @@ else
     fi
 fi
 
+# Find the config file, which may be a symlink
+config_path=$(find input -type f -name 'config.yaml' -o -type l -lname 'config.yaml')
+
 # Print the identified paths
 echo "L1B file: $L1B_path"
 echo "L2A file: $L2A_path"
+echo "Config file: $config_path"
 if [ -n "$boundary_path" ]; then
     echo "Boundary file: $boundary_path"
 else
@@ -102,6 +106,8 @@ cmd=(
     "${L1B_path}"
     "${L2A_path}"
     "output"
+    "--config"
+    "${config_path}"
 )
 
 if [ -n "$date_range" ]; then
