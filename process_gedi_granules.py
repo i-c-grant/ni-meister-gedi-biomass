@@ -148,6 +148,7 @@ def main(l1b_path: str,
     
     # Log applied filters
     applied_filters = [name for name, f in my_filters.items() if f is not None]
+
     if applied_filters:
         for filter_name in applied_filters:
             log_and_print(f"{filter_name.capitalize()} filter applied")
@@ -159,7 +160,7 @@ def main(l1b_path: str,
     with open(config, 'r') as original_file, open(backup_config, 'w') as backup_file:
         backup_file.write(original_file.read())
 
-    # Update the full configuration and write it back to file
+    # Update the full configuration and write it back to file for logging
     full_config['filters'] = filter_config
     with open(config, 'w') as config_file:
         yaml.dump(full_config, config_file)
