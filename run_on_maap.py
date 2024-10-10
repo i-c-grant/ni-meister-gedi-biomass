@@ -96,7 +96,13 @@ def main(username: str,
     log_and_print(f"Starting new model run at MAAP at {start_time}.")
     log_and_print(f"Boundary: {boundary}")
     log_and_print(f"Date Range: {date_range}")
-    
+
+    # Log full configuration
+    with open(config, 'r') as config_file:
+        full_config = config_file.read()
+
+    log_and_print(f"Configuration:\n{full_config}")
+
     l1b_id = maap.searchCollection(
             short_name="GEDI01_B",
             version="002",
