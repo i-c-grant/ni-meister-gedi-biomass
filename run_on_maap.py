@@ -67,6 +67,8 @@ def log_and_print(message: str):
                     "See <https://cmr.earthdata.nasa.gov/search/site/"
                     "docs/search/api.html#temporal-range-searches> "
                     "for valid formats."))
+@click.option("config", "-c", type=str, required=True,
+              help="Path to the configuration YAML file. Filename must be 'config.yaml' or 'config.yml'.")
 @click.option("job_limit", "-j", type=int,
               help="Limit the number of jobs submitted.")
 @click.option("check_interval", "-i", type=int, default=120,
@@ -168,6 +170,7 @@ def main(username: str, boundary: str, date_range: str, job_limit: int, check_in
             "queue": "maap-dps-worker-8gb",
             "L1B": pair['l1b'],
             "L2A": pair['l2a'],
+            "config": config
         }
 
         if boundary:
