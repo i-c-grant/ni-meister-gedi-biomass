@@ -76,7 +76,19 @@ else
 fi
 
 # Find the config file, which may be a symlink
-config_path=$(find input -type f -name 'config.yaml' -o -type l -lname 'config.yaml')
+config_path=$(find input -type f -name '*config.yaml' -o -type l -lname '*config.yaml')
+
+# Check if unique config file was found
+if [ -z "$config_path" ]; then
+	echo "Error: No config file found!"
+	exit 1
+fi
+
+if [ $(echo "$config_path" | wc -l) -gt 1 ]; then
+	echo "Warning: Multiple config files found:"
+	echo "$config_path"
+	exit 1
+fi
 
 # Print the identified paths
 echo "L1B file: $L1B_path"
