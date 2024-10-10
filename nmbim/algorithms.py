@@ -47,8 +47,7 @@ def scale_raw_wf(
 
 
 def remove_noise(wf: ArrayLike, mean_noise: float) -> ArrayLike:
-    # Remove mean noise from waveform,
-    # with floor of zero
+    """Remove mean noise from waveform with floor of zero."""
     return np.maximum(wf - mean_noise, 0)
 
 
@@ -57,7 +56,7 @@ def calc_noise(
     ht: ArrayLike,
     veg_top: float,
     ground_bottom: float,
-    noise_ratio: float = 1,
+    noise_ratio: float,
 ) -> float:
     """
     Calculate the mean noise level of a waveform from the region above
@@ -81,12 +80,12 @@ def calc_noise(
         Height of the ground return in meters.
 
     noise_ratio : float, optional
-        Factor by which to multiply the mean noise level. Defaults to 1.
+        Factor by which to multiply the mean noise level.
     """
     # Get indices of waveform returns above canopy and below ground
     noise_idxs = np.where((ht > veg_top) | (ht < ground_bottom))
-    noise = np.mean(wf[noise_idxs])
-    return noise * noise_ratio
+    noise = np.mean(wf[noise_idxs]) * noise_ratio
+    return noise
 
 
 def create_ground_return(
@@ -259,7 +258,8 @@ def separate_veg_ground(
     rh: ArrayLike,
     min_veg_bottom: float,
     max_veg_bottom: float,
-    veg_buffer: float = 0,
+    veg_buffer: float,
+    noise_ratio: float,
 ) -> Dict:
     """
     Calculate indices of waveform returns corresponding to ground and vegetation.
@@ -275,8 +275,12 @@ def separate_veg_ground(
         Relative height values for waveform.
     min_veg_bottom : IntOrFloat, optional
         Minimum height above ground of bottom-most (i.e. last) veg. return.
+    max_veg_bottom : IntOrFloat, optional
+        Maximum height above ground of bottom-most (i.e. last) veg. return.
     veg_buffer : float, optional
         Buffer to add to the top of vegetation.
+    noise_ratio : float, optional
+        Factor by which to multiply the standard deviation of the noise level.
 
     Returns
     -------
@@ -294,7 +298,7 @@ def separate_veg_ground(
 
     # Calculate waveform's noise level from part of waveform above vegetation
     wf_above_veg = wf[0:veg_first_idx]
-    noise = np.std(wf_above_veg) * 2
+    noise = np.std(wf_above_veg) * noise_ratio
 
     # Find indices below first ground return that are below noise level
     # (indexes are relative to the first ground return)
@@ -303,8 +307,9 @@ def separate_veg_ground(
     # Check whether below-noise returns were found below first ground return
     if len(below_ground_noise_idxs) == 0:
         # If not, redefine noise level using full above-ground waveform
+        # TODO: could instead halve the noise level and try again
         wf_above_ground = wf[: ground_idx - 1]
-        noise = np.std(wf_above_ground) * 2
+        noise = np.std(wf_above_ground) * noise_ratio
         # Find below-noise indices with new noise level
         below_ground_noise_idxs = np.where(wf[ground_idx:] < noise)[0]
         # If still no below-noise returns, default to 5 m below ground
@@ -380,6 +385,7 @@ def calc_gap_prob(
     veg_first_idx: int,
     veg_last_idx: int,
     ground_last_idx: int,
+    foliage_constant: float,
 ) -> dict:
     """
     Calculate gap probability, vegetation cover, and related metrics for a single waveform.
@@ -423,8 +429,8 @@ def calc_gap_prob(
     )
 
     # Foliage accumulation and density
-    foliage_accum = -np.log(p_gap) / 0.5
-    foliage_dens = wf_per_height * (1 / p_gap) / 0.5
+    foliage_accum = -np.log(p_gap) / foliage_constant
+    foliage_dens = wf_per_height * (1 / p_gap) / foliage_constant
 
     return {
         "veg_cover": veg_cover,

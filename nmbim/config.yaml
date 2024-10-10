@@ -52,6 +52,7 @@ processing_pipeline:
       min_veg_bottom: 5
       max_veg_bottom: 15
       veg_buffer: 5
+      noise_factor: 2
     output_path: processed/veg_ground_sep
   calc_resid_noise:
     alg_fun: calc_noise
@@ -63,6 +64,7 @@ processing_pipeline:
     output_path: processed/residual_noise
     params:
       noise_ratio: 2
+      noise_factor: 2
   remove_resid_noise:
     alg_fun: remove_noise
     input_map:
