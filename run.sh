@@ -76,7 +76,11 @@ else
 fi
 
 # Find the config file, which may be a symlink
-config_path=$(find input -type f -name '*config.yaml' -o -type l -lname '*config.yaml')
+config_path=$(find input
+	      -type f -name '*config.yaml'
+	      -o -type f -name '*config.yml'
+	      -o -type l -lname '*config.yaml'
+	      -o -type l -lname '*config.yml')
 
 # Check if unique config file was found
 if [ -z "$config_path" ]; then
