@@ -98,8 +98,19 @@ def main(username: str,
     log_and_print(f"Date Range: {date_range}")
 
     # Log full configuration
-    with open(config, 'r') as config_file:
-        full_config = config_file.read()
+    try:
+        with open(config, 'r') as config_file:
+            full_config = config_file.read()
+    except FileNotFoundError:
+        # Treat as a download URL 
+        try:
+            import requests
+            response = requests.get(config)
+            response.raise_for_status()
+            full_config = response.text
+        except Exception as e:
+            log_and_print(f"Error downloading config file: {str(e)}")
+            raise
 
     log_and_print(f"Configuration:\n{full_config}")
 
