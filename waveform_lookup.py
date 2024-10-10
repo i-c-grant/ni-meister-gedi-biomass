@@ -1,22 +1,63 @@
 import click
 import h5py
+import yaml
 
-from nmbim import Waveform, WaveformPlotter, app_utils, processing_pipelines, filters
+from nmbim import Waveform, WaveformPlotter, app_utils, filters, algorithms
 
 
 @click.command()
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
-def cli(l1b_path, l2a_path):
+@click.option("--config", "-c", type=click.Path(exists=True), required=True,
+              help="Path to the configuration YAML file.")
+def cli(l1b_path, l2a_path, config):
     """
     Load L1B and L2A files, process the WaveformCollection, and allow
     the user to query shot numbers to plot.
     """
-    # Processing pipeline
-    processor_params = processing_pipelines.biwf_pipeline
+    # Load configuration
+    with open(config, 'r') as config_file:
+        full_config = yaml.safe_load(config_file)
 
-    # Initialize filters (from app_utils)
-    my_filters = filters.define_filters()
+    # Get the processor configuration
+    processor_config = full_config.get('processing_pipeline', {})
+    
+    # Replace the 'algorithm' key with the actual algorithm function
+    processor_kwargs_dict = processor_config.copy()
+    for proc_name, proc_config in processor_kwargs_dict.items():
+        alg_name = proc_config['alg_fun']
+        alg_fun = getattr(algorithms, alg_name)
+        proc_config['alg_fun'] = alg_fun
+
+    # Initialize filters
+    filter_config = full_config.get('filters', {})
+
+    # Handle case where spatial or temporal filters are specified without parameters
+    if 'spatial' in filter_config and not filter_config['spatial']:
+        filter_config.pop('spatial')
+        click.echo("Spatial filter removed because no boundary file was supplied.")
+
+    if 'temporal' in filter_config and not filter_config['temporal']:
+        filter_config.pop('temporal')
+        click.echo("Temporal filter removed because no date range was supplied.")
+
+    my_filters = filters.generate_filters(filter_config)
+
+    # Log applied filters
+    applied_filters = [name for name, f in my_filters.items() if f is not None]
+
+    if applied_filters:
+        for filter_name in applied_filters:
+            click.echo(f"{filter_name.capitalize()} filter applied")
+    else:
+        click.echo("No filters applied")
+
+    # Update the full configuration with runtime filters
+    full_config['filters'] = filter_config
+
+    # Log the updated configuration
+    click.echo("Updated configuration:")
+    click.echo(yaml.dump(full_config))
 
     # Define the layers for plotting
     layers = {
@@ -53,7 +94,7 @@ def cli(l1b_path, l2a_path):
     with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a:
         # CLI loop to query shot numbers and plot corresponding waveforms
         while True:
-            input = click.prompt(
+            user_input = click.prompt(
                 (
                     "Enter shot number to plot, 'quit' to exit, or 'save' "
                     "to save last plot)"
@@ -61,32 +102,31 @@ def cli(l1b_path, l2a_path):
                 type=str,
             )
 
-            if input.lower() == "quit":
+            if user_input.lower() == "quit":
                 click.echo("Exiting the application.")
                 break
 
-            elif input.lower() == "save":
+            elif user_input.lower() == "save":
                 plotter.save()
                 click.echo("Plot saved.")
 
             else:
-                shot_num = input
                 try:
-                    shot_number = int(shot_num)
+                    shot_number = int(user_input)
                     waveform = Waveform(
                         l1b=l1b,
                         l2a=l2a,
                         shot_number=shot_number,
                     )
 
-                    app_utils.process_waveforms(waveform, processor_params)
+                    app_utils.process_waveforms(waveform, processor_kwargs_dict)
 
                     # Plot the waveform
                     plotter.plot(waveform)
 
                 except (ValueError, IndexError):
                     click.echo(
-                        f"Invalid shot number: {shot_num}. "
+                        f"Invalid shot number: {user_input}. "
                         f"Please try again."
                     )
 
