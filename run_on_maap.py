@@ -73,7 +73,12 @@ def log_and_print(message: str):
               help="Limit the number of jobs submitted.")
 @click.option("check_interval", "-i", type=int, default=120,
               help="Time interval (in seconds) between job status checks.")
-def main(username: str, boundary: str, date_range: str, job_limit: int, check_interval: int):
+def main(username: str,
+         boundary: str,
+         date_range: str,
+         job_limit: int,
+         check_interval: int,
+         config: str):
 
     start_time = datetime.datetime.now()
 
