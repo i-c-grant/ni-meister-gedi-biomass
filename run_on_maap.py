@@ -256,17 +256,16 @@ def main(username: str,
                                                              delay = 10)
 
                     # Update the progress bar
-                    if n_new_completed > 0:
-                        pbar.update(n_new_completed)
-                        last_updated = datetime.datetime.now()
-                        known_completed += n_new_completed
-                        
-                        status_counts = {status: list(job_states.values()).count(status)
-                                         for status in final_states + ["Accepted", "Running"]}
-                        status_counts["Other"] = len(job_states) - sum(status_counts.values())
-                        status_counts["Last updated"] = last_updated.strftime("%H:%M:%S")
+                    pbar.update(n_new_completed)
+                    last_updated = datetime.datetime.now()
+                    known_completed += n_new_completed
+                    
+                    status_counts = {status: list(job_states.values()).count(status)
+                                     for status in final_states + ["Accepted", "Running"]}
+                    status_counts["Other"] = len(job_states) - sum(status_counts.values())
+                    status_counts["Last updated"] = last_updated.strftime("%H:%M:%S")
 
-                        pbar.set_postfix(status_counts, refresh=True)
+                    pbar.set_postfix(status_counts, refresh=True)
 
                     if known_completed == len(job_ids):
                         break
