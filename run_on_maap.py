@@ -231,13 +231,12 @@ def main(username: str,
     click.echo("Waiting for jobs to start...")
     time.sleep(10)
 
-    # can refactor this to use a dict tracking the last known status
-    # of each job, only check the ones that are not in a final state
+    # Initialize job states
     final_states = ["Succeeded", "Failed", "Deleted"]
-    job_states: Dict[str: str] = {job_id: job_status_for(job_id) for job_id in job_ids}
 
+    job_states = {job_id: "" for job_id in job_ids}
+    update_job_states(job_states, final_states, batch_size=50, delay=10)
 
-    # Probably zero, but just in case
     known_completed = len([state for state in job_states.values()
                            if state in final_states])
 
