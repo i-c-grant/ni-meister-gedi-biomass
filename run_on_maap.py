@@ -189,7 +189,7 @@ def main(username: str,
             "algo_id": "nmbim_biomass_index",
             "version": "main",
             "username": username,
-            "queue": "maap-dps-worker-8gb",
+            "queue": "maap-dps-worker-16gb",
             "L1B": pair['l1b'],
             "L2A": pair['l2a'],
             "config": config
