@@ -220,6 +220,13 @@ def main(username: str,
 
     job_ids = [job.id for job in jobs]
 
+    # Write job IDs to a file in case processing is interrupted
+    job_ids_file = output_dir / "job_ids.txt"
+    with open(job_ids_file, 'w') as f:
+        for job_id in job_ids:
+            f.write(f"{job_id}\n")
+    log_and_print(f"Job IDs written to {job_ids_file}")
+
     # Give the jobs time to start
     click.echo("Waiting for jobs to start...")
     time.sleep(10)
