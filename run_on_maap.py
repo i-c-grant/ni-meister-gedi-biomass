@@ -218,31 +218,59 @@ def main(username: str,
 
     # can refactor this to use a dict tracking the last known status
     # of each job, only check the ones that are not in a final state
-    
-    with tqdm(total=len(job_ids), desc="Jobs Completed", unit="job") as pbar:
-        completed_jobs = 0
-        while completed_jobs < len(job_ids):
-            status_counts = check_jobs_status(job_ids)
-            new_completed = (status_counts['Succeeded'] + 
-                             status_counts['Failed'] + 
-                             status_counts['Deleted']) - completed_jobs
+    final_states = ["Succeeded", "Failed", "Deleted"]
+    job_states: Dict[str: str] = {job_id: job_status_for(job_id) for job_id in job_ids}
 
-            if new_completed > 0:
-                pbar.update(new_completed)
-                completed_jobs += new_completed
+    while True:
+        try:
+            with tqdm(total=len(job_ids), desc="Jobs Completed", unit="job") as pbar:
 
-            pbar.set_postfix({
-                "Queued": status_counts['Accepted'],
-                "Running": status_counts['Running'],
-                "Succeeded": status_counts['Succeeded'],
-                "Failed": status_counts['Failed'],
-                "Deleted": status_counts['Deleted']
-            }, refresh=True)
+                # Probably zero, but just in case
+                known_completed = len([state for state in job_states.values()
+                                       if state in final_states])
 
-            if completed_jobs == len(job_ids):
+                while any(state not in final_states for state in job_states.values()):
+
+                    # Update the job states
+                    for job_id, state in job_states.items():
+                        if state not in final_states:
+                            job_states[job_id] = job_status_for(job_id)
+
+                    # Update counts of each job state
+                    status_counts = {status: list(job_states.values()).count(status)
+                                     for status in final_states + ["Accepted", "Running"]}
+                    status_counts["Other"] = len(job_states) - sum(status_counts.values())
+                    
+                    new_completed = (status_counts['Succeeded'] + 
+                                     status_counts['Failed'] + 
+                                     status_counts['Deleted']) - known_completed
+
+                    if new_completed > 0:
+                        pbar.update(new_completed)
+                        known_completed += new_completed
+
+                    pbar.set_postfix(status_counts, refresh=True)
+
+                    if known_completed == len(job_ids):
+                        break
+
+                    time.sleep(check_interval)
+
+        except KeyboardInterrupt:
+            print("Are you sure you want to cancel the process?")
+            print("Press Ctrl+C again to confirm, or any other key to continue.")
+            try:
+                time.sleep(3)
+                print("Continuing...")
+            except KeyboardInterrupt:
+                print("Process run aborted. Cancelling pending jobs.")
+                for job_id, state in job_states.items():
+                    if state not in final_states:
+                        maap.cancelJob(job_id)
                 break
+        else:
+            break
 
-            time.sleep(check_interval)    
     # Process the results once all jobs are completed
     succeeded_job_ids = [job_id for job_id in job_ids
                          if job_status_for(job_id) == "Succeeded"]
@@ -258,6 +286,7 @@ def main(username: str,
                f"succeeded jobs.")
 
     click.echo(f"Gathering GeoPackage paths from succeeded jobs.")
+
     gpkg_paths = []
     for job_id in tqdm(succeeded_job_ids):
         job_result_url = job_result_for(job_id)
@@ -274,11 +303,6 @@ def main(username: str,
         if gpkg_file:
             gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
 
-    # Copy all GeoPackages to the output directory
-    click.echo(f"Copying {len(gpkg_paths)} GeoPackages to {output_dir}.")
-    for gpkg_path in tqdm(gpkg_paths):
-        shutil.copy(gpkg_path, output_dir)
-
     # Log the succeeded and failed job IDs
     logging.info(f"{len(succeeded_job_ids)} jobs succeeded.")
     logging.info(f"Succeeded job IDs: {succeeded_job_ids}\n")
@@ -286,6 +310,16 @@ def main(username: str,
     logging.info(f"Failed job IDs: {failed_job_ids}\n")
     logging.info(f"{len(other_job_ids)} jobs in other states.")
     logging.info(f"Other job IDs: {other_job_ids}\n")
+
+    # Copy all GeoPackages to the output directory
+    click.echo(f"Copying {len(gpkg_paths)} GeoPackages to {output_dir}.")
+    for gpkg_path in tqdm(gpkg_paths):
+        shutil.copy(gpkg_path, output_dir)
+
+    # Compress the output directory
+    click.echo(f"Compressing output directory.")
+    shutil.make_archive(output_dir, 'zip', output_dir)
+    click.echo(f"Output directory compressed to {output_dir}.zip.")
 
     end_time = datetime.datetime.now()
 
