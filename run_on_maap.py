@@ -34,27 +34,35 @@ def to_job_output_dir(job_result_url: str, username: str) -> str:
     return (f"/projects/my-private-bucket/"
             f"{job_result_url.split(f'/{username}/')[1]}")
 
-def check_jobs_status(job_ids: list) -> dict:
-    """Check the status of all jobs and return a count of each status."""
-    status_counts = {"Succeeded": 0,
-                     "Failed": 0,
-                     "Accepted": 0,
-                     "Running": 0,
-                     "Deleted": 0,
-                     "Other": 0}
-
-    for job_id in job_ids:
-        status = job_status_for(job_id)
-        if status in status_counts:
-            status_counts[status] += 1
-        else:
-            status_counts["Other"] += 1
-
-    return status_counts
-
 def log_and_print(message: str):
     logging.info(message)
     click.echo(message)
+
+def update_job_states(job_states: Dict[str, str],
+                      final_states: List[str],
+                      batch_size: int,
+                      delay: int) -> Dict[str, str]:
+    """Update the job states dictionary in place.
+
+    Updating occurs in batches, with a delay in seconds between batches.
+
+    Return the number of jobs updated to final states.
+    """
+    batch_count = 0
+    for job_id, state in job_states.items():
+        n_updated_to_final = 0
+        if state not in final_states:
+            new_state: str = job_status_for(job_id)
+            job_states[job_id] = new_state
+            if new_state in final_states:
+                n_updated_to_final += 1
+            batch_count += 1
+        # Sleep after each batch to avoid overwhelming the API
+        if batch_count == batch_size:
+            time.sleep(delay)
+            batch_count = 0
+
+    return n_updated_to_final
 
 @click.command()
 @click.option("username", "-u", type=str, required=True, help="MAAP username.")
@@ -221,33 +229,30 @@ def main(username: str,
     final_states = ["Succeeded", "Failed", "Deleted"]
     job_states: Dict[str: str] = {job_id: job_status_for(job_id) for job_id in job_ids}
 
+
+    # Probably zero, but just in case
+    known_completed = len([state for state in job_states.values()
+                           if state in final_states])
+
     while True:
         try:
             with tqdm(total=len(job_ids), desc="Jobs Completed", unit="job") as pbar:
-
-                # Probably zero, but just in case
-                known_completed = len([state for state in job_states.values()
-                                       if state in final_states])
-
                 while any(state not in final_states for state in job_states.values()):
 
                     # Update the job states
-                    for job_id, state in job_states.items():
-                        if state not in final_states:
-                            job_states[job_id] = job_status_for(job_id)
+                    n_new_completed: int = update_job_states(job_states,
+                                                             final_states,
+                                                             batch_size = 50,
+                                                             delay = 10)
 
-                    # Update counts of each job state
+                    # Update the progress bar
+                    if n_new_completed > 0:
+                        pbar.update(n_new_completed)
+                        known_completed += n_new_completed
+                        
                     status_counts = {status: list(job_states.values()).count(status)
                                      for status in final_states + ["Accepted", "Running"]}
                     status_counts["Other"] = len(job_states) - sum(status_counts.values())
-                    
-                    new_completed = (status_counts['Succeeded'] + 
-                                     status_counts['Failed'] + 
-                                     status_counts['Deleted']) - known_completed
-
-                    if new_completed > 0:
-                        pbar.update(new_completed)
-                        known_completed += new_completed
 
                     pbar.set_postfix(status_counts, refresh=True)
 
