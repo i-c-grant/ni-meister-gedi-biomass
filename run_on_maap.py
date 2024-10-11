@@ -304,6 +304,7 @@ def main(username: str,
     gpkg_paths = []
     for job_id in tqdm(succeeded_job_ids):
         job_result_url = job_result_for(job_id)
+        time.sleep(1) # to avoid overwhelming the API
         job_output_dir = to_job_output_dir(job_result_url, username)
         # Find .gpkg file in the output dir
         gpkg_file = [f for f in os.listdir(job_output_dir)
@@ -327,8 +328,27 @@ def main(username: str,
 
     # Copy all GeoPackages to the output directory
     click.echo(f"Copying {len(gpkg_paths)} GeoPackages to {output_dir}.")
+    copy_batch_count = 0
     for gpkg_path in tqdm(gpkg_paths):
-        shutil.copy(gpkg_path, output_dir)
+        try:
+            shutil.copy(gpkg_path, output_dir)
+            copy_batch_count += 1
+            if copy_batch_count == 50:
+                time.sleep(60)
+                copy_batch_count = 0
+            else:
+                time.sleep(2)
+            
+        except Exception as e:
+            warnings.warn(f"Error copying {gpkg_path} to {output_dir}: {str(e)}")
+            click.echo("Retrying in 10 seconds.")
+            time.sleep(10)
+            try:
+                shutil.copy(gpkg_path, output_dir)
+            except Exception as e:
+                click.echo(f"Retry failed: {str(e)}")
+                click.echo(f"Skipping {gpkg_path}.")
+                continue
 
     # Compress the output directory
     click.echo(f"Compressing output directory.")
