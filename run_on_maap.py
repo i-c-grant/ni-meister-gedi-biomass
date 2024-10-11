@@ -48,10 +48,13 @@ def update_job_states(job_states: Dict[str, str],
 
     Return the number of jobs updated to final states.
     """
+    click.echo("Updating job statuses...")
     batch_count = 0
     for job_id, state in job_states.items():
+        click.echo(f"Checking job {job_id}.")
         n_updated_to_final = 0
         if state not in final_states:
+            click.echo(f"Updating job {job_id} status.")
             new_state: str = job_status_for(job_id)
             job_states[job_id] = new_state
             if new_state in final_states:
@@ -59,6 +62,7 @@ def update_job_states(job_states: Dict[str, str],
             batch_count += 1
         # Sleep after each batch to avoid overwhelming the API
         if batch_count == batch_size:
+            click.echo(f"Waiting {delay} seconds.")
             time.sleep(delay)
             batch_count = 0
 
