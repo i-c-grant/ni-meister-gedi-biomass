@@ -48,7 +48,7 @@ The script creates an output directory containing:
 
 ## NMBIM Module Overview
 
-The `nmbim` module is a Python package designed for processing GEDI (Global Ecosystem Dynamics Investigation) waveform data. It provides a flexible framework for applying various algorithms to GEDI waveforms, with a focus on the Ni-Meister Biomass Index model. Here's an overview of its structure and capabilities:
+The `nmbim` module is a Python module with classes designed to facilitate processing GEDI (Global Ecosystem Dynamics Investigation) waveform data, especially at the L1B (waveform) level. It provides a flexible framework for applying various algorithms to GEDI waveforms; currently, it implements the Ni-Meister Biomass Index model. 
 
 ### Key Components:
 
@@ -73,4 +73,10 @@ The `nmbim` module is a Python package designed for processing GEDI (Global Ecos
 - Export processed data to CSV or GeoPackage formats
 - Efficient data handling through optional caching mechanisms
 
-The module is designed to be extensible, allowing users to easily add new processing algorithms or modify existing ones to suit specific research needs.
+### Modular Design and Separation of Concerns:
+
+A key feature of the `nmbim` module is its modular architecture, which separates the scientific algorithms from the data engineering aspects. Scientists can update the algorithm functions in `algorithms.py` without worrying about file I/O, cloud implementation, class structure, or other infrastructure concerns.
+
+- **Pure Function Algorithms**: The scientific algorithms in `algorithms.py` are implemented as pure functions, making them easily testable and reusable.
+- **YAML-Configured Pipelines**: Processing pipelines and waveform filtering are defined in YAML configuration files, allowing for flexible composition of algorithms without changing the core code.
+- **Logging and Reproducibility**: Complete logging of filters, parameters, and processing steps ensures reproducibility
