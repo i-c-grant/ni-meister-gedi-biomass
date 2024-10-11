@@ -258,15 +258,17 @@ def main(username: str,
 
         except KeyboardInterrupt:
             print("Are you sure you want to cancel the process?")
-            print("Press Ctrl+C again to confirm, or any other key to continue.")
+            print("Press Ctrl+C again to confirm, or wait to continue.")
             try:
                 time.sleep(3)
                 print("Continuing...")
             except KeyboardInterrupt:
-                print("Process run aborted. Cancelling pending jobs.")
-                for job_id, state in job_states.items():
-                    if state not in final_states:
-                        maap.cancelJob(job_id)
+                print("Model run aborted.")
+                pending_jobs = [job_id for job_id, state in job_states.items()
+                                if state not in final_states]
+                click.echo(f"Cancelling {len(pending_jobs)} pending jobs.")
+                for job_id in pending_jobs:
+                    maap.cancelJob(job_id)
                 break
         else:
             break
