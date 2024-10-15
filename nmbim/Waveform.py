@@ -14,7 +14,7 @@ class Waveform:
     """Stores raw and processed waveform data for one GEDI footprint.
 
     Requires either 1) a shot number and h5py file objects for the L1B
-    and L2A files or 2) Beam objects for the beam groups in those files.
+    L2A, and L4A files or 2) Beam objects for the beam groups in those files.
     Provide Beam objects with caching enabled for fast batch
     processing. Provide file paths to lazily look up single Waveforms.
 
@@ -32,12 +32,14 @@ class Waveform:
         shot_number: int,
         l1b_beam: Optional[Beam] = None,
         l2a_beam: Optional[Beam] = None,
+        l4a_beam: Optional[Beam] = None,
         l1b: Optional[h5py.File] = None,
         l2a: Optional[h5py.File] = None,
+        l4a: Optional[h5py.File] = None,
         immutable: bool = True,
     ) -> None:
         """Initializes the Waveform object. In addition to a shot number,
-        requires either two Beam objects or two h5py file objects.
+        requires either three Beam objects or three h5py file objects.
 
         If immutable is True, data will be deepcopied when retrieved.
         """
@@ -54,35 +56,43 @@ class Waveform:
             # Store beams
             self.l1b_beam = l1b_beam
             self.l2a_beam = l2a_beam
+            self.l4a_beam = l4a_beam
 
             # Store beam name
             l1b_beam_name = l1b_beam.get_beam_name()
             l2a_beam_name = l2a_beam.get_beam_name()
-            if l1b_beam_name != l2a_beam_name:
+            l4a_beam_name = l4a_beam.get_beam_name()
+            if l1b_beam_name != l2a_beam_name or l1b_beam_name != l4a_beam_name:
                 raise ValueError(
-                    f"Beam mismatch: L1B beam {l1b_beam_name} "
-                    f"!= L2A beam {l2a_beam_name}"
+                    f"Beam mismatch: L1B beam {l1b_beam_name}, "
+                    f"L2A beam {l2a_beam_name}, "
+                    f"L4A beam {l4a_beam_name}"
                 )
             self.save_data(data=l1b_beam_name, path="metadata/beam")
 
             # Get file paths and store
             self.save_data(data=l1b_beam.get_path(), path="metadata/l1b_path")
             self.save_data(data=l2a_beam.get_path(), path="metadata/l2a_path")
+            self.save_data(data=l4a_beam.get_path(), path="metadata/l4a_path")
 
         if signature == "files":
-            # Geta and store file paths
+            # Get and store file paths
             l1b_path = l1b.filename
             l2a_path = l2a.filename
+            l4a_path = l4a.filename
             self.save_data(data=l1b_path, path="metadata/l1b_path")
             self.save_data(data=l2a_path, path="metadata/l2a_path")
+            self.save_data(data=l4a_path, path="metadata/l4a_path")
 
             # Store beam name
             beam_name_l1b = Waveform._which_beam(shot_number, file=l1b)
             beam_name_l2a = Waveform._which_beam(shot_number, file=l2a)
-            if beam_name_l1b != beam_name_l2a:
+            beam_name_l4a = Waveform._which_beam(shot_number, file=l4a)
+            if beam_name_l1b != beam_name_l2a or beam_name_l1b != beam_name_l4a:
                 raise ValueError(
-                    f"Beam mismatch: L1B beam {beam_name_l1b} "
-                    f"!= L2A beam {beam_name_l2a}"
+                    f"Beam mismatch: L1B beam {beam_name_l1b}, "
+                    f"L2A beam {beam_name_l2a}, "
+                    f"L4A beam {beam_name_l4a}"
                 )
             beam_name = beam_name_l1b
             self.save_data(data=beam_name, path="metadata/beam")
@@ -90,17 +100,20 @@ class Waveform:
             # Create beams and store
             self.l1b_beam = Beam(file=l1b, beam=beam_name, cache=False)
             self.l2a_beam = Beam(file=l2a, beam=beam_name, cache=False)
+            self.l4a_beam = Beam(file=l4a, beam=beam_name, cache=False)
 
         # Store shot index
         l1b_index = self.l1b_beam.where_shot(shot_number)
         l2a_index = self.l2a_beam.where_shot(shot_number)
-        if l1b_index == l2a_index:
+        l4a_index = self.l4a_beam.where_shot(shot_number)
+        if l1b_index == l2a_index == l4a_index:
             shot_index = l1b_index
             self.save_data(data=shot_index, path="metadata/shot_index")
         else:
             raise ValueError(
-                f"File mismatch: L1B shot index {l1b_index} != L2A "
-                f"shot index {l2a_index}"
+                f"File mismatch: L1B shot index {l1b_index}, "
+                f"L2A shot index {l2a_index}, "
+                f"L4A shot index {l4a_index}"
             )
 
         # Store coordinates
@@ -217,7 +230,7 @@ class Waveform:
         init_args: Dict[str, Any],
     ) -> Literal["beams", "files"]:
         # Verify that the initialization signature is valid
-        # (either two Beam objects or two file paths)
+        # (either three Beam objects or three file paths)
         # and return the signature type
 
         # Define helper functions to check for None values
@@ -229,34 +242,36 @@ class Waveform:
 
         l1b_beam = init_args["l1b_beam"]
         l2a_beam = init_args["l2a_beam"]
+        l4a_beam = init_args["l4a_beam"]
         l1b = init_args["l1b"]
         l2a = init_args["l2a"]
+        l4a = init_args["l4a"]
 
         # Two signatures are valid (both must include a shot number):
-        # 1) "beams": two Beam objects and no h5py files
-        if not any_none(l1b_beam, l2a_beam) and all_none(l1b, l2a):
+        # 1) "beams": three Beam objects and no h5py files
+        if not any_none(l1b_beam, l2a_beam, l4a_beam) and all_none(l1b, l2a, l4a):
             # Type check for Beam objects
-            if isinstance(l1b_beam, Beam) and isinstance(l2a_beam, Beam):
+            if isinstance(l1b_beam, Beam) and isinstance(l2a_beam, Beam) and isinstance(l4a_beam, Beam):
                 signature = "beams"
             else:
                 raise TypeError(
-                    "Type mismatch: l1b_beam and l2a_beam must be Beam objects."
+                    "Type mismatch: l1b_beam, l2a_beam, and l4a_beam must be Beam objects."
                 )
 
-        # or 2) "files": two h5py files and no Beam objects
-        elif all_none(l1b_beam, l2a_beam) and not any_none(l1b, l2a):
+        # or 2) "files": three h5py files and no Beam objects
+        elif all_none(l1b_beam, l2a_beam, l4a_beam) and not any_none(l1b, l2a, l4a):
             # Type check for h5py files
-            if isinstance(l1b, h5py.File) and isinstance(l2a, h5py.File):
+            if isinstance(l1b, h5py.File) and isinstance(l2a, h5py.File) and isinstance(l4a, h5py.File):
                 signature = "files"
             else:
                 raise TypeError(
-                    "Type mismatch: l1b and l2a must be h5py.File objects."
+                    "Type mismatch: l1b, l2a, and l4a must be h5py.File objects."
                 )
         # Otherwise, the signature is invalid
         else:
             raise ValueError(
                 "Invalid Waveform initialization signature. "
-                "Provide either 1) two Beam objects or 2) two file paths, "
+                "Provide either 1) three Beam objects or 2) three file paths, "
                 "but not a mix of both."
             )
         return signature
