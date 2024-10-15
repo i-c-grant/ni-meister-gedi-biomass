@@ -71,7 +71,7 @@ def generate_flag_filter() -> Callable:
     """Generate a filter based on metadata or data quality."""
 
     def flag_filter(wf: Waveform) -> bool:
-        return wf.get_data("metadata/flags/quality") == 1
+        return wf.get_data("metadata/flags/l4_quality") == 1
 
     return flag_filter
 
