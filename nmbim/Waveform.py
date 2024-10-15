@@ -152,9 +152,29 @@ class Waveform:
         self.save_data(data=wf_time, path="metadata/time")
 
         # Store quality flags
-        qual_flag = self.l2a_beam.extract_value("quality_flag", shot_index)
-        surf_flag = self.l2a_beam.extract_value("surface_flag", shot_index)
-        flag_dict = {"quality": qual_flag, "surface": surf_flag}
+        l2_qual_flag = self.l2a_beam.extract_value("quality_flag",
+                                                   shot_index)
+
+        l4_qual_flag = self.l4a_beam.extract_value("l4_quality_flag",
+                                                   shot_index)
+
+        surf_flag = self.l2a_beam.extract_value("surface_flag",
+                                                shot_index)
+        
+        degrade_flag = self.l4a_beam.extract_value("degrade_flag",
+                                                   shot_index)
+
+        leaf_off_flag = self.l4a_beam.extract_value(
+            "land_cover_data/leaf_off_flag",
+            shot_index)
+
+        flag_dict = {
+            "l2_quality": l2_qual_flag,
+            "l4_quality": l4_qual_flag,
+            "degrade": degrade_flag,
+            "surface": surf_flag,
+        }
+
         self.save_data(data=flag_dict, path="metadata/flags")
 
         # Store number of detected modes
@@ -179,6 +199,15 @@ class Waveform:
                 "landsat_treecover": self.l2a_beam.extract_value(
                     "land_cover_data/landsat_treecover", shot_index
                 ),
+                "urban_proportion": self.l4a_beam.extract_value(
+                    "land_cover_data/urban_proportion", shot_index
+                ),
+                "pft": self.l4a_beam.extract_value(
+                    "land_cover_data/pft_class", shot_index
+                ),
+                "region": self.l4a_beam.extract_value(
+                    "land_cover_data/region_class", shot_index
+                )
             },
             path="metadata/landcover",
         )
@@ -223,6 +252,21 @@ class Waveform:
                 ),
             },
             path="raw/elev",
+        )
+
+        # Store sensitivity
+        self.save_data(
+            data=self.l4a_beam.extract_value("sensitivity", shot_index),
+            path="raw/sensitivity",
+        )
+
+        # Store L4A data
+        self.save_data(
+            data={
+                "agbd": self.l4a_beam.extract_value("agbd", shot_index),
+                "agbd_se": self.l4a_beam.extract_value("agbd_se", shot_index),
+            },
+            path="raw/l4a",
         )
 
     @staticmethod
