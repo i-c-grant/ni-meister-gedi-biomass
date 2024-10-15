@@ -3,6 +3,8 @@ from typing import Callable, List, Optional, Union
 
 import h5py
 import numpy as np
+from numpy.typing import ArrayLike
+import warnings
 
 from nmbim.Beam import Beam
 from nmbim.Waveform import Waveform
@@ -12,9 +14,9 @@ Filter = Callable[[Waveform], bool]
 
 class WaveformCollection:
     """
-    A collection of Waveform objects created from GEDI L1B and L2A files.
+    A collection of Waveform objects created from GEDI L1B, L2A, and L4A files.
 
-    The class reads waveform data from two HDF5 files, checks consistency,
+    The class reads waveform data from three HDF5 files, checks consistency,
     and constructs Waveform objects for each shot. It applies one or more
     user-defined filters to include only waveforms that meet the specified
     criteria.
@@ -22,6 +24,7 @@ class WaveformCollection:
     Attributes:
         l1b_path (Path): Path to the L1B HDF5 file.
         l2a_path (Path): Path to the L2A HDF5 file.
+        l4a_path (Path): Path to the L4A HDF5 file.
         waveforms (List[Waveform]): List of filtered Waveform objects.
         filters (List[Filter]): List of filter functions to apply.
 
@@ -37,16 +40,18 @@ class WaveformCollection:
         self,
         l1b: h5py.File,
         l2a: h5py.File,
+        l4a: h5py.File,
         filters: Union[Filter, List[Filter]] = None,
         cache_beams: bool = True,
         beams=None,
     ):
         """
-        Initialize the WaveformCollection by loading waveform data from two HDF5 files.
+        Initialize the WaveformCollection by loading waveform data from three HDF5 files.
 
         Parameters:
             l1b (h5py.File): L1B HDF5 file object.
             l2a (h5py.File): L2A HDF5 file object.
+            l4a (h5py.File): L4A HDF5 file object.
             filters (Union[Filter, List[Filter]], optional): A filter function or list
                 of functions to apply to each waveform. Defaults to None (no filters).
             cache_beams (bool, optional): Whether to cache beam data in memory.
@@ -56,6 +61,7 @@ class WaveformCollection:
 
         self.l1b_path = l1b.filename
         self.l2a_path = l2a.filename
+        self.l4a_path = l4a.filename
 
         self.waveforms = []
         self.cache_beams = cache_beams
@@ -76,6 +82,7 @@ class WaveformCollection:
         for beam_name in beams:
             l1b_beam = Beam(file=l1b, beam=beam_name, cache=self.cache_beams)
             l2a_beam = Beam(file=l2a, beam=beam_name, cache=self.cache_beams)
+            l4a_beam = Beam(file=l4a, beam=beam_name, cache=self.cache_beams)
 
             shot_numbers_l1b: ArrayLike = l1b_beam.extract_dataset(
                 "shot_number"
@@ -83,25 +90,29 @@ class WaveformCollection:
             shot_numbers_l2a: ArrayLike = l2a_beam.extract_dataset(
                 "shot_number"
             )
+            shot_numbers_l4a: ArrayLike = l4a_beam.extract_dataset(
+                "shot_number"
+            )
 
             # Check that shot numbers match between files
-            if not np.array_equal(shot_numbers_l1b, shot_numbers_l2a):
+            if not np.array_equal(shot_numbers_l1b, shot_numbers_l2a) or not np.array_equal(shot_numbers_l1b, shot_numbers_l4a):
                 raise ValueError(
-                    f"Shot numbers don't match between {input_l1b}"
-                    f"and {input_l2a}"
+                    f"Shot numbers don't match between {self.l1b_path}, "
+                    f"{self.l2a_path}, and {self.l4a_path}"
                 )
 
-            # Check that both files have the same number of shots
-            if len(shot_numbers_l1b) != len(shot_numbers_l2a):
+            # Check that all files have the same number of shots
+            if len(shot_numbers_l1b) != len(shot_numbers_l2a) or len(shot_numbers_l1b) != len(shot_numbers_l4a):
                 raise ValueError(
-                    f"{input_l1b} has {len(shot_numbers_l1b)} shots,"
-                    f"but {input_l2a} has {len(shot_numbers_l2a)} shots."
+                    f"{self.l1b_path} has {len(shot_numbers_l1b)} shots, "
+                    f"{self.l2a_path} has {len(shot_numbers_l2a)} shots, "
+                    f"and {self.l4a_path} has {len(shot_numbers_l4a)} shots."
                 )
 
             shot_numbers = shot_numbers_l1b
 
             # Create the Waveforms for this beam
-            waveform_args = {"l1b_beam": l1b_beam, "l2a_beam": l2a_beam}
+            waveform_args = {"l1b_beam": l1b_beam, "l2a_beam": l2a_beam, "l4a_beam": l4a_beam}
 
             for shot_number in shot_numbers:
                 waveform_args["shot_number"] = shot_number
