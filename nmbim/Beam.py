@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 import h5py
 import numpy as np
@@ -12,7 +12,7 @@ BeamData = Dict[str, Union[np.ndarray, "BeamData"]]
 @dataclass
 class Beam:
     """
-    Loads a beam h5py.Group from an L1B and L2A file and caches it in memory.
+    Loads a beam h5py.Group from an L1B, L2A, or L4A file and caches it in memory.
 
     Attributes
     ----------
@@ -24,15 +24,23 @@ class Beam:
 
     cache: bool
         Whether to cache the beam data in memory.
+
+    product: Optional[str]
+        The product type ('L1B', 'L2A', or 'L4A'). If None, it will be inferred from the file structure.
     """
 
     file: h5py.File
     beam: str
     cache: bool = False
+    product: Optional[str] = None
 
     def __post_init__(self) -> None:
         self._path = self.file.filename
         self._group = self.file[self.beam]
+
+        # Infer product type if not provided
+        if self.product is None:
+            self.product = self._infer_product()
 
         # Load beam into memory if caching is enabled;
         # otherwise, access data directly from h5py.Group
@@ -40,6 +48,17 @@ class Beam:
             self.data = Beam._load_group(self._group)
         else:
             self.data = self._group
+
+    def _infer_product(self) -> str:
+        """Infers the product type based on the file structure."""
+        if 'rxwaveform' in self._group:
+            return 'L1B'
+        elif 'rh' in self._group:
+            return 'L2A'
+        elif 'agbd' in self._group:
+            return 'L4A'
+        else:
+            raise ValueError("Unable to infer product type from file structure")
 
     @staticmethod
     def _load_group(group: h5py.Group) -> BeamData:
@@ -81,6 +100,10 @@ class Beam:
         """Returns the path to the file containing the beam data."""
         return self._path
 
+    def get_product(self) -> str:
+        """Returns the product type of the beam."""
+        return self.product
+
     def where_shot(self, shot_number: int) -> int:
         """Returns the index of the shot number in the beam data."""
         # Ensure same data type for comparison
@@ -91,5 +114,5 @@ class Beam:
     def __repr__(self) -> str:
         return (
             f"Beam(file={self._path}, beam={self.beam}, "
-            f"cache={self.cache})"
+            f"cache={self.cache}, product={self.product})"
         )
