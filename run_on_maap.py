@@ -164,6 +164,7 @@ def main(username: str,
 
     granules: List[Granule] = maap.searchGranule(**search_kwargs)
 
+    breakpoint()
     log_and_print(f"Found {len(granules)} granules.")
 
     # match corresponding L1B and L2A granules
