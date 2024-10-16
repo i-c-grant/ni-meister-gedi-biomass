@@ -186,8 +186,12 @@ class WaveformWriter:
             wf = self._load_next_waveform()
 
         gdf = gpd.GeoDataFrame(rows, geometry="geometry", crs="EPSG:4326")
-
-        gdf.to_file(self.path, driver="GPKG", mode="a" if self.append else "w")
+        
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            gdf.to_file(self.path, driver="GPKG", mode="a" if self.append else "w")
+            if w:
+                breakpoint()
 
     def write(self) -> None:
         """Write the waveforms to the file if there are any."""
