@@ -9,6 +9,22 @@ from maap.maap import MAAP
 
 maap = MAAP(maap_host="api.maap-project.org")
 
+def infer_product(filename: str) -> str:
+    """Infer the product type from a GEDI filename"""
+    name_components = filename.split("_")
+
+    if name_components[0:2] == ["GEDI01", "B"]:
+        return "l1b"
+    elif name_components[0:2] == ["GEDI02", "A"]:
+        return "l2a"
+    elif name_components[0:2] == ["GEDI04", "A"]:
+        return "l4a"
+    else:
+        raise ValueError(
+            f"Unknown GEDI file type. "
+            f"Expected 'GEDI01_B', 'GEDI02_A', or 'GEDI04_A'"
+            f"got {name_components[0]}_{name_components[1]}"
+        )
 
 def gedi_filename_to_s3_url(filename: str) -> str:
     """Convert a GEDI filename to an s3 URL.
@@ -17,18 +33,7 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     """
     name_components = filename.split("_")
 
-    if name_components[0:2] == ["GEDI01", "B"]:
-        gedi_type = "l1b"
-    elif name_components[0:2] == ["GEDI02", "A"]:
-        gedi_type = "l2a"
-    elif name_components[0:2] == ["GEDI04", "A"]:
-        gedi_type = "l4a"
-    else:
-        raise ValueError(
-            f"Unknown GEDI file type. "
-            f"Expected 'GEDI01_B', 'GEDI02_A', or 'GEDI04_A'"
-            f"got {name_components[0]}_{name_components[1]}"
-        )
+    gedi_type = infer_product(filename)
 
     if gedi_type == "l1b":
         base_s3 = "s3://lp-prod-protected/GEDI01_B.002"
@@ -49,11 +54,14 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     return f"{base_s3}/{granule_ur}/{filename}"
 
 
-def open_s3_session():
+def open_s3_session(daac: str):
     """Get a new session token from MAAP and open an s3 filesystem"""
-    credentials = maap.aws.earthdata_s3_credentials(
-        "https://data.lpdaac.earthdatacloud.nasa.gov/s3credentials"
-    )
+    if daac.lower() == 'lp':
+        credentials_url = "https://data.lpdaac.earthdatacloud.nasa.gov/s3credentials"
+    elif daac.lower() == 'ornl':
+        credentials_url = "https://data.ornldaac.earthdata.nasa.gov/s3credentials"
+        
+    credentials = maap.aws.earthdata_s3_credentials(credentials_url)
 
     s3 = fsspec.filesystem(
         "s3",
@@ -80,6 +88,12 @@ def get_gedi_data(filename: str,
     # Open the S3 filesystem and get the S3 URL
     s3_url = gedi_filename_to_s3_url(filename)
 
+    file_type = infer_product(filename)
+    if file_type  in ["l1b", "l2a"]:
+        daac = 'lp'
+    elif file_type == "l4a":
+        daac = 'ornl'
+
     # Define the backoff handler
     @backoff.on_exception(
         backoff.expo,  # Exponential backoff
@@ -88,7 +102,7 @@ def get_gedi_data(filename: str,
         max_time=max_delay  # Max total wait time
     )
     def download_file():
-        s3 = open_s3_session()
+        s3 = open_s3_session(daac)
 
         # Use a temporary file to avoid partial downloads
         with tempfile.TemporaryDirectory() as temp_dir:
