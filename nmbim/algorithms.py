@@ -178,10 +178,6 @@ def calc_biomass_index(
     Calculate a simple biomass index for a waveform. Sum of height raised to the HSE weighted by waveform returns.
     """
 
-    # A single-mode waveform means no vegetation is present
-    if n_modes == 1:
-        return 0
-
     biomass_index = np.nansum(dp_dz * np.abs(ht) ** hse)
     biomass_index *= dz
     return biomass_index
