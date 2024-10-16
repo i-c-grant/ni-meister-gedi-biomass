@@ -246,9 +246,17 @@ def main(username: str,
         job_kwargs_list.append(job_kwargs)
 
     jobs = []
+    job_batch_counter = 0
+    job_batch_size = 50
+    job_submit_delay = 10
     for job_kwargs in job_kwargs_list[:job_limit]:
         job = maap.submitJob(**job_kwargs)
         jobs.append(job)
+        job_batch_counter += 1
+
+        if job_batch_counter == job_batch_size:
+            time.sleep(job_submit_delay)
+            job_batch_counter = 0
 
     print(f"Submitted {len(jobs)} jobs.")
 
