@@ -12,7 +12,7 @@ maap = MAAP(maap_host="api.maap-project.org")
 def infer_product(filename: str) -> str:
     """Infer the product type from a GEDI filename"""
     name_components = filename.split("_")
-    
+
     if name_components[0:2] == ["GEDI01", "B"]:
         return "l1b"
     elif name_components[0:2] == ["GEDI02", "A"]:
@@ -21,7 +21,6 @@ def infer_product(filename: str) -> str:
           name_components[0:2] == ["GEDI", "L4A"]) :
         return "l4a"
     else:
-        breakpoint()
         raise ValueError(
             f"Unknown GEDI file type. "
             f"Expected 'GEDI01_B', 'GEDI02_A', or 'GEDI04_A'"
