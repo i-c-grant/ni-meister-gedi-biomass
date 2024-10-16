@@ -26,7 +26,7 @@ def granules_match(l1b: Granule, l2a: Granule):
 
 def l4a_matches(l1b: Granule, l4a: Granule):
     l1b_name = l1b['Granule']['GranuleUR']
-    l1b_base = l1b.split("_")[2:5]
+    l1b_base = l1b_name.split("_")[2:5]
 
     l4a_name = l4a['Granule']['GranuleUR']
     # L4A granule names have a product descriptor at the beginning,
