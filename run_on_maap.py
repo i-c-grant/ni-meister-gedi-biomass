@@ -227,7 +227,7 @@ def main(username: str,
     for matched in matched_granule_ids:
         job_kwargs = {
             "identifier": "nmbim_gedi_processing",
-            "algo_id": "nmbim_biomass_index",
+            "algo_id": "nmbim_biomass_index_v2",
             "version": "with_l4a",
             "username": username,
             "queue": "maap-dps-worker-16gb",
