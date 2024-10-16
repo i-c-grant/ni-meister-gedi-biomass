@@ -18,12 +18,12 @@ def infer_product(filename: str) -> str:
     elif name_components[0:2] == ["GEDI02", "A"]:
         return "l2a"
     elif (name_components[0:2] == ["GEDI04", "A"] or
-          name_components[0:2] == ["GEDI", "L4A"]) :
+          name_components[0:2] == ["GEDI", "L4A"]):
         return "l4a"
     else:
         raise ValueError(
             f"Unknown GEDI file type. "
-            f"Expected 'GEDI01_B', 'GEDI02_A', or 'GEDI04_A'"
+            f"Expected 'GEDI01_B', 'GEDI02_A', 'GEDI04_A', or 'GEDI_L4A: "
             f"got {name_components[0]}_{name_components[1]}"
         )
 
