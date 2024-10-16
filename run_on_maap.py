@@ -71,21 +71,21 @@ def update_job_states(job_states: Dict[str, str],
     return n_updated_to_final
 
 @click.command()
-@click.option("username", "-u", type=str, required=True, help="MAAP username.")
-@click.option("boundary", "-b", type=str,
+@click.option("--username", "-u", type=str, required=True, help="MAAP username.")
+@click.option("--boundary", "-b", type=str,
               help=("Path or URL to a shapefile or GeoPackage containing "
                     "a boundary polygon. Note: should be accessible "
                     "to MAAP DPS workers."))
-@click.option("date_range", "-d", type=str,
+@click.option("--date_range", "-d", type=str,
               help=("Date range for granule search. "
                     "See <https://cmr.earthdata.nasa.gov/search/site/"
                     "docs/search/api.html#temporal-range-searches> "
                     "for valid formats."))
-@click.option("config", "-c", type=str, required=True,
+@click.option("--config", "-c", type=str, required=True,
               help="Path to the configuration YAML file. Filename must be 'config.yaml' or 'config.yml'.")
-@click.option("job_limit", "-j", type=int,
+@click.option("--job_limit", "-j", type=int,
               help="Limit the number of jobs submitted.")
-@click.option("check_interval", "-i", type=int, default=120,
+@click.option("--check_interval", "-i", type=int, default=120,
               help="Time interval (in seconds) between job status checks.")
 def main(username: str,
          boundary: str,
