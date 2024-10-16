@@ -21,20 +21,25 @@ def gedi_filename_to_s3_url(filename: str) -> str:
         gedi_type = "l1b"
     elif name_components[0:2] == ["GEDI02", "A"]:
         gedi_type = "l2a"
+    elif name_components[0:2] == ["GEDI04", "A"]:
+        gedi_type = "l4a"
     else:
         raise ValueError(
             f"Unknown GEDI file type. "
-            f"Expected 'GEDI01_B' or 'GEDI02_A', "
+            f"Expected 'GEDI01_B', 'GEDI02_A', or 'GEDI04_A'"
             f"got {name_components[0]}_{name_components[1]}"
         )
 
-    base_s3 = "s3://lp-prod-protected"
     if gedi_type == "l1b":
-        base_s3 += "/GEDI01_B.002"
+        base_s3 = "s3://lp-prod-protected/GEDI01_B.002"
     elif gedi_type == "l2a":
-        base_s3 += "/GEDI02_A.002"
+        base_s3 = "s3://lp-prod-protected/GEDI02_A.002"
+    elif gedi_type == "l4a":
+        base_s3 = ("s3://ornl-cumulus-prod-protected/gedi/"
+                   "GEDI_L4A_AGB_Density_V2_1/data")
 
-    # Distinguish between granule UR (no extension) and filename (with extension)
+    # Distinguish between granule UR (no extension)
+    # and filename (with extension)
     if filename.endswith(".h5"):
         granule_ur = filename[:-3]
     else:
