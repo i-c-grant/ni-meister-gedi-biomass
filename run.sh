@@ -11,21 +11,24 @@ mkdir -p output
 logfile="output/output.log"
 exec > >(tee -i "$logfile") 2>&1
 
-# Get L1B, L2A, and L4A names from command line arguments
-L1B_name=$1
-L2A_name=$2
-L4A_name=$3
-
-if [ -z "$L1B_name" ] || [ -z "$L2A_name" ] || [ -z "$L4A_name" ]; then
-	echo "Error: L1B, L2A, and L4A names must be provided!"
-	exit 1
+# Check if required arguments are provided
+if [ $# -lt 3 ]; then
+    echo "Error: L1B, L2A, and L4A names are required!"
+    echo "Usage: $0 <L1B_name> <L2A_name> <L4A_name> [date_range]"
+    exit 1
 fi
 
-# Get temporal bounds from command line arguments, if provided
-date_range=""
-if [ -n "$4" ]; then
-    date_range=$4
-fi
+# Assign arguments to variables
+L1B_name="$1"
+L2A_name="$2"
+L4A_name="$3"
+date_range="${4:-}"  # Optional 4th argument for date range
+
+# print parsed arguments
+echo "L1B name: $L1B_name"
+echo "L2A name: $L2A_name"
+echo "L4A name: $L4A_name"
+echo "Date range: $date_range"
    
 # Download GEDI granules to the input directory
 conda run --live-stream -n nmbim-env \
@@ -142,7 +145,7 @@ cmd=(
 )
 
 if [ -n "$date_range" ]; then
-	cmd+=("--date_range" "$date_range")
+    cmd+=("--date_range" "$date_range")
 fi
 
 if [ -n "$boundary_path" ]; then
