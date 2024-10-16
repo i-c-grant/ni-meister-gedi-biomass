@@ -180,7 +180,8 @@ def main(username: str,
 
     l4a_granules = (
         [granule for granule in granules
-         if granule['Granule']['Collection']['ShortName'] == 'GEDI04_A']
+         if granule['Granule']['Collection']['ShortName'] ==
+         'GEDI_L4A_AGB_Density_V2_1_2056']
     )
 
     matched_granule_ids: List[Dict[str, str]] = []
