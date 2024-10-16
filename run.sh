@@ -11,29 +11,31 @@ mkdir -p output
 logfile="output/output.log"
 exec > >(tee -i "$logfile") 2>&1
 
-# Get L1B and L2A names from command line arguments
+# Get L1B, L2A, and L4A names from command line arguments
 L1B_name=$1
 L2A_name=$2
+L4A_name=$3
 
-if [ -z "$L1B_name" ] || [ -z "$L2A_name" ]; then
-	echo "Error: L1B and L2A names must be provided!"
+if [ -z "$L1B_name" ] || [ -z "$L2A_name" ] || [ -z "$L4A_name" ]; then
+	echo "Error: L1B, L2A, and L4A names must be provided!"
 	exit 1
 fi
 
 # Get temporal bounds from command line arguments, if provided
 date_range=""
-if [ -n "$3" ]; then
-    date_range=$3
+if [ -n "$4" ]; then
+    date_range=$4
 fi
    
 # Download GEDI granules to the input directory
 conda run --live-stream -n nmbim-env \
       python "${basedir}/download_gedi_granules.py" \
-      "$L1B_name" "$L2A_name" input
+      "$L1B_name" "$L2A_name" "$L4A_name" input
 
 # Find the files in the input directory
 L1B_path=$(find input -type f -name 'GEDI01_B*.h5')
 L2A_path=$(find input -type f -name 'GEDI02_A*.h5')
+L4A_path=$(find input -type f -name 'GEDI04_A*.h5')
 # Since DPS uses symlinks for file arguments,
 # we need to check for file or link for the boundary file
 boundary_path=$(find input \( \
@@ -62,6 +64,18 @@ fi
 if [ $(echo "$L2A_path" | wc -l) -gt 1 ]; then
     echo "Warning: Multiple L2A files found:"
     echo "$L2A_path"
+    exit 1
+fi
+
+# Check if unique L4A file was found
+if [ -z "$L4A_path" ]; then
+    echo "Error: No L4A file found!"
+    exit 1
+fi
+
+if [ $(echo "$L4A_path" | wc -l) -gt 1 ]; then
+    echo "Warning: Multiple L4A files found:"
+    echo "$L4A_path"
     exit 1
 fi
 
@@ -96,6 +110,7 @@ fi
 # Print the identified paths
 echo "L1B file: $L1B_path"
 echo "L2A file: $L2A_path"
+echo "L4A file: $L4A_path"
 echo "Config file: $config_path"
 if [ -n "$boundary_path" ]; then
     echo "Boundary file: $boundary_path"
@@ -120,6 +135,7 @@ cmd=(
     "${basedir}/process_gedi_granules.py"
     "${L1B_path}"
     "${L2A_path}"
+    "${L4A_path}"
     "output"
     "--config"
     "${config_path}"
