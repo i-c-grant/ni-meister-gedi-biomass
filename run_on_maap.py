@@ -32,7 +32,6 @@ def l4a_matches(l1b: Granule, l4a: Granule):
     # L4A granule names have a product descriptor at the beginning,
     # so we split it off before comparing
     l4a_base = l4a_name.split(".")[1].split("_")[2:5]
-    breakpoint()
     return l1b_base == l4a_base
 
 def job_status_for(job_id: str) -> str:
