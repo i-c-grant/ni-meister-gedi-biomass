@@ -24,6 +24,12 @@ def granules_match(l1b: Granule, l2a: Granule):
     l2a_base = l2a_name.split("_")[2:5]
     return l1b_base == l2a_base
 
+def l4a_matches(l1b: str, l4a: Granule):
+    l1b_base = l1b.split("_")[2:5]
+    l4a_name = l4a['Granule']['GranuleUR']
+    l4a_base = l4a_name.split("_")[3:6]  # Different index for L4A
+    return l1b_base == l4a_base
+
 def job_status_for(job_id: str) -> str:
     return maap.getJobStatus(job_id)
 
@@ -136,8 +142,10 @@ def main(username: str,
         cloud_hosted="true"
     )[0]['concept-id']
 
+    l4a_id = "C2237824918-ORNL_CLOUD"
+
     max_results = 10000
-    search_kwargs = {'concept_id': [l1b_id, l2a_id],
+    search_kwargs = {'concept_id': [l1b_id, l2a_id, l4a_id],
                      'cmr_host': 'cmr.earthdata.nasa.gov',
                      'limit': max_results}
 
@@ -158,7 +166,7 @@ def main(username: str,
 
     log_and_print(f"Found {len(granules)} granules.")
 
-    # pair corresponding L1B and L2A granules
+    # match corresponding L1B and L2A granules
     l1b_granules = (
         [granule for granule in granules
          if granule['Granule']['Collection']['ShortName'] == 'GEDI01_B']
@@ -169,37 +177,58 @@ def main(username: str,
          if granule['Granule']['Collection']['ShortName'] == 'GEDI02_A']
     )
 
-    paired_granule_ids: List[Dict[str, str]] = []
+    l4a_granules = (
+        [granule for granule in granules
+         if granule['Granule']['Collection']['ShortName'] == 'GEDI04_A']
+    )
+
+    matched_granule_ids: List[Dict[str, str]] = []
 
     for l1b_granule in l1b_granules:
         for l2a_granule in l2a_granules:
             if granules_match(l1b_granule, l2a_granule):
-                paired_granule_ids.append(
-                    {"l1b": l1b_granule['Granule']['GranuleUR'],
-                     "l2a": l2a_granule['Granule']['GranuleUR']})
-                break
+                l1b_id = l1b_granule['Granule']['GranuleUR']
+                l2a_id = l2a_granule['Granule']['GranuleUR']
                 
-    log_and_print(f"Found {len(paired_granule_ids)} matching "
-                  f"pairs of granules.")
+                # Find matching L4A granules
+                matching_l4a = [l4a_granule['Granule']['GranuleUR'] 
+                                for l4a_granule in l4a_granules 
+                                if l4a_matches(l1b_id, l4a_granule)]
+                
+                if len(matching_l4a) == 0:
+                    log_and_print(f"Warning: No matching L4A granule found for L1B: {l1b_id}")
+                elif len(matching_l4a) > 1:
+                    raise ValueError(f"Multiple matching L4A granules found for L1B: {l1b_id}")
+                else:
+                    matched_granule_ids.append({
+                        "l1b": l1b_id,
+                        "l2a": l2a_id,
+                        "l4a": matching_l4a[0]
+                    })
+                break  # Move to the next L1B granule after finding a match
+
+    log_and_print(f"Found {len(matched_granule_ids)} matching "
+                  f"sets of granules.")
 
     # Submit jobs for each pair of granules
     if job_limit:
-        n_jobs = min(len(paired_granule_ids), job_limit)
+        n_jobs = min(len(matched_granule_ids), job_limit)
     else:
-        n_jobs = len(paired_granule_ids)
+        n_jobs = len(matched_granule_ids)
     log_and_print(f"Submitting {n_jobs} "
                   f"jobs.")
 
     job_kwargs_list = []
-    for pair in paired_granule_ids:
+    for matched in matched_granule_ids:
         job_kwargs = {
             "identifier": "nmbim_gedi_processing",
             "algo_id": "nmbim_biomass_index",
-            "version": "main",
+            "version": "with_l4a",
             "username": username,
             "queue": "maap-dps-worker-16gb",
-            "L1B": pair['l1b'],
-            "L2A": pair['l2a'],
+            "L1B": matched['l1b'],
+            "L2A": matched['l2a'],
+            "L4A": matched['l4a'],
             "config": config
         }
 
