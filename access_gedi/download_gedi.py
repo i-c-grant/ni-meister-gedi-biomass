@@ -17,7 +17,8 @@ def infer_product(filename: str) -> str:
         return "l1b"
     elif name_components[0:2] == ["GEDI02", "A"]:
         return "l2a"
-    elif name_components[0:2] == ["GEDI04", "A"]:
+    elif (name_components[0:2] == ["GEDI04", "A"] or
+          name_components[0:2] == ["GEDI", "L4A"]) :
         return "l4a"
     else:
         raise ValueError(
