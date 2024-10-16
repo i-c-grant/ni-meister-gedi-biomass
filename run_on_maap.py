@@ -28,6 +28,7 @@ def l4a_matches(l1b: str, l4a: Granule):
     l1b_base = l1b.split("_")[2:5]
     l4a_name = l4a['Granule']['GranuleUR']
     l4a_base = l4a_name.split("_")[3:6]  # Different index for L4A
+    breakpoint()
     return l1b_base == l4a_base
 
 def job_status_for(job_id: str) -> str:
@@ -164,7 +165,6 @@ def main(username: str,
 
     granules: List[Granule] = maap.searchGranule(**search_kwargs)
 
-    breakpoint()
     log_and_print(f"Found {len(granules)} granules.")
 
     # match corresponding L1B and L2A granules
