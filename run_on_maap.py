@@ -24,10 +24,14 @@ def granules_match(l1b: Granule, l2a: Granule):
     l2a_base = l2a_name.split("_")[2:5]
     return l1b_base == l2a_base
 
-def l4a_matches(l1b: str, l4a: Granule):
+def l4a_matches(l1b: Granule, l4a: Granule):
+    l1b_name = l1b['Granule']['GranuleUR']
     l1b_base = l1b.split("_")[2:5]
+
     l4a_name = l4a['Granule']['GranuleUR']
-    l4a_base = l4a_name.split("_")[3:6]  # Different index for L4A
+    # L4A granule names have a product descriptor at the beginning,
+    # so we split it off before comparing
+    l4a_base = l4a_name.split(".")[1].split("_")[2:5]
     breakpoint()
     return l1b_base == l4a_base
 
@@ -195,7 +199,7 @@ def main(username: str,
                 # Find matching L4A granules
                 matching_l4a = [l4a_granule['Granule']['GranuleUR'] 
                                 for l4a_granule in l4a_granules 
-                                if l4a_matches(l1b_id, l4a_granule)]
+                                if l4a_matches(l1b_granule, l4a_granule)]
                 
                 if len(matching_l4a) == 0:
                     log_and_print(f"Warning: No matching L4A granule found for L1B: {l1b_id}")
