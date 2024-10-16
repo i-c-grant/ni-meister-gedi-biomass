@@ -51,7 +51,12 @@ def gedi_filename_to_s3_url(filename: str) -> str:
         granule_ur = filename
         filename += ".h5"
 
-    return f"{base_s3}/{granule_ur}/{filename}"
+    if gedi_type == "l4a":
+        s3_url = f"{base_s3}/{filename}"
+    else:
+        s3_url = f"{base_s3}/{granule_ur}/{filename}"
+
+    return s3_url
 
 
 def open_s3_session(daac: str):
