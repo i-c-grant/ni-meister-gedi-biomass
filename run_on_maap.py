@@ -187,6 +187,8 @@ def main(username: str,
          'GEDI_L4A_AGB_Density_V2_1_2056']
     )
 
+    breakpoint()
+
     matched_granule_ids: List[Dict[str, str]] = []
 
     for l1b_granule in l1b_granules:
