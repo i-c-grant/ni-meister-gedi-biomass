@@ -48,6 +48,7 @@ def process_beam(
     beam: str,
     l1b_path: str,
     l2a_path: str,
+    l4a_path: str,
     output_path: str,
     processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
@@ -59,10 +60,11 @@ def process_beam(
     click.echo(f"Loading waveforms for beam {beam}...")
 
     try:
-        with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a:
+        with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a, h5py.File(l4a_path, "r") as l4a:
             waveforms = WaveformCollection(
                 l1b,
                 l2a,
+                l4a,
                 cache_beams=True,
                 beams=[beam],
                 filters=filters.values(),
@@ -86,6 +88,7 @@ def process_beam(
 @click.command()
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
+@click.argument("l4a_path", type=click.Path(exists=True))
 @click.argument("output_dir", type=click.Path(exists=True))
 @click.option("--config", "-c", type=click.Path(exists=True),
               help="Path to the filter configuration YAML file.")
@@ -100,13 +103,14 @@ def process_beam(
 @click.option("--date_range", help="Date range in format 'YYYY-MM-DDTHH:MM:SSZ,YYYY-MM-DDTHH:MM:SSZ'")
 def main(l1b_path: str,
          l2a_path: str,
+         l4a_path: str,
          output_dir: str,
          config: str,
          parallel: bool,
          n_workers: int,
          boundary: Optional[str],
          date_range: Optional[str]) -> None:
-    """Process GEDI L1B and L2A granules to calculate the Ni-Meister Biomass
+    """Process GEDI L1B, L2A, and L4A granules to calculate the Ni-Meister Biomass
     Index (NMBI) for each footprint in the granules."""
 
     # Set up output directory and log file
@@ -215,6 +219,7 @@ def main(l1b_path: str,
                 beam,
                 l1b_path,
                 l2a_path,
+                l4a_path,
                 output_path,
                 processor_kwargs_dict,
                 pickled_filters,
@@ -231,6 +236,7 @@ def main(l1b_path: str,
                 beam,
                 l1b_path,
                 l2a_path,
+                l4a_path,
                 output_path,
                 processor_kwargs_dict,
                 my_filters,
@@ -247,7 +253,8 @@ def main(l1b_path: str,
     logging.info(f"Run duration: {finish_time - start_time}")
     logging.info(
         f"Command line arguments: l1b_path={l1b_path}, "
-        f"l2a_path={l2a_path}"
+        f"l2a_path={l2a_path}, "
+        f"l4a_path={l4a_path}"
     )
 
 if __name__ == "__main__":
