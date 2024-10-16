@@ -8,11 +8,12 @@ from nmbim import Waveform, WaveformPlotter, app_utils, filters, algorithms
 @click.command()
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
+@click.argument("l4a_path", type=click.Path(exists=True))
 @click.option("--config", "-c", type=click.Path(exists=True), required=True,
               help="Path to the configuration YAML file.")
-def cli(l1b_path, l2a_path, config):
+def cli(l1b_path, l2a_path, l4a_path, config):
     """
-    Load L1B and L2A files, process the WaveformCollection, and allow
+    Load L1B, L2A, and L4A files, process the WaveformCollection, and allow
     the user to query shot numbers to plot.
     """
     # Load configuration
@@ -91,7 +92,7 @@ def cli(l1b_path, l2a_path, config):
     for layer in layers:
         layers[layer]["y"] = "processed/ht"
 
-    with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a:
+    with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a, h5py.File(l4a_path, "r") as l4a:
         # CLI loop to query shot numbers and plot corresponding waveforms
         while True:
             user_input = click.prompt(
@@ -116,6 +117,7 @@ def cli(l1b_path, l2a_path, config):
                     waveform = Waveform(
                         l1b=l1b,
                         l2a=l2a,
+                        l4a=l4a,
                         shot_number=shot_number,
                     )
 
