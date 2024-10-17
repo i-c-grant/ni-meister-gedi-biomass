@@ -216,8 +216,7 @@ def main(username: str,
                 l2a_id = l2a_granule['Granule']['GranuleUR']
                 
                 # Find matching L4A granules
-                matching_l4a = [l4a_granule['Granule']['GranuleUR'] 
-                                for l4a_granule in l4a_granules 
+                matching_l4a = [l4a_granule for l4a_granule in l4a_granules 
                                 if l4a_matches(l1b_granule, l4a_granule)]
                 
                 if len(matching_l4a) == 0:
