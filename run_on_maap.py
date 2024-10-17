@@ -242,8 +242,6 @@ def main(username: str,
     log_and_print(f"Submitting {n_jobs} "
                   f"jobs.")
 
-    breakpoint()
-
     job_kwargs_list = []
     for matched in matched_granules:
         job_kwargs = {
