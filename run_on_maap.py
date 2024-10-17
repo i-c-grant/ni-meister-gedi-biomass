@@ -203,9 +203,7 @@ def main(username: str,
          'GEDI_L4A_AGB_Density_V2_1_2056']
     )
 
-    breakpoint()
-
-    matched_granule_ids: List[Dict[str, str]] = []
+    matched_granules: List[Dict[str, Granule]] = []
 
     for l1b_granule in l1b_granules:
         for l2a_granule in l2a_granules:
@@ -219,39 +217,42 @@ def main(username: str,
                                 if l4a_matches(l1b_granule, l4a_granule)]
                 
                 if len(matching_l4a) == 0:
-                    log_and_print(f"Warning: No matching L4A granule found for L1B: {l1b_id}")
+                    log_and_print(f"Warning: No matching L4A granule "
+                                  f"found for L1B: {l1b_id}")
                 elif len(matching_l4a) > 1:
-                    raise ValueError(f"Multiple matching L4A granules found for L1B: {l1b_id}")
+                    raise ValueError(f"Multiple matching L4A granules found "
+                                     f"for L1B: {l1b_id}")
                 else:
-                    matched_granule_ids.append({
-                        "l1b": l1b_id,
-                        "l2a": l2a_id,
-                        "l4a": matching_l4a[0]
+                    l4a_id = matching_l4a[0]
+                    matched_granules.append({
+                        "l1b": l1b_granule,
+                        "l2a": l2a_granule,
+                        "l4a": l4a_granule
                     })
-                break  # Move to the next L1B granule after finding a match
+                    break 
 
-    log_and_print(f"Found {len(matched_granule_ids)} matching "
+    log_and_print(f"Found {len(matched_granules)} matching "
                   f"sets of granules.")
 
     # Submit jobs for each pair of granules
     if job_limit:
-        n_jobs = min(len(matched_granule_ids), job_limit)
+        n_jobs = min(len(matched_granules), job_limit)
     else:
-        n_jobs = len(matched_granule_ids)
+        n_jobs = len(matched_granules)
     log_and_print(f"Submitting {n_jobs} "
                   f"jobs.")
 
     job_kwargs_list = []
-    for matched in matched_granule_ids:
+    for matched in matched_granules:
         job_kwargs = {
-            "identifier": "nmbim_gedi_processing",
-            "algo_id": "nmbim_biomass_index_v2",
+            "identifier": tag,
+            "algo_id": "nmbim_biomass_index_v3",
             "version": "with_l4a",
             "username": username,
             "queue": "maap-dps-worker-16gb",
-            "L1B": matched['l1b'],
-            "L2A": matched['l2a'],
-            "L4A": matched['l4a'],
+            "L1B": extract_s3_url_from_granule(matched['l1b']),
+            "L2A": extract_s3_url_from_granule(matched['l2a']),
+            "L4A": extract_s3_url_from_granule(matched['l4a']),
             "config": config
         }
 
