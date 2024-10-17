@@ -224,7 +224,7 @@ def main(username: str,
                     raise ValueError(f"Multiple matching L4A granules found "
                                      f"for L1B: {l1b_id}")
                 else:
-                    l4a_id = matching_l4a[0]
+                    l4a_granule = matching_l4a[0]
                     matched_granules.append({
                         "l1b": l1b_granule,
                         "l2a": l2a_granule,
