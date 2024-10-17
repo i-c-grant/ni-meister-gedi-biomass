@@ -17,6 +17,15 @@ from maap.Result import Granule
 
 maap = MAAP(maap_host='api.maap-project.org')
 
+def extract_s3_urls_from_granule(granule: Granule) -> str:
+    resources = granule['Granule']['OnlineResources']['OnlineResource']
+    s3_urls = []
+    for resource in resources:
+        url = resource['URL']
+        if url[0:2] == "s3":
+            s3_urls.append(url)
+    return s3_urls
+
 def granules_match(l1b: Granule, l2a: Granule):
     l1b_name = l1b['Granule']['GranuleUR']
     l2a_name = l2a['Granule']['GranuleUR']

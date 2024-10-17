@@ -27,15 +27,6 @@ def infer_product(filename: str) -> str:
             f"got {name_components[0]}_{name_components[1]}"
         )
 
-def extract_s3_urls_from_granule(granule: Granule) -> str:
-    resources = granule['Granule']['OnlineResources']['OnlineResource']
-    s3_urls = []
-    for resource in resources:
-        url = resource['URL']
-        if url[0:2] == "s3":
-            s3_urls.append(url)
-    return s3_urls
-
 def gedi_filename_to_s3_url(filename: str) -> str:
     """Convert a GEDI filename to an s3 URL.
     Filename can include .h5 extension (as in the proper GEDI filenames)
