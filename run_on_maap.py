@@ -21,7 +21,7 @@ def extract_s3_url_from_granule(granule: Granule) -> str:
     urls = granule['Granule']['OnlineAccessURLs']['OnlineAccessURL']
     s3_urls = [url['URL'] for url in urls if url['URL'].startswith("s3")]
     
-    if len(s3_urls) > 0:
+    if len(s3_urls) > 1:
         warnings.warn(f"Multiple S3 URLs found in granule: {s3_urls}")
 
     s3_url = s3_urls[0]
