@@ -17,15 +17,16 @@ from maap.Result import Granule
 
 maap = MAAP(maap_host='api.maap-project.org')
 
-def extract_s3_urls_from_granule(granule: Granule) -> str:
-    resources = granule['Granule']['OnlineResources']['OnlineResource']
-    breakpoint()
-    s3_urls = []
-    for resource in resources:
-        url = resource['URL']
-        if url[0:2] == "s3":
-            s3_urls.append(url)
-    return s3_urls
+def extract_s3_url_from_granule(granule: Granule) -> str:
+    urls = granule['Granule']['OnlineAccessURLs']['OnlineAccessURL']
+    s3_urls = [url['URL'] for url in urls if url['URL'].startswith("s3")]
+    
+    if len(s3_urls) > 0:
+        warnings.warn(f"Multiple S3 URLs found in granule: {s3_urls}")
+
+    s3_url = s3_urls[0]
+
+    return s3_url
 
 def granules_match(l1b: Granule, l2a: Granule):
     l1b_name = l1b['Granule']['GranuleUR']
