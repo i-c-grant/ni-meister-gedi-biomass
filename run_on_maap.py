@@ -87,6 +87,7 @@ def update_job_states(job_states: Dict[str, str],
 
 @click.command()
 @click.option("--username", "-u", type=str, required=True, help="MAAP username.")
+@click.option("--tag, -t", type=str, required=True, help="Job tag.")
 @click.option("--boundary", "-b", type=str,
               help=("Path or URL to a shapefile or GeoPackage containing "
                     "a boundary polygon. Note: should be accessible "
