@@ -18,10 +18,7 @@ from maap.Result import Granule
 maap = MAAP(maap_host='api.maap-project.org')
 
 def extract_s3_url_from_granule(granule: Granule) -> str:
-    try:
-        urls = granule['Granule']['OnlineAccessURLs']['OnlineAccessURL']
-    except:
-        breakpoint()
+    urls = granule['Granule']['OnlineAccessURLs']['OnlineAccessURL']
     s3_urls = [url['URL'] for url in urls if url['URL'].startswith("s3")]
     
     if len(s3_urls) > 0:
