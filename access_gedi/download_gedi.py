@@ -10,21 +10,23 @@ from maap.maap import MAAP
 maap = MAAP(maap_host="api.maap-project.org")
 
 def infer_product(filename: str) -> str:
-    """Infer the product type from a GEDI filename"""
-    name_components = filename.split("_")
+    """Infer the product type from a GEDI filename."""
+    # name_components = filename.split("_")
 
-    if name_components[0:2] == ["GEDI01", "B"]:
+    if filename.contains("GEDI01_B"):
         return "l1b"
-    elif name_components[0:2] == ["GEDI02", "A"]:
+
+    elif filename.contains("GEDI02_A"):
         return "l2a"
-    elif (name_components[0:2] == ["GEDI04", "A"] or
-          name_components[0:2] == ["GEDI", "L4A"]):
+
+    elif filename.contains("GEDI04_A") or filename.contains("GEDI_L4A"):
         return "l4a"
+
     else:
         raise ValueError(
             f"Unknown GEDI file type. "
             f"Expected 'GEDI01_B', 'GEDI02_A', 'GEDI04_A', or 'GEDI_L4A: "
-            f"got {name_components[0]}_{name_components[1]}"
+            f"got filename {filename}"
         )
 
 def gedi_filename_to_s3_url(filename: str) -> str:
