@@ -102,8 +102,11 @@ def get_gedi_data(filename: str,
     if os.path.exists(output_path):
         raise FileExistsError(f"File already exists at {output_path}")
 
-    # Open the S3 filesystem and get the S3 URL
-    s3_url = gedi_filename_to_s3_url(filename)
+    # Get the s3 URL if not already passed
+    if filename.startswith("s3://"):
+        s3_url = filename
+    else:
+        s3_url = gedi_filename_to_s3_url(filename)
 
     file_type = infer_product(filename)
     if file_type  in ["l1b", "l2a"]:
