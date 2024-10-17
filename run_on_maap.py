@@ -19,6 +19,7 @@ maap = MAAP(maap_host='api.maap-project.org')
 
 def extract_s3_urls_from_granule(granule: Granule) -> str:
     resources = granule['Granule']['OnlineResources']['OnlineResource']
+    breakpoint()
     s3_urls = []
     for resource in resources:
         url = resource['URL']
