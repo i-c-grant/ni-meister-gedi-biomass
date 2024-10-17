@@ -357,27 +357,6 @@ def main(username: str,
                      if job_status_for(job_id)
                      not in ["Succeeded", "Failed"]]
 
-    click.echo(f"Processing results for {len(succeeded_job_ids)} "
-               f"succeeded jobs.")
-
-    click.echo(f"Gathering GeoPackage paths from succeeded jobs.")
-
-    gpkg_paths = []
-    for job_id in tqdm(succeeded_job_ids):
-        job_result_url = job_result_for(job_id)
-        job_output_dir = to_job_output_dir(job_result_url, username)
-        # Find .gpkg file in the output dir
-        gpkg_file = [f for f in os.listdir(job_output_dir)
-                     if f.endswith('.gpkg')]
-        if len(gpkg_file) > 1:
-            warnings.warn(f"Multiple .gpkg files found in "
-                          f"{job_output_dir}.")
-        if len(gpkg_file) == 0:
-            warnings.warn(f"No .gpkg files found in "
-                          f"{job_output_dir}.")
-        if gpkg_file:
-            gpkg_paths.append(os.path.join(job_output_dir, gpkg_file[0]))
-
     # Log the succeeded and failed job IDs
     logging.info(f"{len(succeeded_job_ids)} jobs succeeded.")
     logging.info(f"Succeeded job IDs: {succeeded_job_ids}\n")
@@ -385,16 +364,6 @@ def main(username: str,
     logging.info(f"Failed job IDs: {failed_job_ids}\n")
     logging.info(f"{len(other_job_ids)} jobs in other states.")
     logging.info(f"Other job IDs: {other_job_ids}\n")
-
-    # Copy all GeoPackages to the output directory
-    click.echo(f"Copying {len(gpkg_paths)} GeoPackages to {output_dir}.")
-    for gpkg_path in tqdm(gpkg_paths):
-        shutil.copy(gpkg_path, output_dir)
-
-    # Compress the output directory
-    click.echo(f"Compressing output directory.")
-    shutil.make_archive(output_dir, 'zip', output_dir)
-    click.echo(f"Output directory compressed to {output_dir}.zip.")
 
     end_time = datetime.datetime.now()
 
