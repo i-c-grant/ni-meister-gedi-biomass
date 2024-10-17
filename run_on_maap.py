@@ -104,6 +104,7 @@ def update_job_states(job_states: Dict[str, str],
 @click.option("--check_interval", "-i", type=int, default=120,
               help="Time interval (in seconds) between job status checks.")
 def main(username: str,
+         tag: str,
          boundary: str,
          date_range: str,
          job_limit: int,
