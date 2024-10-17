@@ -33,6 +33,8 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     """Convert a GEDI filename to an s3 URL.
     Filename can include .h5 extension (as in the proper GEDI filenames)
     or not (as in the granule URs from the NASA CMR).
+
+    This is necessary if filenames are passed as strings and not s3 URLs.
     """
     name_components = filename.split("_")
 
@@ -84,7 +86,14 @@ def get_gedi_data(filename: str,
                   target_dir: str,
                   retries: int = 5,
                   max_delay: int = 120):
-    """Download a GEDI file from S3 with exponential backoff"""
+    """Download a GEDI file from S3 with exponential backoff.
+
+    Args:
+        filename (str): GEDI filename or s3 URL.
+        target_dir (str): Directory to save the file.
+        retries (int, optional): Number of retries. Defaults to 5.
+        max_delay (int, optional): Max delay between retries. Defaults to 120.
+"""
 
     # Prepare the output path
     if not os.path.exists(target_dir):
