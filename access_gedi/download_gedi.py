@@ -13,19 +13,19 @@ def infer_product(filename: str) -> str:
     """Infer the product type from a GEDI filename."""
     # name_components = filename.split("_")
 
-    if filename.contains("GEDI01_B"):
+    if "GEDI01_B" in filename:
         return "l1b"
 
-    elif filename.contains("GEDI02_A"):
+    elif "GEDI02_A" in filename:
         return "l2a"
 
-    elif filename.contains("GEDI04_A") or filename.contains("GEDI_L4A"):
+    elif "GEDI04_A" in filename or "GEDI_L4A" in filename:
         return "l4a"
 
     else:
         raise ValueError(
             f"Unknown GEDI file type. "
-            f"Expected 'GEDI01_B', 'GEDI02_A', 'GEDI04_A', or 'GEDI_L4A: "
+            f"Expected 'GEDI01_B', 'GEDI02_A', 'GEDI04_A', or 'GEDI_L4A': "
             f"got filename {filename}"
         )
 
