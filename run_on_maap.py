@@ -158,7 +158,11 @@ def main(username: str,
         cloud_hosted="true"
     )[0]['concept-id']
 
-    l4a_id = "C2237824918-ORNL_CLOUD"
+    l4a_id = maap.searchCollection(
+        short_name="GEDI_L4A_AGB_Density_V2_1_2056",
+        cmr_host="cmr.earthdata.nasa.gov",
+        cloud_hosted="true"
+    )[0]['concept-id']
 
     max_results = 10000
     search_kwargs = {'concept_id': [l1b_id, l2a_id, l4a_id],
