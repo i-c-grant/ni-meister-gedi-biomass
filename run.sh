@@ -153,6 +153,7 @@ if [ -n "$boundary_path" ]; then
 fi
 
 "${cmd[@]}"
+cmd_exit_code=$?
 
 # If there's a .gpkg in output, compress it with bzip2
 output_gpkg=$(find output -type f -name '*.gpkg')
@@ -161,4 +162,7 @@ if [ -n "$output_gpkg" ]; then
 	echo "Compressing output .gpkg file with bzip2..."
 	bzip2 -9 "$output_gpkg"
 fi
+
+# Exit with the exit code from cmd
+exit $cmd_exit_code
 
