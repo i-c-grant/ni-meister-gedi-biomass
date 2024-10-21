@@ -246,8 +246,8 @@ def main(username: str,
     for matched in matched_granules:
         job_kwargs = {
             "identifier": tag,
-            "algo_id": "nmbim_biomass_index_v3",
-            "version": "with_l4a",
+            "algo_id": "nmbim_biomass_index_with_compression",
+            "version": "multiple_hse",
             "username": username,
             "queue": "maap-dps-worker-16gb",
             "L1B": extract_s3_url_from_granule(matched['l1b']),
