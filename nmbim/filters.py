@@ -99,7 +99,7 @@ def generate_spatial_filter(
 ) -> Callable:
     """Generate a spatial filter based on a polygon layer."""
     file_path = os.path.realpath(file_path)
-    poly_gdf = gpd.read_file(file_path)
+    poly_gdf = gpd.read_file('GPKG:' + file_path)
 
     if poly_gdf is None:
         raise ValueError(f"The polygon file at {file_path} could not be read.")
