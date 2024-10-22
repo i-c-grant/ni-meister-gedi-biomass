@@ -174,8 +174,29 @@ def main(username: str,
         search_kwargs['temporal'] = date_range
 
     if boundary:
-        # Get bounding box of boundary to restrict granule search
-        boundary_gdf: GeoDataFrame = gpd.read_file(boundary,driver='GPKG')
+        # If necessary, translate the boundary s3 path to a local path
+        private_bucket_stems = (
+            {'s3': f's3://maap-ops-workspace/{username}/',
+             'local': '/projects/my-private-bucket/'}
+        )
+        public_bucket_stems = (
+            {'s3': f's3://maap-ops-workspace/shared/{username}/',
+             'local': '/projects/my-public-bucket/'}
+        )
+        
+        if boundary.startswith(private_bucket_stems['s3']):
+            local_path = (private_bucket_stems['local'] +
+                          boundary.split(private_bucket_stems['s3'])[1])
+
+        elif boundary.startswith(public_bucket_stems['s3']):
+            local_path = (public_bucket_stems['local'] +
+                          boundary.split(public_bucket_stems['s3'])[1])
+
+        else:
+            local_path = boundary
+
+        # Load the boundary file
+        boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path, driver='GPKG')
         boundary_bbox: tuple = boundary_gdf.total_bounds
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
         search_kwargs['bounding_box'] = boundary_bbox_str
