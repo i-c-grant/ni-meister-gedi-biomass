@@ -5,7 +5,9 @@ import shutil
 import time
 import warnings
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
+
+import requests
 
 import click
 import geopandas as gpd
@@ -58,6 +60,30 @@ def to_job_output_dir(job_result_url: str, username: str) -> str:
 def log_and_print(message: str):
     logging.info(message)
     click.echo(message)
+
+def translate_s3_to_local_path(s3_path: str, username: str) -> str:
+    private_bucket_stems = (
+        {'s3': f's3://maap-ops-workspace/{username}/',
+         'local': '/projects/my-private-bucket/'}
+    )
+    public_bucket_stems = (
+        {'s3': f's3://maap-ops-workspace/shared/{username}/',
+         'local': '/projects/my-public-bucket/'}
+    )
+    
+    if s3_path.startswith(private_bucket_stems['s3']):
+        return (private_bucket_stems['local'] +
+                s3_path.split(private_bucket_stems['s3'])[1])
+    elif s3_path.startswith(public_bucket_stems['s3']):
+        return (public_bucket_stems['local'] +
+                s3_path.split(public_bucket_stems['s3'])[1])
+    else:
+        raise ValueError(f"Invalid S3 path for username {username}"
+                         f"on MAAP platform: {s3_path}. "
+                         f"Path should begin with {private_bucket_stems['s3']} "
+                         f"or {public_bucket_stems['s3']}.")
+    )
+
 
 def update_job_states(job_states: Dict[str, str],
                       final_states: List[str],
@@ -129,21 +155,17 @@ def main(username: str,
     log_and_print(f"Date Range: {date_range}")
 
     # Log full configuration
+    local_config_path = translate_s3_to_local_path(config, username)
     try:
-        with open(config, 'r') as config_file:
-            full_config = config_file.read()
+        with open(local_config_path, 'r') as file:
+            full_config = file.read()
+        log_and_print(f"Configuration:\n{full_config}")
     except FileNotFoundError:
-        # Treat as a download URL 
-        try:
-            import requests
-            response = requests.get(config)
-            response.raise_for_status()
-            full_config = response.text
-        except Exception as e:
-            log_and_print(f"Error downloading config file: {str(e)}")
-            raise
-
-    log_and_print(f"Configuration:\n{full_config}")
+        log_and_print(f"Error: Configuration file not found at {local_config_path}")
+        raise
+    except IOError as e:
+        log_and_print(f"Error reading configuration file: {str(e)}")
+        raise
 
     l1b_id = maap.searchCollection(
             short_name="GEDI01_B",
@@ -174,29 +196,9 @@ def main(username: str,
         search_kwargs['temporal'] = date_range
 
     if boundary:
-        # If necessary, translate the boundary s3 path to a local path
-        private_bucket_stems = (
-            {'s3': f's3://maap-ops-workspace/{username}/',
-             'local': '/projects/my-private-bucket/'}
-        )
-        public_bucket_stems = (
-            {'s3': f's3://maap-ops-workspace/shared/{username}/',
-             'local': '/projects/my-public-bucket/'}
-        )
-        
-        if boundary.startswith(private_bucket_stems['s3']):
-            local_path = (private_bucket_stems['local'] +
-                          boundary.split(private_bucket_stems['s3'])[1])
-
-        elif boundary.startswith(public_bucket_stems['s3']):
-            local_path = (public_bucket_stems['local'] +
-                          boundary.split(public_bucket_stems['s3'])[1])
-
-        else:
-            local_path = boundary
-
+        local_boundary_path = translate_s3_to_local_path(boundary, username)
         # Load the boundary file
-        boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path, driver='GPKG')
+        boundary_gdf: GeoDataFrame = gpd.read_file(local_boundary_path, driver='GPKG')
         boundary_bbox: tuple = boundary_gdf.total_bounds
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
         search_kwargs['bounding_box'] = boundary_bbox_str
