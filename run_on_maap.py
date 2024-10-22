@@ -82,7 +82,6 @@ def translate_s3_to_local_path(s3_path: str, username: str) -> str:
                          f"on MAAP platform: {s3_path}. "
                          f"Path should begin with {private_bucket_stems['s3']} "
                          f"or {public_bucket_stems['s3']}.")
-    )
 
 
 def update_job_states(job_states: Dict[str, str],
