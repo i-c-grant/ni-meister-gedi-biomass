@@ -20,6 +20,7 @@ dependencies:
   - aiobotocore
   - boto3
   - backoff
+  - rasterio
 
   - pip:
       - git+https://git@github.com/MAAP-Project/maap-py@v4.0.0
