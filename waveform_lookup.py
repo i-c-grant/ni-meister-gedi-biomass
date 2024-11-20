@@ -62,11 +62,11 @@ def cli(l1b_path, l2a_path, l4a_path, config):
 
     # Define the layers for plotting
     layers = {
-        "Smoothed waveform": {
-            "x": "processed/dp_dz",
-            "color": "black",
-            "type": "line",
-        },
+        # "Smoothed waveform": {
+            # "x": "processed/dp_dz",
+            # "color": "black",
+            # "type": "line",
+        # },
         "Estimated ground return": {
             "x": "processed/ground_return",
             "color": "blue",
@@ -74,12 +74,12 @@ def cli(l1b_path, l2a_path, l4a_path, config):
         },
         "Estimated veg. return": {
             "x": "processed/dp_dz_veg_only",
-            "color": "red",
+            "color": "darkgreen",
             "type": "line",
         },
         "Raw returns": {
             "x": "processed/wf_raw_scaled",
-            "color": "#00ff2d",
+            "color": "red",
             "type": "scatter",
         },
     }
