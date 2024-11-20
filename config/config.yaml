@@ -151,7 +151,7 @@ processing_pipeline:
       dz: processed/dz
       ht: processed/ht
       n_modes: metadata/modes/num_modes
-    output_path: results/biomass_index
-    params:
       hse: metadata/parameters/hse
       k_allom: metadata/parameters/k_allom
+    output_path: results/biomass_index
+    params: {}
