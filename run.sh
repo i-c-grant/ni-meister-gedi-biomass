@@ -110,11 +110,36 @@ if [ $(echo "$config_path" | wc -l) -gt 1 ]; then
 	exit 1
 fi
 
+# Find the HSE raster, which is named 'hse.tif' and may be a symlink
+hse_path=$(find input \( \
+	-type f -name 'hse.tif' -o \
+	-type l -lname 'hse.tif' \')
+
+# Check if unique HSE raster was found
+if [ -z "$hse_path" ]; then
+	echo "Error: No HSE raster found!"
+	exit 1
+fi
+
+# Find the k_allom raster, which is named 'k_allom.tif'
+# and may be a symlink    
+k_allom_path=$(find input \( \
+	-type f -name 'k_allom.tif' -o \
+	-type l -lname 'k_allom.tif' \')
+
+# Check if unique k_allom raster was found
+if [ -z "$k_allom_path" ]; then
+	echo "Error: No k_allom raster found!"
+	exit 1
+fi
+
 # Print the identified paths
 echo "L1B file: $L1B_path"
 echo "L2A file: $L2A_path"
 echo "L4A file: $L4A_path"
 echo "Config file: $config_path"
+echo "HSE raster: $hse_path"
+echo "k_allom raster: $k_allom_path"
 if [ -n "$boundary_path" ]; then
     echo "Boundary file: $boundary_path"
 else
@@ -139,6 +164,8 @@ cmd=(
     "${L1B_path}"
     "${L2A_path}"
     "${L4A_path}"
+    "${hse_path}"
+    "${k_allom_path}"
     "output"
     "--config"
     "${config_path}"
@@ -153,3 +180,16 @@ if [ -n "$boundary_path" ]; then
 fi
 
 "${cmd[@]}"
+cmd_exit_code=$?
+
+# If there's a .gpkg in output, compress it with bzip2
+output_gpkg=$(find output -type f -name '*.gpkg')
+
+if [ -n "$output_gpkg" ]; then
+	echo "Compressing output .gpkg file with bzip2..."
+	bzip2 -9 "$output_gpkg"
+fi
+
+# Exit with the exit code from cmd
+exit $cmd_exit_code
+
