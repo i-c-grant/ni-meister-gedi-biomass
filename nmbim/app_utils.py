@@ -79,6 +79,8 @@ def write_waveforms(waveforms: WaveformCollection, output_path: str):
         "modis_treecover": "metadata/landcover/modis_treecover",
         "modis_nonvegetated": "metadata/landcover/modis_nonvegetated",
         "landsat_treecover": "metadata/landcover/landsat_treecover",
+        "hse": "metadata/parameters/hse",
+        "k_allom": "metadata/parameters/k_allom",
     }
 
     # Write processed data
