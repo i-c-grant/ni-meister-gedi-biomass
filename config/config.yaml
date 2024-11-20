@@ -144,63 +144,14 @@ processing_pipeline:
     output_path: processed/dp_dz_veg_only
     params: {}
   # Calculate the biomass index
-  calc_biwf_tallo_north_america:
+  calc_biwf:
     alg_fun: calc_biomass_index
     input_map:
       dp_dz: processed/dp_dz_veg_only
       dz: processed/dz
       ht: processed/ht
       n_modes: metadata/modes/num_modes
-    output_path: results/biomass_index_north_america
+    output_path: results/biomass_index
     params:
-      hse: 1.61
-  calc_biwf_temperate_conifer_north_america:
-    alg_fun: calc_biomass_index
-    input_map:
-      dp_dz: processed/dp_dz_veg_only
-      dz: processed/dz
-      ht: processed/ht
-      n_modes: metadata/modes/num_modes
-    output_path: results/biomass_index_temp_conifer_na
-    params:
-      hse: 1.57
-      # k_allom = 2.56
-  calc_biwf_temperate_broadleaf_north_america:
-    alg_fun: calc_biomass_index
-    input_map:
-      dp_dz: processed/dp_dz_veg_only
-      dz: processed/dz
-      ht: processed/ht
-      n_modes: metadata/modes/num_modes
-    output_path: results/biomass_index_temp_broadleaf_na
-    params:
-      hse: 1.67
-      # k_allom = 0.58
-  calc_biwf_temperate_broadleaf_all:
-    alg_fun: calc_biomass_index
-    input_map:
-      dp_dz: processed/dp_dz_veg_only
-      dz: processed/dz
-      ht: processed/ht
-      n_modes: metadata/modes/num_modes
-    output_path: results/biomass_index_temp_broadleaf_all
-    params:
-      hse: 1.79
-      # k_allom = 1
-  calc_biwf_temperate_conifer_all:
-    alg_fun: calc_biomass_index
-    input_map:
-      dp_dz: processed/dp_dz_veg_only
-      dz: processed/dz
-      ht: processed/ht
-      n_modes: metadata/modes/num_modes
-    output_path: results/biomass_index_temp_conifer_all
-    params:
-      hse: 1.72
-      # k_allom = 1.47
-
-  
-
-    
-  
-  
+      hse: metadata/parameters/hse
+      k_allom: metadata/parameters/k_allom
