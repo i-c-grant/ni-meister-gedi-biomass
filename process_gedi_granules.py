@@ -13,7 +13,7 @@ import click
 import h5py
 import yaml
 
-from nmbim import WaveformCollection, app_utils, filters, algorithms
+from nmbim import WaveformCollection, ParameterLoader, app_utils, filters, algorithms
 
 # Import modules for parallel processing if available
 try:
@@ -49,6 +49,8 @@ def process_beam(
     l1b_path: str,
     l2a_path: str,
     l4a_path: str,
+    hse_rast_path: str,
+    k_allom_rast_path: str,
     output_path: str,
     processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
@@ -59,6 +61,7 @@ def process_beam(
 
     click.echo(f"Loading waveforms for beam {beam}...")
 
+    # Load the waveforms for the beam
     try:
         with h5py.File(l1b_path, "r") as l1b, h5py.File(l2a_path, "r") as l2a, h5py.File(l4a_path, "r") as l4a:
             waveforms = WaveformCollection(
@@ -75,8 +78,17 @@ def process_beam(
     except Exception as e:
         logging.error(f"Error creating WaveformCollection: {e}")
         raise
-
+    
     click.echo(f"{len(waveforms)} waveforms loaded for beam {beam}.")
+
+    # Parameterize the waveforms for the beam
+    click.echo(f"Parameterizing waveforms for beam {beam}...")
+    param_rasters = {"hse": hse_rast_path, "k_allom": k_allom_rast_path}
+    param_loader = ParameterLoader(param_rasters=param_rasters,
+                                   waveforms=waveforms)
+    param_loader.parameterize()
+    
+    # Process the waveforms for the beam
     click.echo(f"Processing waveforms for beam {beam}...")
     app_utils.process_waveforms(waveforms, processor_kwargs_dict)
     click.echo(f"Waveforms for beam {beam} processed.")
@@ -140,6 +152,7 @@ def main(l1b_path: str,
 
     # Get the processor configuration
     processor_config = full_config.get('processing_pipeline', {})
+
     # replace the 'algorithm' key with the actual algorithm function
     processor_kwargs_dict = processor_config.copy()
     for proc_name, proc_config in processor_kwargs_dict.items():
