@@ -36,7 +36,7 @@ class ParameterLoader:
         wgs84 = CRS.from_epsg(4326)
         if len(self.param_rasters) > 0:
             for name, raster in self.param_rasters.items():
-                if not raster.crs.equals(wgs84):
+                if not raster.crs.to_epsg() == 4326:
                     raise CRSError(
                         f"CRS mismatch: {name} has CRS {raster.crs}, "
                         f"expected EPSG:4326 (WGS 84)"
