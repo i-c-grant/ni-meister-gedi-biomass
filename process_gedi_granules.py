@@ -49,8 +49,8 @@ def process_beam(
     l1b_path: str,
     l2a_path: str,
     l4a_path: str,
-    hse_rast_path: str,
-    k_allom_rast_path: str,
+    hse_path: str,
+    k_allom_path: str,
     output_path: str,
     processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
@@ -83,8 +83,8 @@ def process_beam(
 
     # Parameterize the waveforms for the beam
     click.echo(f"Parameterizing waveforms for beam {beam}...")
-    param_rasters = {"hse": hse_rast_path, "k_allom": k_allom_rast_path}
-    param_loader = ParameterLoader(param_rasters=param_rasters,
+    param_rasters = {"hse": hse_path, "k_allom": k_allom_path}
+    param_loader = ParameterLoader(raster_paths=param_rasters,
                                    waveforms=waveforms)
     param_loader.parameterize()
     
@@ -101,6 +101,8 @@ def process_beam(
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("l4a_path", type=click.Path(exists=True))
+@click.argument("hse_path", type=click.Path(exists=True))
+@click.argument("k_allom_path", type=click.Path(exists=True))
 @click.argument("output_dir", type=click.Path(exists=True))
 @click.option("--config", "-c", type=click.Path(exists=True),
               help="Path to the filter configuration YAML file.")
@@ -116,6 +118,8 @@ def process_beam(
 def main(l1b_path: str,
          l2a_path: str,
          l4a_path: str,
+         hse_path: str,
+         k_allom_path: str,
          output_dir: str,
          config: str,
          parallel: bool,
@@ -233,6 +237,8 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 l4a_path,
+                hse_path,
+                k_allom_path,
                 output_path,
                 processor_kwargs_dict,
                 pickled_filters,
@@ -250,6 +256,8 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 l4a_path,
+                hse_path,
+                k_allom_path,
                 output_path,
                 processor_kwargs_dict,
                 my_filters,
