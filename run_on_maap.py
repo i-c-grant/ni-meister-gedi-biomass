@@ -128,6 +128,10 @@ def update_job_states(job_states: Dict[str, str],
                     "for valid formats."))
 @click.option("--config", "-c", type=str, required=True,
               help="Path to the configuration YAML file. Filename must be 'config.yaml' or 'config.yml'.")
+@click.option("--hse", type=str, required=True,
+              help="Path to HSE raster file.")
+@click.option("--k_allom", type=str, required=True,
+              help="Path to k_allom raster file.")
 @click.option("--algo_id", "-a", type=str, required=True,
               help="Algorithm ID to run.")
 @click.option("--algo_version", "-v", type=str, required=True,
@@ -143,6 +147,8 @@ def main(username: str,
          job_limit: int,
          check_interval: int,
          config: str,
+         hse: str,
+         k_allom: str,
          algo_id: str,
          algo_version: str):
 
@@ -283,7 +289,9 @@ def main(username: str,
             "L1B": extract_s3_url_from_granule(matched['l1b']),
             "L2A": extract_s3_url_from_granule(matched['l2a']),
             "L4A": extract_s3_url_from_granule(matched['l4a']),
-            "config": config  # Pass S3 URL directly
+            "config": config,  # Pass S3 URL directly
+            "hse": hse,  # Pass S3 URL directly
+            "k_allom": k_allom  # Pass S3 URL directly
         }
 
         if boundary:
