@@ -128,6 +128,10 @@ def update_job_states(job_states: Dict[str, str],
                     "for valid formats."))
 @click.option("--config", "-c", type=str, required=True,
               help="Path to the configuration YAML file. Filename must be 'config.yaml' or 'config.yml'.")
+@click.option("--algo_id", "-a", type=str, required=True,
+              help="Algorithm ID to run.")
+@click.option("--algo_version", "-v", type=str, required=True,
+              help="Algorithm version to run.")
 @click.option("--job_limit", "-j", type=int,
               help="Limit the number of jobs submitted.")
 @click.option("--check_interval", "-i", type=int, default=120,
@@ -138,7 +142,9 @@ def main(username: str,
          date_range: str,
          job_limit: int,
          check_interval: int,
-         config: str):
+         config: str,
+         algo_id: str,
+         algo_version: str):
 
     start_time = datetime.datetime.now()
 
@@ -270,8 +276,8 @@ def main(username: str,
     for matched in matched_granules:
         job_kwargs = {
             "identifier": tag,
-            "algo_id": "nmbim_biomass_index_v3",
-            "version": "with_l4a",
+            "algo_id": algo_id,
+            "version": algo_version,
             "username": username,
             "queue": "maap-dps-worker-16gb",
             "L1B": extract_s3_url_from_granule(matched['l1b']),
