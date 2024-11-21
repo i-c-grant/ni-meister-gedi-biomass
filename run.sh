@@ -128,6 +128,12 @@ if [ -z "$hse_path" ]; then
 	exit 1
 fi
 
+if [ $(echo "$hse_path" | wc -l) -gt 1 ]; then
+    echo "Warning: Multiple HSE files found:"
+    echo "$hse_path"
+    exit 1
+fi
+
 # Find the k_allom raster, which is named 'k_allom.tif'
 # and may be a symlink    
 k_allom_path=$(find input \( \
@@ -138,6 +144,12 @@ k_allom_path=$(find input \( \
 if [ -z "$k_allom_path" ]; then
 	echo "Error: No k_allom raster found!"
 	exit 1
+fi
+
+if [ $(echo "$k_allom_path" | wc -l) -gt 1 ]; then
+    echo "Warning: Multiple k_allom files found:"
+    echo "$k_allom_path"
+    exit 1
 fi
 
 # Print the identified paths
