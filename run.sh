@@ -119,8 +119,8 @@ fi
 
 # Find the HSE raster, which is named 'hse.tif' and may be a symlink
 hse_path=$(find input \( \
-	-type f -name 'hse.tif' -o \
-	-type l -lname 'hse.tif' \))
+	-type f -name '*hse.tif' -o \
+	-type l -lname '*hse.tif' \))
 
 # Check if unique HSE raster was found
 if [ -z "$hse_path" ]; then
@@ -131,8 +131,8 @@ fi
 # Find the k_allom raster, which is named 'k_allom.tif'
 # and may be a symlink    
 k_allom_path=$(find input \( \
-	-type f -name 'k_allom.tif' -o \
-	-type l -lname 'k_allom.tif' \))
+	-type f -name '*k_allom.tif' -o \
+	-type l -lname '*k_allom.tif' \))
 
 # Check if unique k_allom raster was found
 if [ -z "$k_allom_path" ]; then
