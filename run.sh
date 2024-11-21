@@ -35,6 +35,13 @@ conda run --live-stream -n nmbim-env \
       python "${basedir}/download_gedi_granules.py" \
       "$L1B_name" "$L2A_name" "$L4A_name" input
 
+# Print the total contents of input directory
+echo
+echo "Input directory contents at run start:"
+ls -lh input
+echo
+
+
 # Find the files in the input directory
 L1B_path=$(find input -type f -name 'GEDI01_B*.h5')
 L2A_path=$(find input -type f -name 'GEDI02_A*.h5')
@@ -146,9 +153,9 @@ else
     echo "No boundary file specified."
 fi
 
-# Print the total contents of input directory
+# Print the total contents of input directory again
 echo
-echo "Input directory contents:"
+echo "Input directory contents after downloads:"
 ls -lh input
 echo
 
