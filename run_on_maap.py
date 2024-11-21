@@ -55,6 +55,35 @@ def to_job_output_dir(job_result_url: str, username: str) -> str:
     return (f"/projects/my-private-bucket/"
             f"{job_result_url.split(f'/{username}/')[1]}")
 
+def s3_url_to_local_path(s3_url: str) -> str:
+    """
+    Converts MAAP S3 URLs to local filesystem paths.
+    
+    Args:
+        s3_url: S3 URL starting with s3://maap-ops-workspace/
+        
+    Returns:
+        Local filesystem path
+    """
+    if not s3_url.startswith("s3://maap-ops-workspace/"):
+        raise ValueError("URL must start with s3://maap-ops-workspace/")
+        
+    # Remove the s3://maap-ops-workspace/ prefix
+    path = s3_url.replace("s3://maap-ops-workspace/", "")
+    
+    # Extract username and determine bucket based on path structure
+    if path.startswith("shared/"):
+        _, username, *rest = path.split("/")
+        bucket = "my-public-bucket"
+        path = "/".join(rest)
+    else:
+        username, *rest = path.split("/")
+        bucket = "my-private-bucket"
+        path = "/".join(rest)
+        
+    return f"/projects/{bucket}/{path}"
+
+
 def log_and_print(message: str):
     logging.info(message)
     click.echo(message)
@@ -128,20 +157,14 @@ def main(username: str,
     log_and_print(f"Boundary: {boundary}")
     log_and_print(f"Date Range: {date_range}")
 
-    # Log full configuration
+    # Read and log full configuration
+    config_path = s3_url_to_local_path(config)
     try:
-        with open(config, 'r') as config_file:
+        with open(config_path, 'r') as config_file:
             full_config = config_file.read()
-    except FileNotFoundError:
-        # Treat as a download URL 
-        try:
-            import requests
-            response = requests.get(config)
-            response.raise_for_status()
-            full_config = response.text
-        except Exception as e:
-            log_and_print(f"Error downloading config file: {str(e)}")
-            raise
+    except Exception as e:
+        log_and_print(f"Error reading config file from {config_path}: {str(e)}")
+        raise
 
     log_and_print(f"Configuration:\n{full_config}")
 
@@ -175,7 +198,8 @@ def main(username: str,
 
     if boundary:
         # Get bounding box of boundary to restrict granule search
-        boundary_gdf: GeoDataFrame = gpd.read_file(boundary,driver='GPKG')
+        boundary_path = s3_url_to_local_path(boundary)
+        boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path, driver='GPKG')
         boundary_bbox: tuple = boundary_gdf.total_bounds
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
         search_kwargs['bounding_box'] = boundary_bbox_str
@@ -253,11 +277,11 @@ def main(username: str,
             "L1B": extract_s3_url_from_granule(matched['l1b']),
             "L2A": extract_s3_url_from_granule(matched['l2a']),
             "L4A": extract_s3_url_from_granule(matched['l4a']),
-            "config": config
+            "config": config  # Pass S3 URL directly
         }
 
         if boundary:
-            job_kwargs['boundary'] = boundary
+            job_kwargs['boundary'] = boundary  # Pass S3 URL directly
 
         if date_range:
             job_kwargs['date_range'] = date_range
