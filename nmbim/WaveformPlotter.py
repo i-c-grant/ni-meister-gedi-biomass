@@ -57,7 +57,7 @@ class WaveformPlotter:
                 color=layer_data.get("color", "b"),
                 marker=marker,
                 linestyle=linestyle,
-                markersize=2,
+                markersize=4,
                 linewidth=2.5,
                 label=layer_name,
                 antialiased=True,
@@ -67,8 +67,8 @@ class WaveformPlotter:
         ax.axhline(0, color="black", linestyle="--", linewidth=1)
 
         # Set the labels and title
-        label_size = 10
-        title_size = 12
+        label_size = 18
+        title_size = 20
 
         ax.legend(fontsize=label_size)
 
