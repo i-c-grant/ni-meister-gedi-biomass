@@ -1,0 +1,31 @@
+* General MAAP instructions
+
+* Inputs
+
+** boundary
+- gpkg or shp in EPSG:4236 giving the boundary area of interest
+- should only include areas that have valid values of HSE and k_allom, specified below
+
+** config
+The algorithm accepts a configuration file that specifies the filters and processing pipeline to be run on the GEDI waveforms within the query window. This file is in YAML format and must be named config.yaml or config.yml.
+
+The first section of the configuration file, `filters`, references spatial, temporal, and quality filters defined in filters.py. Each filter configuration within this section also specifies any filter-specific parameters.
+
+Note: Since the MAAP deployment of NMBIM algorithm accepts temporal and spatial queries as arguments through the MAAP job submission API, it is permitted to leave the parameters for temporal and spatial filters blank in the configuration file. The parameters supplied through the job submission API will be applied to the filters as necessary.
+
+The second section of the configuration file specifies the processing pipeline to be run on the GEDI waveforms. Each entry in this section specifies one step of the pipeline; these steps are applied sequentially to each waveform in the model run. The `alg_fun` value within each processing step indicates the name of the Python function to be applied for that step, `input_map` determines what data from each Waveform object is supplied as input to that function, and `output_path` gives the path within each Waveform object to which the outputs will be written.
+
+** hse
+- geotiff giving HSE values, should be 4326
+
+** k_allom
+- same but for k_allom
+
+** L1B, L2A, and L4A
+names of the GEDI files to be processed on this run. just need the full granule name, not a path to the actual file. the algorithm downloads the necessary granules on the worker side.
+
+** date_range
+temporal range within which to filter. should be in format accepted by NASA CMR: for this algorithm, accepted formats are a single date with a leading or trailing comma or two dates separated by a comma
+
+* Output
+
