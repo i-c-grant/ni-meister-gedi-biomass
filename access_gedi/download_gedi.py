@@ -33,9 +33,8 @@ def gedi_filename_to_s3_url(filename: str) -> str:
     """Convert a GEDI filename to an s3 URL.
     Filename can include .h5 extension (as in the proper GEDI filenames)
     or not (as in the granule URs from the NASA CMR).
-
-    This is necessary if filenames are passed as strings and not s3 URLs.
     """
+
     name_components = filename.split("_")
 
     gedi_type = infer_product(filename)
