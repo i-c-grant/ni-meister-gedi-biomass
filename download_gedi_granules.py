@@ -16,14 +16,11 @@ def main(l1b_ur, l2a_ur, l4a_ur, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Add .h5 extension if not present for L1B and L2A
-    if not l1b_ur.endswith('.h5'):
-        l1b_ur += '.h5'
-
-    if not l2a_ur.endswith('.h5'):
-        l2a_ur += '.h5'
-
-    # L4A URs already include the .h5 extension, so we don't need to add it
+    # Add .h5 extension if not present
+    l1b_ur, l2a_ur, l4a_ur = (
+        map(lambda x: f"{x}.h5" if not x.endswith('.h5') else x,
+            [l1b_ur, l2a_ur, l4a_ur])
+    )
 
     # Download the GEDI data
     download_gedi.get_gedi_data(filename=l1b_ur,
