@@ -1,3 +1,33 @@
+"""
+Script for running GEDI waveform processing jobs on MAAP.
+
+This script handles the end-to-end process of:
+1. Searching for matching GEDI L1B, L2A, and L4A granules
+2. Submitting processing jobs to MAAP DPS
+3. Monitoring job status
+4. Logging results
+
+The script can filter granules by:
+- Date range
+- Geographic boundary
+- Quality filters (configured in config.yaml file)
+
+It provides progress monitoring and logging of:
+- Job submission status
+- Job completion status
+- Success/failure counts
+- Processing duration
+
+To cancel processing early, press Ctrl-C twice (first time asks for confirmation).
+
+Usage:
+    python run_on_maap.py --username <maap_username> --tag <job_tag> 
+        --config <config_path> --hse <hse_path> --k_allom <k_allom_path>
+        --algo_id <algorithm_id> --algo_version <version>
+        [--boundary <boundary_path>] [--date_range <date_range>]
+        [--job_limit <max_jobs>] [--check_interval <seconds>]
+"""
+
 import datetime
 import logging
 import os
@@ -17,6 +47,12 @@ from maap.Result import Granule
 
 maap = MAAP(maap_host='api.maap-project.org')
 
+# Logging utilities
+def log_and_print(message: str):
+    logging.info(message)
+    click.echo(message)
+
+# Granule and path utilities
 def extract_s3_url_from_granule(granule: Granule) -> str:
     urls = granule['Granule']['OnlineAccessURLs']['OnlineAccessURL']
     s3_urls = [url['URL'] for url in urls if url['URL'].startswith("s3")]
@@ -44,16 +80,6 @@ def l4a_matches(l1b: Granule, l4a: Granule):
     # so we split it off before comparing
     l4a_base = l4a_name.split(".")[1].split("_")[2:5]
     return l1b_base == l4a_base
-
-def job_status_for(job_id: str) -> str:
-    return maap.getJobStatus(job_id)
-
-def job_result_for(job_id: str) -> str:
-    return maap.getJobResult(job_id)[0]
-
-def to_job_output_dir(job_result_url: str, username: str) -> str:
-    return (f"/projects/my-private-bucket/"
-            f"{job_result_url.split(f'/{username}/')[1]}")
 
 def s3_url_to_local_path(s3_url: str) -> str:
     """
@@ -83,10 +109,16 @@ def s3_url_to_local_path(s3_url: str) -> str:
         
     return f"/projects/{bucket}/{path}"
 
+# Job monitoring utilities
+def job_status_for(job_id: str) -> str:
+    return maap.getJobStatus(job_id)
 
-def log_and_print(message: str):
-    logging.info(message)
-    click.echo(message)
+def job_result_for(job_id: str) -> str:
+    return maap.getJobResult(job_id)[0]
+
+def to_job_output_dir(job_result_url: str, username: str) -> str:
+    return (f"/projects/my-private-bucket/"
+            f"{job_result_url.split(f'/{username}/')[1]}")
 
 def update_job_states(job_states: Dict[str, str],
                       final_states: List[str],
@@ -180,29 +212,33 @@ def main(username: str,
 
     log_and_print(f"Configuration:\n{full_config}")
 
+    # Get collection IDs
+    host = 'cmr.earthdata.nasa.gov'
+
     l1b_id = maap.searchCollection(
             short_name="GEDI01_B",
             version="002",
-            cmr_host="cmr.earthdata.nasa.gov",
+            cmr_host=host,
             cloud_hosted="true"
         )[0]['concept-id']
 
     l2a_id = maap.searchCollection(
         short_name="GEDI02_A",
         version="002",
-        cmr_host="cmr.earthdata.nasa.gov",
+        cmr_host=host,
         cloud_hosted="true"
     )[0]['concept-id']
 
     l4a_id = maap.searchCollection(
         short_name="GEDI_L4A_AGB_Density_V2_1_2056",
-        cmr_host="cmr.earthdata.nasa.gov",
+        cmr_host=host,
         cloud_hosted="true"
     )[0]['concept-id']
 
+    # Set up search parameters
     max_results = 10000
     search_kwargs = {'concept_id': [l1b_id, l2a_id, l4a_id],
-                     'cmr_host': 'cmr.earthdata.nasa.gov',
+                     'cmr_host': host,
                      'limit': max_results}
 
     if date_range:
@@ -216,6 +252,7 @@ def main(username: str,
         boundary_bbox_str: str = ','.join(map(str, boundary_bbox))
         search_kwargs['bounding_box'] = boundary_bbox_str
 
+    # Query CMR for granules
     log_and_print(f"Searching for granules.")
     click.echo("(This may take a few minutes.)")
 
@@ -223,7 +260,7 @@ def main(username: str,
 
     log_and_print(f"Found {len(granules)} granules.")
 
-    # match corresponding L1B and L2A granules
+    # Match corresponding L1B and L2A granules
     l1b_granules = (
         [granule for granule in granules
          if granule['Granule']['Collection']['ShortName'] == 'GEDI01_B']
@@ -270,7 +307,7 @@ def main(username: str,
     log_and_print(f"Found {len(matched_granules)} matching "
                   f"sets of granules.")
 
-    # Submit jobs for each pair of granules
+    # Prepare job submission parameters for each triplet of granules
     if job_limit:
         n_jobs = min(len(matched_granules), job_limit)
     else:
@@ -302,6 +339,7 @@ def main(username: str,
 
         job_kwargs_list.append(job_kwargs)
 
+    # Submit jobs in batches
     jobs = []
     job_batch_counter = 0
     job_batch_size = 50
@@ -324,7 +362,7 @@ def main(username: str,
     with open(job_ids_file, 'w') as f:
         for job_id in job_ids:
             f.write(f"{job_id}\n")
-    log_and_print(f"Job IDs written to {job_ids_file}")
+    log_and_print(f"Submitted job IDs written to {job_ids_file}")
 
     # Give the jobs time to start
     click.echo("Waiting for jobs to start...")
@@ -384,7 +422,7 @@ def main(username: str,
         else:
             break
 
-    # Process the results once all jobs are completed
+    # Log the succeeded and failed job IDs
     succeeded_job_ids = [job_id for job_id in job_ids
                          if job_status_for(job_id) == "Succeeded"]
     
@@ -395,7 +433,6 @@ def main(username: str,
                      if job_status_for(job_id)
                      not in ["Succeeded", "Failed"]]
 
-    # Log the succeeded and failed job IDs
     logging.info(f"{len(succeeded_job_ids)} jobs succeeded.")
     logging.info(f"Succeeded job IDs: {succeeded_job_ids}\n")
     logging.info(f"{len(failed_job_ids)} jobs failed.")
