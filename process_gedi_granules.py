@@ -1,7 +1,8 @@
 ##########################################################################
-# This script processes paired GEDI L1B and L2A granules (i.e. files)    #
-# to calculate the Ni-Meister Biomass Index (NMBI) for each footprint in #
-# the granules. The NMBI is a metric of above-ground biomass density.    #
+# This script processes triplets of GEDI L1B, L2A, L4A granules (i.e.    #
+# files) locally to calculate the Ni-Meister Biomass Index (NMBI) for    #
+# each footprint in the granules. Single-processing and multi_processing #
+# modes are supported.                                                   #
 ##########################################################################
 
 import logging
@@ -43,7 +44,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
         raise
 
 # Define function for processing a single beam.
-# This function is used in both serial and parallel modes.
+# This is the base processing function for both serial and parallel processing.
 def process_beam(
     beam: str,
     l1b_path: str,
