@@ -182,9 +182,42 @@ aws s3 cp s3://maap-ops-workspace/jsmith/biomass_2020/ . --recursive --exclude "
 ```
 
 ### Post-processing
+# NMBIM Algorithm Documentation
+
+[Previous sections remain unchanged...]
+
+### Post-processing
 
 The output of a single model run through run_on_maap.py is a hierarchical directory structure containing output GeoPackage files. The method chosen to process these files will depend on the end goal, but one workflow is outlined below. Future work could automate this process.
 
-1. Once the files are downloaded, the GeoPackages corresponding to each run's output can be consolidated into a single GeoPackage with a utility such as GDAL's ogrmerge.py or a Python script.
+1. Download compressed GeoPackages from S3 to your local machine:
+```bash
+# Get a list of all the output files in the bucket
+aws s3 ls s3://maap-ops-workspace/jsmith/dps_output/nmbim_biomass_index/main/biomass_2020/ --recursive | grep '.gpkg.bz2$'
 
-2. Given the scale of the data, the data should be loaded into a spatial database with ogr2ogr (note that setting a high value for the -gt option can greatly increase performance).
+# Copy the files to the local directory
+aws s3 cp s3://maap-ops-workspace/jsmith/biomass_2020/ . --recursive --exclude "*" --include "*.gpkg.bz2"
+```
+
+2. Decompress the GeoPackages. You can use GNU Parallel for faster processing:
+```bash
+# Using GNU Parallel
+find . -name "*.gpkg.bz2" | parallel bunzip2
+
+# Or using Python with Dask for parallel processing
+python -c '
+import dask.bag as db
+from pathlib import Path
+import subprocess
+
+files = list(Path(".").rglob("*.gpkg.bz2"))
+def decompress(f):
+    subprocess.run(["bunzip2", str(f)])
+    
+db.from_sequence(files).map(decompress).compute()
+'
+```
+
+3. Consolidate the decompressed GeoPackages into a single file using GDAL's ogrmerge.py or a Python script.
+
+4. Load the consolidated data into a spatial database using ogr2ogr. Set a high value for the -gt option to improve performance.
