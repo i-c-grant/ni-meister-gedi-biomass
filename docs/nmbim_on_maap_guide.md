@@ -188,12 +188,7 @@ aws s3 ls s3://maap-ops-workspace/jsmith/dps_output/nmbim_biomass_index/main/bio
 # Copy the files to the local directory
 aws s3 cp s3://maap-ops-workspace/jsmith/biomass_2020/ . --recursive --exclude "*" --include "*.gpkg.bz2"
 ```
-
 ### Post-processing
-# NMBIM Algorithm Documentation
-
-### Post-processing
-
 The output of a single model run through run_on_maap.py is a hierarchical directory structure containing output GeoPackage files. The method chosen to process these files will depend on the end goal, but one workflow is outlined below. Future work could automate this process.
 
 1. Download compressed GeoPackages from S3 to your local machine:
