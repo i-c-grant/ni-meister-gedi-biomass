@@ -1,38 +1,40 @@
-# NMBIM Algorithm Documentation
+# User Guide for NMBIM Algorithm on MAAP 
+This guide provides step-by-step instructions to run the NMBIM algorithm on MAAP, then gives more detailed information about the deployment on MAAP. 
 
 ## Quick Start
+Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spatial and temporal query.
 
-1. Create parameter rasters (HSE and k_allom)
+1. Create parameter rasters (HSE and k_allom) according to your chosen parameterization method
    - Format: GeoTIFF in EPSG:4326 projection
    - Names must be: `hse.tif` and `k_allom.tif`
    - Ensure complete coverage of your area of interest
 
-2. Create boundary layer
+2. Create boundary layer for the region to be processed
    - Format: GeoPackage (.gpkg) or Shapefile (.shp) in EPSG:4326
    - Best practice: Generate from rasters to ensure complete parameterization
    - Must only include areas with valid HSE and k_allom values
    - Multiple polygons supported but must not overlap
 
-3. Get or create configuration file
-   - Option A: Use an existing config file
+p3. Get or create a configuration file
+   - Option A: Use an existing config file (see config/config.yaml in the ni-meister-gedi-biomass repository for a default)
    - Option B: Create new config file:
      - Name as `config.yaml` or `config.yml`
      - Define filters section (spatial, temporal, quality)
      - Define processing pipeline steps
      - Can leave temporal/spatial parameters blank if using MAAP job submission API
 
-4. Clone source repository
+4. Clone source repository into MAAP ADE from the MAAP GitLab or Ian Grant's GitHub account (the two are identical as of the writing of this guide).
    - Option A: From MAAP GitLab:
      ```bash
      git clone https://gitlab.maap-project.org/iangrant/ni-meister-gedi-biomass.git
      ```
    - Option B: From Ian Grant's GitHub:
      ```bash
-     git clone https://github.com/iangrant/ni-meister-gedi-biomass.git
+     git clone https://github.com/i-c-grant/ni-meister-gedi-biomass.git
      ```
 
 5. Upload files to MAAP workspace
-   - Navigate to Files -> my-private-bucket in the MAAP graphical interface
+   - Navigate my-private-bucket in the MAAP ADE graphical file browser
    - Upload hse.tif, k_allom.tif, boundary.gpkg, and config.yaml using the interface
 
 6. Run processing script
@@ -51,16 +53,19 @@
      --algo_version main
    ```
 
+This script will figure out what GEDI files are necessary to cover the query and submit the necessary jobs to the MAAP DPS.
+
 7. Monitor job progress
-   - Script will display a progress bar showing:
+The script will display a progress bar showing:
      - Total completed jobs
      - Current status counts (Succeeded, Failed, Running)
-     - Time of last status update
-   - Wait until all or most jobs complete
-   - If jobs are hung in 'Offline' status for a long time, you can safely cancel with Ctrl-C Ctrl-C
-   - Progress updates may take several minutes due to API rate limiting
+     - Time of last status update (updates occur infrequently for very large job batches)
+
+Wait until all or most jobs are complete. If jobs are hung in 'Offline' status for a long time, you can safely cancel the run with Ctrl-C Ctrl-C. The completed jobs will still be available for download.
 
 8. Get temporary MAAP credentials
+In order to download the outputs from the MAAP s3 bucket, it is necessary to obtain temporary credentials to access the bucket.
+
    ```python
    from maap.maap import MAAP
    maap = MAAP(maap_host='api.maap-project.org')
@@ -68,6 +73,9 @@
    ```
 
 9. Download and process results
+
+The temporary credentials can be used with AWS CLI tools locally to download the results:
+
    ```bash
    # List output files
    aws s3 ls s3://maap-ops-workspace/{username}/dps_output/nmbim_biomass_index/main/{unique_processing_id}/ --recursive | grep '.gpkg.bz2$'
@@ -80,7 +88,7 @@
    bunzip2 *.gpkg.bz2
    ```
 
-## Overview
+## Deployment Overview
 
 The NMBIM algorithm on NASA's MAAP platform processes GEDI waveform data to produce biomass estimates for user-defined geographic regions and time periods. Rather than requiring users to manually identify and download GEDI data files, the algorithm interfaces with NASA's Common Metadata Repository (CMR) to automatically locate all relevant GEDI granules that intersect the specified spatial and temporal bounds. The algorithm handles downloading and processing of Level 1B, 2A, and 4A GEDI data products, applying configurable quality filters and processing steps to each waveform. This automation significantly simplifies the workflow - users only need to provide their area of interest (as a boundary file), desired time range, and processing parameters through a configuration file.
 
@@ -183,8 +191,6 @@ aws s3 cp s3://maap-ops-workspace/jsmith/biomass_2020/ . --recursive --exclude "
 
 ### Post-processing
 # NMBIM Algorithm Documentation
-
-[Previous sections remain unchanged...]
 
 ### Post-processing
 
