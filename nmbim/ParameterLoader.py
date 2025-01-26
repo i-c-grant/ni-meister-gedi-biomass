@@ -1,5 +1,8 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List
+from pathlib import Path
+from typing import Dict, List, Union
+import math
 
 import rasterio
 from rasterio.io import DatasetReader
@@ -8,78 +11,94 @@ from rasterio.crs import CRS
 from shapely.geometry import Point
 
 from nmbim.WaveformCollection import WaveformCollection
+from nmbim.Waveform import Waveform
+
+
+class ParameterSource(ABC):
+    """Interface for parameter value sources."""
+    
+    @abstractmethod
+    def get_value(self, waveform: 'Waveform') -> float:
+        pass
+
+    @abstractmethod
+    def validate(self) -> None:
+        """Validate source configuration."""
+        pass
+
+
+class RasterSource(ParameterSource):
+    """Parameter values from geospatial raster."""
+    
+    def __init__(self, path: str):
+        self.path = Path(path)
+        
+    def validate(self):
+        """Verify raster exists and uses WGS84 CRS."""
+        if not self.path.exists():
+            raise FileNotFoundError(f"Raster {self.path} not found")
+        with rasterio.open(self.path) as src:
+            if src.crs.to_epsg() != 4326:
+                raise CRSError("Invalid raster CRS (expected EPSG:4326)")
+
+    def get_value(self, waveform: 'Waveform') -> float:
+        """Sample raster at waveform location.
+        
+        Raises
+        ------
+        ValueError
+            If no raster value exists for the waveform's location
+        """
+        point = waveform.get_data("metadata/point_geom")
+        with rasterio.open(self.path) as src:
+            value = next(src.sample([(point.x, point.y)]))[0]
+            if math.isnan(value):
+                raise ValueError(f"No raster value found at location {point.x}, {point.y}")
+            return value
+
+
+class ScalarSource(ParameterSource):
+    """Constant value for all waveforms."""
+    
+    def __init__(self, value: Union[str, float, int]):
+        try:
+            self.value = float(value)
+        except ValueError:
+            raise TypeError(f"Invalid scalar value: {value}")
+
+    def validate(self) -> None:
+        pass  # Validation handled in constructor
+
+    def get_value(self, waveform: 'Waveform') -> float:
+        return self.value
 
 
 @dataclass
 class ParameterLoader:
     """
-    A class to load parameter values from rasters for GEDI waveforms.
-
+    Coordinates loading multiple parameters for one WaveformCollection.
+    
     Attributes
     ----------
-    param_rasters : Dict[str, DatasetReader]
-        Dictionary of parameter name to rasterio dataset reader
+    sources : Dict[str, ParameterSource]
+        Mapping of parameter names to value sources
     waveforms : WaveformCollection
         Collection of waveforms to parameterize
     """
-    raster_paths: Dict[str, str]
+    sources: Dict[str, ParameterSource]
     waveforms: WaveformCollection
 
     def __post_init__(self):
-        """Open raster files and verify CRS"""
-        self.param_rasters = {
-            param_name: rasterio.open(raster_path)
-            for param_name, raster_path in self.raster_paths.items()
-        }
-
-        # Check that all rasters are in EPSG:4326
-        wgs84 = CRS.from_epsg(4326)
-        if len(self.param_rasters) > 0:
-            for name, raster in self.param_rasters.items():
-                if not raster.crs.to_epsg() == 4326:
-                    raise CRSError(
-                        f"CRS mismatch: {name} has CRS {raster.crs}, "
-                        f"expected EPSG:4326 (WGS 84)"
-                    )
-
-
-    def get_points(self) -> List[Point]:
-        """Get list of point geometries from all waveforms in collection.
-
-        Returns
-        -------
-        List[Point]
-            List of shapely Points representing waveform locations
-        """
-        return [wf.get_data("metadata/point_geom") for wf in self.waveforms]
-
+        """Validate all sources before use."""
+        for source in self.sources.values():
+            source.validate()
 
     def parameterize(self) -> None:
-        """Sample parameter values at waveform locations and save to waveforms.
-        
-        For each parameter raster, samples values at all waveform locations
-        and saves the values to the corresponding waveforms under
-        'metadata/parameters/{param_name}'.
-        """
-        points = self.get_points()
-        
-        for param_name, raster in self.param_rasters.items():
-            # Sample raster values at all points
-            values = [value[0] for value in raster.sample(
-                [(p.x, p.y) for p in points]
-            )]
-            
-            # Save values to waveforms
-            for wf, value in zip(self.waveforms, values):
+        """Write parameters to all waveforms."""
+        for param_name, source in self.sources.items():
+            for wf in self.waveforms:
+                value = source.get_value(wf)
                 wf.save_data(
                     data=value,
                     path=f"metadata/parameters/{param_name}"
                 )
-
-        # Close all rasters (each instance only parameterizes once)
-        self.close_rasters()
-
-    def close_rasters(self):
-        """Close all parameter rasters."""
-        for raster in self.param_rasters.values():
-            raster.close()

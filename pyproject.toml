@@ -1,3 +1,9 @@
 [tool.ruff]
 line-length = 79
 exclude = ["reference"]
+
+[tool.pytest.ini_options]
+# Add custom pytest markers
+markers = [
+    "requires_data: mark tests that require external data files",
+]
