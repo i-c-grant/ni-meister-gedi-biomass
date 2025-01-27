@@ -5,4 +5,4 @@ from .WaveformCollection import WaveformCollection
 from .WaveformPlotter import WaveformPlotter
 from .WaveformProcessor import WaveformProcessor
 from .WaveformWriter import WaveformWriter
-from .ParameterLoader import ParameterLoader
+from .ParameterLoader import ParameterLoader, RasterSource, ScalarSource

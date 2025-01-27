@@ -6,4 +6,5 @@ exclude = ["reference"]
 # Add custom pytest markers
 markers = [
     "requires_data: mark tests that require external data files",
+    "slow: mark tests as slow",
 ]

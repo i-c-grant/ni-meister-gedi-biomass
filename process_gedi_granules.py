@@ -14,7 +14,7 @@ import click
 import h5py
 import yaml
 
-from nmbim import WaveformCollection, ParameterLoader, app_utils, filters, algorithms
+from nmbim import WaveformCollection, ParameterLoader, ScalarSource, RasterSource, app_utils, filters, algorithms
 
 # Import modules for parallel processing if available
 try:
@@ -50,8 +50,8 @@ def process_beam(
     l1b_path: str,
     l2a_path: str,
     l4a_path: str,
-    hse_path: str,
-    k_allom_path: str,
+    hse_source: Union[str, float],
+    k_allom_source: Union[str, float],
     output_path: str,
     processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
@@ -75,18 +75,48 @@ def process_beam(
             )
     except IOError as e:
         logging.error(f"Error opening HDF5 files: {e}")
-        raise
+        raise click.ClickException(f"Error opening HDF5 files: {e}")
     except Exception as e:
         logging.error(f"Error creating WaveformCollection: {e}")
-        raise
+        raise click.ClickException(f"Error creating WaveformCollection: {e}")
     
     click.echo(f"{len(waveforms)} waveforms loaded for beam {beam}.")
 
     # Parameterize the waveforms for the beam
     click.echo(f"Parameterizing waveforms for beam {beam}...")
-    param_rasters = {"hse": hse_path, "k_allom": k_allom_path}
-    param_loader = ParameterLoader(raster_paths=param_rasters,
-                                   waveforms=waveforms)
+    param_sources = {}
+    
+    # Handle parameter sources with explicit error propagation
+    try:
+        sources = {
+            'hse': hse_source,
+            'k_allom': k_allom_source
+        }
+        
+        for param_name, source in sources.items():
+            try:
+                # Try to parse as number first
+                scalar = float(source)
+                param_sources[param_name] = ScalarSource(scalar)
+            except ValueError:
+                # If not a number, check if it's a valid raster path
+                if source.lower().endswith(('.tif', '.tiff')):
+                    param_sources[param_name] = RasterSource(source)
+                else:
+                    raise ValueError(
+                        f"Invalid {param_name} source: {source}. "
+                        "Must be numeric value or path to .tif/.tiff file"
+                    )
+    except Exception as e:
+        logging.error(f"Error configuring parameter sources: {str(e)}")
+        click.echo(f"Error: {str(e)}", err=True)
+        raise click.ClickException(str(e))
+    
+    param_loader = ParameterLoader(
+        sources=param_sources,
+        waveforms=waveforms
+    )
+
     param_loader.parameterize()
     
     # Process the waveforms for the beam
@@ -102,8 +132,8 @@ def process_beam(
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("l4a_path", type=click.Path(exists=True))
-@click.argument("hse_path", type=click.Path(exists=True))
-@click.argument("k_allom_path", type=click.Path(exists=True))
+@click.argument("hse_source", type=click.UNPROCESSED)
+@click.argument("k_allom_source", type=click.UNPROCESSED)
 @click.argument("output_dir", type=click.Path(exists=True))
 @click.option("--config", "-c", type=click.Path(exists=True),
               help="Path to the filter configuration YAML file.")
@@ -119,8 +149,8 @@ def process_beam(
 def main(l1b_path: str,
          l2a_path: str,
          l4a_path: str,
-         hse_path: str,
-         k_allom_path: str,
+         hse_source: Union[str, float],
+         k_allom_source: Union[str, float],
          output_dir: str,
          config: str,
          parallel: bool,
@@ -214,8 +244,8 @@ def main(l1b_path: str,
     full_config['filters'] = filter_config
 
     # Log the updated configuration
-    log_and_print("Updated configuration:")
-    log_and_print(yaml.dump(full_config))
+    logging.info("Updated configuration:")
+    logging.info(yaml.dump(full_config))
 
     ###############################
     # Run the processing pipeline #
@@ -238,8 +268,8 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 l4a_path,
-                hse_path,
-                k_allom_path,
+                hse_source,
+                k_allom_source,
                 output_path,
                 processor_kwargs_dict,
                 pickled_filters,
@@ -257,8 +287,8 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 l4a_path,
-                hse_path,
-                k_allom_path,
+                hse_source,
+                k_allom_source,
                 output_path,
                 processor_kwargs_dict,
                 my_filters,
