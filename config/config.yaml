@@ -152,6 +152,12 @@ processing_pipeline:
       ht: processed/ht
       n_modes: metadata/modes/num_modes
       hse: metadata/parameters/hse
-      k_allom: metadata/parameters/k_allom
     output_path: results/biomass_index
+    params: {}
+  calc_adj_biomass_index:
+    alg_fun: calc_adj_biomass_index
+    input_map:
+      biomass_index: results/biomass_index
+      k_allom: metadata/parameters/k_allom
+    output_path: results/adj_biomass_index
     params: {}
