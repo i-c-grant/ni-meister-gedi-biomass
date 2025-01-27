@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, Iterable
 
 import h5py
 import numpy as np
@@ -45,6 +45,7 @@ class WaveformCollection:
         cache_beams: bool = True,
         beams=None,
     ):
+        """Initialize from HDF5 files"""
         """
         Initialize the WaveformCollection by loading waveform data from three HDF5 files.
 
@@ -63,7 +64,7 @@ class WaveformCollection:
         self.l2a_path = l2a.filename
         self.l4a_path = l4a.filename
 
-        self.waveforms = []
+        self.waveforms: List[Waveform] = []
         self.cache_beams = cache_beams
         self.beams = beams
 
@@ -134,6 +135,14 @@ class WaveformCollection:
     def add_waveform(self, wf: Waveform) -> None:
         """Add a waveform to collection."""
         self.waveforms.append(wf)
+
+    @classmethod
+    def from_waveforms(cls, waveforms: Iterable[Waveform]) -> 'WaveformCollection':
+        """Create collection directly from existing waveforms"""
+        collection = cls.__new__(cls)
+        collection.waveforms = list(waveforms)
+        collection.filters = []
+        return collection
 
     def get_waveform(self, shot_number: int) -> Optional[Waveform]:
         """Get a waveform by shot number."""
