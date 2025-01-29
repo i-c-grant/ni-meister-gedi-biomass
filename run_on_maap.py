@@ -344,7 +344,7 @@ def main(
     pre_exclude_count = len(matched_granules)
     # Remove excluded granules
     if exclude_path:
-        with open(exclude_path, "r") as f:
+        with open(s3_url_to_local_path(exclude_path), "r") as f:
             excluded_granules = [
                 excluded.strip().split(".")[0] for excluded in f.readlines()
             ]
