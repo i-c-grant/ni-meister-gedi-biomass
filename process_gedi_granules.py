@@ -50,8 +50,10 @@ def process_beam(
     l1b_path: str,
     l2a_path: str,
     l4a_path: str,
-    hse_source: Union[str, float],
-    k_allom_source: Union[str, float],
+    default_hse: float,
+    default_k_allom: float,
+    hse_path: Optional[str],
+    k_allom_path: Optional[str],
     output_path: str,
     processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
@@ -86,27 +88,19 @@ def process_beam(
     click.echo(f"Parameterizing waveforms for beam {beam}...")
     param_sources = {}
     
-    # Handle parameter sources with explicit error propagation
+    # Handle parameter sources
     try:
-        sources = {
-            'hse': hse_source,
-            'k_allom': k_allom_source
+        # Add fallback sources for default parameter values
+        param_sources = {
+            'default_hse': ScalarSource(default_hse),
+            'default_k_allom': ScalarSource(default_k_allom)
         }
-        
-        for param_name, source in sources.items():
-            try:
-                # Try to parse as number first
-                scalar = float(source)
-                param_sources[param_name] = ScalarSource(scalar)
-            except ValueError:
-                # If not a number, check if it's a valid raster path
-                if source.lower().endswith(('.tif', '.tiff')):
-                    param_sources[param_name] = RasterSource(source)
-                else:
-                    raise ValueError(
-                        f"Invalid {param_name} source: {source}. "
-                        "Must be numeric value or path to .tif/.tiff file"
-                    )
+        # Add optional raster sources if provided
+        if hse_path:
+            param_sources["raster_hse"] = RasterSource(hse_path)
+        if k_allom_path:
+            param_sources["raster_k_allom"] = RasterSource(k_allom_path)
+
     except Exception as e:
         logging.error(f"Error configuring parameter sources: {str(e)}")
         click.echo(f"Error: {str(e)}", err=True)
@@ -129,15 +123,22 @@ def process_beam(
 
 
 @click.command()
+@click.option("--default-hse", type=float, required=True,
+              help="Default height scaling exponent value")
+@click.option("--default-k-allom", type=float, required=True,
+              help="Default k-allometric value")
+@click.option("--config", "-c", type=click.Path(exists=True), required=True,
+              help="Path to the filter configuration YAML file")
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("l4a_path", type=click.Path(exists=True))
-@click.argument("hse_source", type=click.UNPROCESSED)
-@click.argument("k_allom_source", type=click.UNPROCESSED)
 @click.argument("output_dir", type=click.Path(exists=True))
-@click.option("--config", "-c", type=click.Path(exists=True),
-              help="Path to the filter configuration YAML file.")
-@click.option("--parallel", "-p", is_flag=True, help="Run in parallel mode.")
+@click.option("--hse-path", type=click.Path(exists=True),
+              help="Optional raster file for HSE values")
+@click.option("--k-allom-path", type=click.Path(exists=True),
+              help="Optional raster file for K_allom values")
+@click.option("--parallel/--no-parallel", "-p", default=False,
+              help="Run in parallel mode")
 @click.option(
     "--n_workers",
     "-n",
@@ -149,16 +150,19 @@ def process_beam(
 def main(l1b_path: str,
          l2a_path: str,
          l4a_path: str,
-         hse_source: Union[str, float],
-         k_allom_source: Union[str, float],
+         default_hse: float,
+         default_k_allom: float,
          output_dir: str,
+         hse_path: Optional[str],
+         k_allom_path: Optional[str],
          config: str,
          parallel: bool,
          n_workers: int,
          boundary: Optional[str],
          date_range: Optional[str]) -> None:
     """Process GEDI L1B, L2A, and L4A granules to calculate the Ni-Meister Biomass
-    Index (NMBI) for each footprint in the granules."""
+    Index (NMBI) for each footprint in the granules.
+    """
 
     # Set up output directory and log file
     start_time: datetime = datetime.now()
@@ -268,8 +272,10 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 l4a_path,
-                hse_source,
-                k_allom_source,
+                default_hse,
+                default_k_allom,
+                hse_path,
+                k_allom_path,
                 output_path,
                 processor_kwargs_dict,
                 pickled_filters,
@@ -287,8 +293,10 @@ def main(l1b_path: str,
                 l1b_path,
                 l2a_path,
                 l4a_path,
-                hse_source,
-                k_allom_source,
+                default_hse,
+                default_k_allom,
+                hse_path,
+                k_allom_path,
                 output_path,
                 processor_kwargs_dict,
                 my_filters,
