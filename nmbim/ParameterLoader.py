@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 import math
 
 import rasterio
@@ -41,20 +41,24 @@ class RasterSource(ParameterSource):
             if src.crs.to_epsg() != 4326:
                 raise CRSError("Invalid raster CRS (expected EPSG:4326)")
 
-    def get_value(self, waveform: 'Waveform') -> float:
+
+    def get_value(self, waveform: 'Waveform') -> Optional[float]:
         """Sample raster at waveform location.
         
-        Raises
+        Returns
         ------
-        ValueError
-            If no raster value exists for the waveform's location
+        Optional[float]
+        The raster value at the waveform's location, or None if no valid data exists
         """
         point = waveform.get_data("metadata/point_geom")
         with rasterio.open(self.path) as src:
+            nodata = src.nodata[0] # Assume single band
             value = next(src.sample([(point.x, point.y)]))[0]
-            if math.isnan(value):
-                raise ValueError(f"No raster value found at location {point.x}, {point.y}")
-            return value
+        if value == nodata:
+            return None
+        if isinstance(value, float) and math.isnan(value):
+            return None
+        return value
 
 
 class ScalarSource(ParameterSource):
