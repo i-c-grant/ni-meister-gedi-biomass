@@ -143,6 +143,21 @@ processing_pipeline:
       ground_return: processed/ground_return
     output_path: processed/dp_dz_veg_only
     params: {}
+  # Select final allometric parameters (raster if available, default if not)
+  select_hse:
+    alg_fun: select_parameter
+    input_map:
+      default_value: metadata/parameters/default_hse
+      raster_value: metadata/parameters/raster_hse
+    output_path: metadata/parameters/hse
+    params: {}
+  select_k_allom:
+    alg_fun: select_parameter
+    input_map:
+      default_value: metadata/parameters/default_k_allom
+      raster_value: metadata/parameters/raster_k_allom
+    output_path: metadata/parameters/k_allom
+    params: {}
   # Calculate the biomass index
   calc_biwf:
     alg_fun: calc_biomass_index
