@@ -269,6 +269,10 @@ class Waveform:
             path="raw/l4a",
         )
 
+        # Initialize raster-based parameter values to None
+        self.save_data(data=None, path="metadata/parameters/raster_hse")
+        self.save_data(data=None, path="metadata/parameters/raster_k_allom")
+
     @staticmethod
     def _validate_signature(
         init_args: Dict[str, Any],
