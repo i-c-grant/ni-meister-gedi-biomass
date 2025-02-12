@@ -65,7 +65,8 @@ def write_waveforms(waveforms: WaveformCollection, output_path: str):
     """Write processed waveforms to a GeoPackage file"""
 
     # Columns with results of interest
-    results_cols = {"biwf": "results/biomass_index"}
+    results_cols = {"biwf": "results/biomass_index",
+                    "adj_biwf": "results/adj_biomass_index",}
 
     # Columns that are always present in Waveform metadata
     context_cols = {
