@@ -81,6 +81,9 @@ def write_waveforms(waveforms: WaveformCollection, output_path: str):
         "landsat_treecover": "metadata/landcover/landsat_treecover",
         "hse": "metadata/parameters/hse",
         "k_allom": "metadata/parameters/k_allom",
+        "l1b_file": "metadata/l1b_file",
+        "l2a_file": "metadata/l2a_file",
+        "l4a_file": "metadata/l4a_file",
     }
 
     # Write processed data

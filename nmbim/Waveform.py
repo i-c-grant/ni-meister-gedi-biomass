@@ -53,6 +53,7 @@ class Waveform:
         self.save_data(data=shot_number, path="metadata/shot_number")
 
         if signature == "beams":
+
             # Store beams
             self.l1b_beam = l1b_beam
             self.l2a_beam = l2a_beam
@@ -80,9 +81,6 @@ class Waveform:
             l1b_path = l1b.filename
             l2a_path = l2a.filename
             l4a_path = l4a.filename
-            self.save_data(data=l1b_path, path="metadata/l1b_path")
-            self.save_data(data=l2a_path, path="metadata/l2a_path")
-            self.save_data(data=l4a_path, path="metadata/l4a_path")
 
             # Store beam name
             beam_name_l1b = Waveform._which_beam(shot_number, file=l1b)
@@ -101,6 +99,14 @@ class Waveform:
             self.l1b_beam = Beam(file=l1b, beam=beam_name, cache=False)
             self.l2a_beam = Beam(file=l2a, beam=beam_name, cache=False)
             self.l4a_beam = Beam(file=l4a, beam=beam_name, cache=False)
+
+        # Store filenames
+        self.save_data(data=self.l1b_beam.get_filename(),
+                       path="metadata/l1b_file")
+        self.save_data(data=self.l2a_beam.get_filename(),
+                       path="metadata/l2a_file")
+        self.save_data(data=self.l4a_beam.get_filename(),
+                       path="metadata/l4a_file")
 
         # Store shot index
         l1b_index = self.l1b_beam.where_shot(shot_number)

@@ -100,6 +100,10 @@ class Beam:
         """Returns the path to the file containing the beam data."""
         return self._path
 
+    def get_filename(self) -> str:
+        """Returns the filename of the file containing the beam data."""
+        return self._path.split("/")[-1]
+
     def get_product(self) -> str:
         """Returns the product type of the beam."""
         return self.product
