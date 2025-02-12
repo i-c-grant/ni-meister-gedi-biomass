@@ -6,15 +6,33 @@ from nmbim import Waveform, WaveformPlotter, app_utils, filters, algorithms
 
 
 @click.command()
+@click.option("--default-hse", type=float, required=True,
+              help="Default height scaling exponent value")
+@click.option("--default-k-allom", type=float, required=True,
+              help="Default k-allometric value")
+@click.option("--config", "-c", type=click.Path(exists=True), required=True,
+              help="Path to the configuration YAML file")
 @click.argument("l1b_path", type=click.Path(exists=True))
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("l4a_path", type=click.Path(exists=True))
-@click.option("--config", "-c", type=click.Path(exists=True), required=True,
-              help="Path to the configuration YAML file.")
-def cli(l1b_path, l2a_path, l4a_path, config):
+def cli(l1b_path, l2a_path, l4a_path, default_hse, default_k_allom, config):
     """
     Load L1B, L2A, and L4A files, process the WaveformCollection, and allow
     the user to query shot numbers to plot.
+
+    Args:
+        l1b_path: Path to GEDI L1B granule
+        
+        l2a_path: Path to GEDI L2A granule
+        
+        l4a_path: Path to GEDI L4A granule
+
+    Options:
+        --default-hse: Default height scaling exponent value
+        
+        --default-k-allom: Default k-allometric value
+        
+        --config: Path to configuration YAML file
     """
     # Load configuration
     with open(config, 'r') as config_file:
@@ -121,6 +139,11 @@ def cli(l1b_path, l2a_path, l4a_path, config):
                         shot_number=shot_number,
                     )
 
+                    # Save default parameters as metadata
+                    waveform.save_data(default_hse, "metadata/parameters/default_hse")
+                    waveform.save_data(default_k_allom, "metadata/parameters/default_k_allom")
+                    
+                    # Process the waveform with unmodified config
                     app_utils.process_waveforms(waveform, processor_kwargs_dict)
 
                     # Plot the waveform
