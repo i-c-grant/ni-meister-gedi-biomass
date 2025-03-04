@@ -42,23 +42,25 @@ def find_matching_triplets(l1b_dir: str, l2a_dir: str, l4a_dir: str) -> List[Tup
     
     return triplets
 
-def process_triplet(args: Tuple[str, str, str, str, float, float, str, str, str, str]):
+def process_triplet(args: Tuple[str, str, str, float, float, str, str, str, str, str]):
     """Process a single triplet using process_gedi_granules.py"""
     l1b, l2a, l4a, default_hse, default_k_allom, output_dir, hse_path, k_allom_path, config, boundary = args
     
     cmd = [
         "python", "process_gedi_granules.py",
-        l1b, l2a, l4a,
-        str(default_hse), str(default_k_allom),
-        output_dir,
-        "--hse-path", hse_path if hse_path else "",
-        "--k-allom-path", k_allom_path if k_allom_path else "",
+        "--default-hse", str(default_hse),
+        "--default-k-allom", str(default_k_allom),
         "--config", config,
-        "--boundary", boundary if boundary else ""
+        l1b, l2a, l4a, output_dir
     ]
     
-    # Remove empty optional arguments
-    cmd = [arg for arg in cmd if arg]
+    # Add optional arguments
+    if hse_path:
+        cmd.extend(["--hse-path", hse_path])
+    if k_allom_path:
+        cmd.extend(["--k-allom-path", k_allom_path])
+    if boundary:
+        cmd.extend(["--boundary", boundary])
     
     try:
         subprocess.run(cmd, check=True)
@@ -67,17 +69,24 @@ def process_triplet(args: Tuple[str, str, str, str, float, float, str, str, str,
         raise
 
 @click.command()
+@click.option("--default-hse", type=float, required=True,
+              help="Default height scaling exponent value")
+@click.option("--default-k-allom", type=float, required=True,
+              help="Default k-allometric value")
+@click.option("--config", "-c", type=click.Path(exists=True), required=True,
+              help="Path to configuration YAML file")
 @click.argument("l1b_dir", type=click.Path(exists=True))
 @click.argument("l2a_dir", type=click.Path(exists=True))
 @click.argument("l4a_dir", type=click.Path(exists=True))
-@click.argument("default_hse", type=float)
-@click.argument("default_k_allom", type=float)
 @click.argument("output_dir", type=click.Path(exists=True))
-@click.option("--hse-path", type=click.Path(exists=True), help="Optional raster file for HSE values")
-@click.option("--k-allom-path", type=click.Path(exists=True), help="Optional raster file for K_allom values")
-@click.option("--config", "-c", type=click.Path(exists=True), required=True, help="Path to configuration YAML file")
-@click.option("--boundary", type=click.Path(exists=True), help="Path to boundary file (e.g., .gpkg)")
-@click.option("--n-workers", "-n", default=4, help="Number of parallel workers to use")
+@click.option("--hse-path", type=click.Path(exists=True),
+              help="Optional raster file for HSE values")
+@click.option("--k-allom-path", type=click.Path(exists=True),
+              help="Optional raster file for K_allom values")
+@click.option("--boundary", type=click.Path(exists=True),
+              help="Path to boundary file (e.g., .gpkg)")
+@click.option("--n-workers", "-n", default=4,
+              help="Number of parallel workers to use")
 def main(l1b_dir: str,
          l2a_dir: str,
          l4a_dir: str,
