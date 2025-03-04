@@ -97,10 +97,10 @@ class NestedDict:
             If an intermediate key in the path is not a dictionary.
         """
         normalized_path = path.strip("/")
-        if not overwrite and normalized_path in self._paths:
+        if not overwrite and normalized_path in self._paths and self.get_data(path) is not None:
             raise ValueError(
-                f"Path '{path}' already exists. "
-                f"Overwriting is not allowed."
+                f"There is already data at path '{path}'. "
+                f"Use overwrite=True to replace it."
             )
 
         keys = normalized_path.split("/")
