@@ -52,9 +52,9 @@ class RasterSource(ParameterSource):
         """
         point = waveform.get_data("metadata/point_geom")
         with rasterio.open(self.path) as src:
-            nodata = src.nodata[0] # Assume single band
+            nodata = src.nodata  # Assume single band
             value = next(src.sample([(point.x, point.y)]))[0]
-        if value == nodata:
+        if nodata is not None and value == nodata:
             return None
         if isinstance(value, float) and math.isnan(value):
             return None
@@ -104,5 +104,5 @@ class ParameterLoader:
                 value = source.get_value(wf)
                 wf.save_data(
                     data=value,
-                    path=f"metadata/parameters/{param_name}"
+                    path=f"metadata/parameters/{param_name}",
                 )
