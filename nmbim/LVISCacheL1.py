@@ -96,3 +96,7 @@ class LVISCacheL1:
         if len(indices) == 0:
             raise ValueError(f"Shot number {shot_number} not found in {self.filepath}")
         return indices[0]
+
+    def get_shot_numbers(self) -> ArrayLike:
+        """Return the array of shot numbers from the cached data."""
+        return self.extract_dataset("SHOTNUMBER")
