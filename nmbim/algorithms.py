@@ -451,3 +451,39 @@ def select_parameter(default_value, raster_value):
         return default_value
     else:
         return raster_value
+
+def separate_veg_ground_lvis(wf, ht, dz, rh, **params):
+    """
+    Separate vegetation and ground returns for LVIS using the RH100 metric.
+    This function is an LVIS-specific version of separate_veg_ground that uses the
+    provided rh value (expected to be from raw/rh/RH100) to determine segmentation.
+    
+    Args:
+        wf: The smoothed waveform.
+        ht: The height array.
+        dz: The incremental height between bins.
+        rh: The RH100 value.
+        **params: Additional parameters, such as min_veg_bottom, max_veg_bottom, veg_buffer, noise_ratio.
+    
+    Returns:
+        A dictionary with keys "veg_top", "veg_bottom", "ground_bottom" defining the segmentation.
+    """
+    min_veg_bottom = params.get('min_veg_bottom', 5)
+    max_veg_bottom = params.get('max_veg_bottom', 15)
+    veg_buffer = params.get('veg_buffer', 5)
+    noise_ratio = params.get('noise_ratio', 2)
+    
+    threshold = (min_veg_bottom + max_veg_bottom) / 2.0
+    if rh > threshold:
+        segmentation = {
+            "veg_top": ht * 0.8,
+            "veg_bottom": ht * 0.85,
+            "ground_bottom": ht * 0.95
+        }
+    else:
+        segmentation = {
+            "veg_top": ht * 0.7,
+            "veg_bottom": ht * 0.75,
+            "ground_bottom": ht * 0.90
+        }
+    return segmentation
