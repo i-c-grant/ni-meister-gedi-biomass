@@ -12,20 +12,21 @@ class LVISCacheL2:
             return cls._cache[filepath]
 
         with open(filepath, "r") as f:
-            # Read lines excluding comments that start with '#'
-            lines = [line for line in f if not line.startswith("#")]
+            lines = []
+            header = None
+            for line in f:
+                if not line.startswith("#"):
+                    lines.append(line)
+                elif "LFID" in line:
+                    header = line.lstrip("#").strip().split()
 
-        # Find the header line containing "LFID"
-        header_idx = next((i for i, line in enumerate(lines) if "LFID" in line), None)
-        if header_idx is None:
-            print("Warning: No header line containing 'LFID' found in the L2 file.")
-            cls._cache[filepath] = pd.DataFrame()
-            return cls._cache[filepath]
+            if not header:
+                raise ValueError("Header with 'LFID' not found in file")
 
-        header = lines[header_idx].strip().split()
         header_length = len(header)
         data = []
-        for line in lines[header_idx+1:]:
+        
+        for line in lines:
             row = line.strip().split()
             if len(row) == header_length:
                 data.append(row)
