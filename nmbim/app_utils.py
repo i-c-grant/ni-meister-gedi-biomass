@@ -1,4 +1,4 @@
-############################################################
+###########################################################
 # Top-level functions for processing and writing waveforms #
 ############################################################
 from typing import Dict
@@ -65,16 +65,18 @@ def write_waveforms(waveforms: WaveformCollection, output_path: str):
     """Write processed waveforms to a GeoPackage file"""
 
     # Columns with results of interest
-    results_cols = {"biwf": "results/biomass_index",
-                    "adj_biwf": "results/adj_biomass_index",}
+    results_cols = {
+        "rh_100": "processed/veg_ground_sep/veg_top",
+        "l4_agbd": "raw/l4a/agbd",
+        "l4_agbd_se": "raw/l4a/agbd_se",
+        "biwf": "results/biomass_index",
+        "adj_biwf": "results/adj_biomass_index",
+    }
 
     # Columns that are always present in Waveform metadata
     context_cols = {
         "time": "metadata/time",
-        "rh_100": "processed/veg_ground_sep/veg_top",
         "num_modes": "metadata/modes/num_modes",
-        "l4_agbd": "raw/l4a/agbd",
-        "l4_agbd_se": "raw/l4a/agbd_se",
         "pft": "metadata/landcover/pft",
         "region": "metadata/landcover/region",
         "modis_treecover": "metadata/landcover/modis_treecover",
