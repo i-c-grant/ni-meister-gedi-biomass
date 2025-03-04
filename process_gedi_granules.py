@@ -133,9 +133,9 @@ def process_beam(
 @click.argument("l2a_path", type=click.Path(exists=True))
 @click.argument("l4a_path", type=click.Path(exists=True))
 @click.argument("output_dir", type=click.Path(exists=True))
-@click.option("--hse-path", type=click.Path(exists=True),
+@click.option("--hse-path", type=click.Path(),
               help="Optional raster file for HSE values")
-@click.option("--k-allom-path", type=click.Path(exists=True),
+@click.option("--k-allom-path", type=click.Path(),
               help="Optional raster file for K_allom values")
 @click.option("--parallel/--no-parallel", "-p", default=False,
               help="Run in parallel mode")
