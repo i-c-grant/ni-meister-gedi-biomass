@@ -30,8 +30,8 @@ class LVISWaveform:
     def __init__(
         self,
         shot_number: int,
-        l1_cache: LVISCacheL1,  # The cache object itself
-        l2_cache: LVISCacheL2,  # The cache object itself
+        l1_cache: LVISCacheL1,  
+        l2_cache: LVISCacheL2,  
         immutable: bool = True,
     ) -> None:
         """Initializes the LVISWaveform object with a shot number and cache objects.
