@@ -1,0 +1,117 @@
+############################################################
+# Configuration file for NMBIM LVIS waveform processing     #
+############################################################
+
+filters: {}
+
+processing_pipeline:
+  # Calculate height array using z0 and z1023 for top and bottom coordinates.
+  height:
+    alg_fun: calc_height
+    input_map:
+      wf: raw/rx_wave
+      elev_top: metadata/coords_top/z
+      elev_bottom: metadata/coords_bottom/z
+      elev_ground: raw/elev/ground
+    output_path: processed/ht
+    params: {}
+
+  # Compute the incremental height (dz) between bins.
+  calc_dz:
+    alg_fun: calc_dz
+    input_map:
+      ht: processed/ht
+    output_path: processed/dz
+    params: {}
+
+  # Remove the signal mean from the raw waveform.
+  remove_signal_mean:
+    alg_fun: remove_noise
+    input_map:
+      wf: raw/rx_wave
+      mean_noise: raw/mean_noise
+    output_path: processed/wf_noise_removed
+    params: {}
+
+  # Smooth the noise‐removed waveform.
+  smooth:
+    alg_fun: smooth_waveform
+    input_map:
+      wf: processed/wf_noise_removed
+    output_path: processed/wf_smoothed
+    params:
+      sd: 8
+
+  # Normalize the smoothed waveform so that dp/dz is computed on a normalized signal.
+  normalize:
+    alg_fun: normalize_waveform
+    input_map:
+      wf: processed/wf_smoothed
+    output_path: processed/wf_norm
+    params: {}
+
+  # Segment the waveform to separate vegetation and ground returns for LVIS using RH100.
+  segment:
+    alg_fun: separate_veg_ground_lvis
+    input_map:
+      wf: processed/wf_smoothed
+      ht: processed/ht
+      dz: processed/dz
+      rh: raw/rh/RH100          # we can pass RH100 directly in LVIS version
+    output_path: processed/veg_ground_sep
+    params:
+      min_veg_bottom: 5
+      max_veg_bottom: 15
+      veg_buffer: 5
+      noise_ratio: 2
+
+  # Calculate the derivative dp/dz using the normalized waveform.
+  calc_dp_dz:
+    alg_fun: calc_dp_dz
+    input_map:
+      wf: processed/wf_norm
+      dz: processed/dz
+    output_path: processed/dp_dz
+    params: {}
+
+  # Generate a synthetic ground return using dp/dz and segmented ground.
+  ground_return:
+    alg_fun: create_ground_return
+    input_map:
+      wf: processed/dp_dz
+      ht: processed/ht
+      ground_return_max_height: processed/veg_ground_sep/ground_bottom
+    output_path: processed/ground_return
+    params:
+      sd_ratio: 0.25
+
+  # Remove the synthetic ground return to isolate vegetation.
+  isolate_veg:
+    alg_fun: isolate_vegetation
+    input_map:
+      wf: processed/dp_dz
+      ht: processed/ht
+      veg_top: processed/veg_ground_sep/veg_top
+      ground_return: processed/ground_return
+    output_path: processed/dp_dz_veg_only
+    params: {}
+
+  # Normalize the smoothed waveform.
+  normalize:
+    alg_fun: normalize_waveform
+    input_map:
+      wf: processed/wf_smoothed
+    output_path: processed/wf_norm
+    params: {}
+
+  # Calculate the biomass index using dp_dz from the vegetation-only waveform, dz, height
+  # and the default hse parameter.
+  calc_biomass_index:
+    alg_fun: calc_biomass_index
+    input_map:
+      dp_dz: processed/dp_dz_veg_only
+      dz: processed/dz
+      ht: processed/ht
+      hse: metadata/parameters/default_hse
+    output_path: results/biomass_index
+    params: {}

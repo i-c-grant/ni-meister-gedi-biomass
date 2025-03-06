@@ -134,7 +134,7 @@ class WaveformWriter:
 
             # Write header if file is empty
             if csv_file.tell() == 0:
-                header = ["shot_number", "beam"] + list(
+                header = ["shot_number", "lfid"] + list(
                     self._waveform_data.keys()
                 )
                 writer.writerow(header)
@@ -145,12 +145,12 @@ class WaveformWriter:
 
                 # Get metadata for current waveform
                 shot_number: str = str(wf.get_data("metadata/shot_number"))
-                beam: str = wf.get_data("metadata/beam")
+                lfid: str = wf.get_data("metadata/lfid")
 
                 # Construct and write data rows for current waveform
                 wf_data: dict = self._waveform_data
                 for i in range(self._n_rows):
-                    row = [shot_number, beam] + [
+                    row = [shot_number, lfid] + [
                         col_data[i] for col_data in wf_data.values()
                     ]
                     writer.writerow(row)
@@ -165,15 +165,14 @@ class WaveformWriter:
         while wf is not None:
             self._validate_row_lengths()
             shot_number = str(wf.get_data("metadata/shot_number"))
-            beam = wf.get_data("metadata/beam")
+            lfid = wf.get_data("metadata/lfid")
             lon = wf.get_data("metadata/coords/lon")
             lat = wf.get_data("metadata/coords/lat")
-
             for i in range(self._n_rows):
                 geometry = Point(lon, lat)
                 row = {
                     "shot_number": shot_number,
-                    "beam": beam,
+                    "lfid": lfid,
                     **{
                         col_name: self._waveform_data[col_name][i]
                         for col_name in self._waveform_data

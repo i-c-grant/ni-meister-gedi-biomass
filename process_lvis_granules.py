@@ -45,10 +45,11 @@ def load_config(config_path: str) -> Dict[str, Any]:
 @click.option("--k-allom-path", type=click.Path(), help="Optional raster file for K_allom values")
 @click.option("--boundary", type=click.Path(exists=True), help="Path to boundary file (e.g., .gpkg)")
 @click.option("--date_range", help="Date range in format 'YYYY-MM-DDTHH:MM:SSZ,YYYY-MM-DDTHH:MM:SSZ'")
+@click.option("--max_shots", type=int, help="Maximum number of shots to process")
 def main(lvis_l1_path: str, lvis_l2_path: str, output_dir: str,
          default_hse: float, default_k_allom: float,
          config: str, hse_path: Optional[str], k_allom_path: Optional[str],
-         boundary: Optional[str], date_range: Optional[str]) -> None:
+         boundary: Optional[str], date_range: Optional[str], max_shots: Optional[int]) -> None:
     """
     Process LVIS L1 and L2 granules to calculate parameters for each LVIS footprint.
     Constructs a WaveformCollection from LVISWaveform objects.
@@ -95,22 +96,19 @@ def main(lvis_l1_path: str, lvis_l2_path: str, output_dir: str,
         log_and_print("No shot numbers found in LVIS L1 data.")
         return
     log_and_print(f"{len(shot_numbers)} shots found in LVIS L1 data.")
+    if max_shots is not None:
+        shot_numbers = shot_numbers[:max_shots]
     
-    # Construct LVISWaveform objects and apply filters
+    # Construct LVISWaveform objects with progress bar, skipping filtering entirely
     waveforms = []
-    for shot in shot_numbers:
-        try:
-            wf = LVISWaveform(shot, l1_cache, l2_cache)
-            include = True
-            for filt in my_filters.values():
-                if filt is not None and not filt(wf):
-                    include = False
-                    break
-            if include:
+    with click.progressbar(shot_numbers, label="Processing shots") as bar:
+        for shot in bar:
+            try:
+                wf = LVISWaveform(shot, l1_cache, l2_cache)
                 waveforms.append(wf)
-        except Exception as e:
-            logging.error(f"Error processing shot {shot}: {e}")
-            continue
+            except Exception as e:
+                logging.error(f"Error processing shot {shot}: {e}")
+                continue
     log_and_print(f"{len(waveforms)} waveforms selected after filtering.")
     
     # Build a WaveformCollection from LVISWaveform objects

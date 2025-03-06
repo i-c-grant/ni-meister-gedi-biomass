@@ -259,7 +259,7 @@ def separate_veg_ground(
     wf: ArrayLike,
     ht: ArrayLike,
     dz: float,
-    rh: ArrayLike,
+    rh: Union[ArrayLike, float],
     min_veg_bottom: float,
     max_veg_bottom: float,
     veg_buffer: float,
@@ -293,8 +293,13 @@ def separate_veg_ground(
     and values giving the corresponding heights within the waveform.
     """
 
+    if isinstance(rh, (list, np.ndarray)):
+        rh_100 = rh[100]
+    else:
+        rh_100 = rh
+
     # Get index of first vegetation return (top of canopy)
-    veg_first_idx = np.argmax(ht <= rh[100])
+    veg_first_idx = np.argmax(ht <= rh_100)
 
     # Get index of ground return
     min_height = np.min(np.absolute(ht))
@@ -359,12 +364,89 @@ def separate_veg_ground(
     ans = {
         "ground_top": ht[first_ground_idx],
         "ground_bottom": ht[last_ground_idx],
-        "veg_top": rh[100] + veg_buffer,
+        "veg_top": rh_100 + veg_buffer,
         "veg_bottom": ht[veg_last_idx],
     }
 
     return ans
 
+
+def separate_veg_ground_lvis(
+    wf: ArrayLike,
+    ht: ArrayLike,
+    dz: float,
+    rh: Union[ArrayLike, float],
+    min_veg_bottom: float,
+    max_veg_bottom: float,
+    veg_buffer: float,
+    noise_ratio: float,
+) -> Dict:
+    """
+    Calculate indices of waveform returns corresponding to ground and vegetation for LVIS data.
+    This version allows 'rh' to be either an ArrayLike (in which case rh[100] is used) or a float.
+    """
+    # Get index of first vegetation return (top of canopy)
+    if isinstance(rh, (list, tuple, np.ndarray)):
+        rh_100 = rh[100]
+    else:
+        rh_100 = rh
+    veg_first_idx = np.argmax(ht <= rh_100)
+
+    # Get index of ground return
+    min_height = np.min(np.absolute(ht))
+    ground_idx = np.where(np.absolute(ht) == min_height)[0][0]
+
+    # Calculate waveform's noise level from part of waveform above vegetation
+    wf_above_veg = wf[0:veg_first_idx]
+    noise = np.std(wf_above_veg) * noise_ratio
+
+    # Find indices below first ground return that are below noise level
+    below_ground_noise_idxs = np.where(wf[ground_idx:] < noise)[0]
+
+    if len(below_ground_noise_idxs) == 0:
+        wf_above_ground = wf[: ground_idx - 1]
+        noise = np.std(wf_above_ground) * noise_ratio
+        below_ground_noise_idxs = np.where(wf[ground_idx:] < noise)[0]
+        if len(below_ground_noise_idxs) == 0:
+            warnings.warn(
+                f"No returns below noise level {noise} found below ground return"
+            )
+            below_ground_noise_idxs = np.where((ht[ground_idx:] > -5) & (ht[ground_idx:] < 0))[0]
+
+    ground_offset = np.min(below_ground_noise_idxs)
+    last_ground_idx = min(ground_idx + ground_offset, len(wf) - 1)
+    first_ground_idx = max(ground_idx - ground_offset, 0)
+
+    last_veg_height = -ht[last_ground_idx]
+    if last_veg_height < min_veg_bottom:
+        last_veg_height = min_veg_bottom
+    elif last_veg_height > max_veg_bottom:
+        last_veg_height = max_veg_bottom
+
+    veg_indices = np.where(ht >= last_veg_height)[0]
+    if len(veg_indices) > 0:
+        veg_last_idx = min(np.max(veg_indices), len(wf) - 1)
+    else:
+        warnings.warn(
+            f"No returns found above last vegetation height {last_veg_height}, using lowest positive height return as vegetation bottom."
+        )
+        positive_indices = np.where(ht > 0)[0]
+        if len(positive_indices) > 0:
+            veg_last_idx = np.min(positive_indices)
+        else:
+            warnings.warn(
+                f"No positive height returns found. Using ground index as vegetation bottom."
+            )
+            veg_last_idx = ground_idx
+
+    ans = {
+        "ground_top": ht[first_ground_idx],
+        "ground_bottom": ht[last_ground_idx],
+        "veg_top": rh_100 + veg_buffer,
+        "veg_bottom": ht[veg_last_idx],
+    }
+
+    return ans
 
 def isolate_vegetation(
     wf: ArrayLike, ht: ArrayLike, veg_top: float, ground_return: ArrayLike
@@ -452,38 +534,3 @@ def select_parameter(default_value, raster_value):
     else:
         return raster_value
 
-def separate_veg_ground_lvis(wf, ht, dz, rh, **params):
-    """
-    Separate vegetation and ground returns for LVIS using the RH100 metric.
-    This function is an LVIS-specific version of separate_veg_ground that uses the
-    provided rh value (expected to be from raw/rh/RH100) to determine segmentation.
-    
-    Args:
-        wf: The smoothed waveform.
-        ht: The height array.
-        dz: The incremental height between bins.
-        rh: The RH100 value.
-        **params: Additional parameters, such as min_veg_bottom, max_veg_bottom, veg_buffer, noise_ratio.
-    
-    Returns:
-        A dictionary with keys "veg_top", "veg_bottom", "ground_bottom" defining the segmentation.
-    """
-    min_veg_bottom = params.get('min_veg_bottom', 5)
-    max_veg_bottom = params.get('max_veg_bottom', 15)
-    veg_buffer = params.get('veg_buffer', 5)
-    noise_ratio = params.get('noise_ratio', 2)
-    
-    threshold = (min_veg_bottom + max_veg_bottom) / 2.0
-    if rh > threshold:
-        segmentation = {
-            "veg_top": ht * 0.8,
-            "veg_bottom": ht * 0.85,
-            "ground_bottom": ht * 0.95
-        }
-    else:
-        segmentation = {
-            "veg_top": ht * 0.7,
-            "veg_bottom": ht * 0.75,
-            "ground_bottom": ht * 0.90
-        }
-    return segmentation

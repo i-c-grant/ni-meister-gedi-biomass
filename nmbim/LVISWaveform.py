@@ -101,7 +101,7 @@ class LVISWaveform:
         
         # Simply store TIME as a number
         time_seconds = l1_cache.extract_value("TIME", shot_index)
-        self.save_data(data=time_seconds, path="metadata/time_seconds")
+        self.save_data(data=time_seconds, path="metadata/time")
 
         # Store beam geometry
         self.save_data(data=l1_cache.extract_value("AZIMUTH", shot_index), path="metadata/azimuth")

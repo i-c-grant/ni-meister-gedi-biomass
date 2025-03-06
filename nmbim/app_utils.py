@@ -64,29 +64,18 @@ def process_waveforms(
 def write_waveforms(waveforms: WaveformCollection, output_path: str):
     """Write processed waveforms to a GeoPackage file"""
 
-    # Columns with results of interest
+    # Columns with results of interest from LVIS
     results_cols = {
         "rh_100": "processed/veg_ground_sep/veg_top",
-        "l4_agbd": "raw/l4a/agbd",
-        "l4_agbd_se": "raw/l4a/agbd_se",
         "biwf": "results/biomass_index",
-        "adj_biwf": "results/adj_biomass_index",
     }
-
+    
     # Columns that are always present in Waveform metadata
     context_cols = {
         "time": "metadata/time",
-        "num_modes": "metadata/modes/num_modes",
-        "pft": "metadata/landcover/pft",
-        "region": "metadata/landcover/region",
-        "modis_treecover": "metadata/landcover/modis_treecover",
-        "modis_nonvegetated": "metadata/landcover/modis_nonvegetated",
-        "landsat_treecover": "metadata/landcover/landsat_treecover",
-        "hse": "metadata/parameters/hse",
-        "k_allom": "metadata/parameters/k_allom",
-        "l1b_file": "metadata/l1b_file",
-        "l2a_file": "metadata/l2a_file",
-        "l4a_file": "metadata/l4a_file",
+        "hse": "metadata/parameters/default_hse",
+        "shot_number": "metadata/shot_number",
+        "lfid": "metadata/lfid"
     }
 
     # Write processed data
