@@ -172,7 +172,7 @@ def truncate_waveform(
 
 
 def calc_biomass_index(
-        dp_dz: ArrayLike, dz: float, ht: ArrayLike, hse: float, n_modes: int
+        dp_dz: ArrayLike, dz: float, ht: ArrayLike, hse: float
 ) -> float:
     """
     Calculate a simple biomass index for a waveform. Sum of height raised to the HSE weighted by waveform returns.
