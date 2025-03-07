@@ -101,7 +101,7 @@ def main(lvis_l1_path: str, lvis_l2_path: str, output_dir: str,
     
     # Construct LVISWaveform objects with progress bar, skipping filtering entirely
     waveforms = []
-    with click.progressbar(shot_numbers, label="Processing shots") as bar:
+    with click.progressbar(shot_numbers, label="Loading waveforms") as bar:
         for shot in bar:
             try:
                 wf = LVISWaveform(shot, l1_cache, l2_cache)
