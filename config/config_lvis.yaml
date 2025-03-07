@@ -40,7 +40,7 @@ processing_pipeline:
       wf: processed/wf_noise_removed
     output_path: processed/wf_smoothed
     params:
-      sd: 8
+      sd: 5
 
   # Normalize the smoothed waveform so that dp/dz is computed on a normalized signal.
   normalize:
