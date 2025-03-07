@@ -19,9 +19,10 @@ def process_pair(args: Tuple[str, str, float, float, str, str, str, str, int, st
         "--default-hse", str(default_hse),
         "--default-k-allom", str(default_k_allom),
         "--config", config,
-        "--max_shots", str(max_shots),
-        lvis_l1, lvis_l2, output_dir
     ]
+    if max_shots is not None:
+        cmd.extend(["--max_shots", str(max_shots)])
+    cmd.extend([lvis_l1, lvis_l2, output_dir])
     
     # Add optional arguments
     if hse_path:

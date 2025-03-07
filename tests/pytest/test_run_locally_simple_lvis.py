@@ -40,3 +40,22 @@ def test_run_locally_simple_lvis_system(lvis_output_dir):
     output_files = os.listdir(lvis_output_dir)
     gpkg_files = [fname for fname in output_files if fname.endswith(".gpkg")]
     assert len(gpkg_files) > 0, "No output .gpkg file found in output directory"
+
+def test_run_locally_simple_lvis_no_max_shots(lvis_output_dir):
+    real_lvis_dir = "tests/data/lvis"
+    config_path = os.path.join("config", "config_lvis.yaml")
+    
+    runner = CliRunner()
+    result = runner.invoke(run_locally_simple_lvis.main, [
+        "--default-hse", "1.0",
+        "--default-k-allom", "2.0",
+        "--config", config_path,
+        real_lvis_dir,
+        lvis_output_dir
+    ], catch_exceptions=False)
+    
+    assert result.exit_code == 0, f"Command failed: {result.output}"
+    
+    output_files = os.listdir(lvis_output_dir)
+    gpkg_files = [fname for fname in output_files if fname.endswith(".gpkg")]
+    assert len(gpkg_files) > 0, "No output .gpkg file found in output directory"
