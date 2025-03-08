@@ -28,6 +28,7 @@ def calc_dz(ht: ArrayLike) -> float:
     return ht[0] - ht[1]
 
 
+
 def scale_raw_wf(
     wf_raw: ArrayLike, wf_smooth: ArrayLike, dz: float
 ) -> ArrayLike:
@@ -114,7 +115,10 @@ def create_ground_return(
         return height.
     """
 
-    ground_index = np.where(np.abs(ht) == np.min(np.abs(ht)))
+    ground_index = np.where(np.abs(ht) == np.min(np.abs(ht)))[0]
+    if len(ground_index) > 1:
+        warnings.warn(f"{len(ground_index)} ground returns found, using first.")
+        ground_index = ground_index[0]
     ground_peak = wf[ground_index]
 
     # Initialize new array of same length as wf
