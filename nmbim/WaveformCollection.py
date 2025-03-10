@@ -44,6 +44,7 @@ class WaveformCollection:
         filters: Union[Filter, List[Filter]] = None,
         cache_beams: bool = True,
         beams=None,
+        max_waveforms: Optional[int] = None,
     ):
         """Initialize from HDF5 files"""
         """
@@ -78,6 +79,7 @@ class WaveformCollection:
         # If no beams are specified, process all beams
         if beams is None:
             beams: List[str] = [key for key in l1b.keys() if key != "METADATA"]
+        collected = 0
 
         # Construct waveforms for each beam, caching a beam at a time
         for beam_name in beams:
@@ -120,7 +122,12 @@ class WaveformCollection:
                 new_wf = Waveform(**waveform_args)
                 if self.filter_waveform(new_wf):
                     self.add_waveform(new_wf)
+                    collected += 1
+                    if max_waveforms is not None and collected >= max_waveforms:
+                        break
 
+            if max_waveforms is not None and collected >= max_waveforms:
+                break
             if len(self) == 0:
                 warnings.warn(
                     f"No waveforms were added to the collection "

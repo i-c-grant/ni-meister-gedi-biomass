@@ -57,6 +57,7 @@ def process_beam(
     output_path: str,
     processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
+    max_waveforms: Optional[int] = None,
 ) -> None:
     # Unpickle the filters if necessary
     if isinstance(filters, bytes):
@@ -74,6 +75,7 @@ def process_beam(
                 cache_beams=True,
                 beams=[beam],
                 filters=filters.values(),
+                max_waveforms=max_waveforms,
             )
     except IOError as e:
         logging.error(f"Error opening HDF5 files: {e}")
@@ -137,6 +139,7 @@ def process_beam(
               help="Optional raster file for HSE values")
 @click.option("--k-allom-path", type=click.Path(),
               help="Optional raster file for K_allom values")
+@click.option("--max-waveforms", type=int, default=None, help="Maximum number of waveforms to process.")
 @click.option("--parallel/--no-parallel", "-p", default=False,
               help="Run in parallel mode")
 @click.option(
@@ -159,7 +162,8 @@ def main(l1b_path: str,
          parallel: bool,
          n_workers: int,
          boundary: Optional[str],
-         date_range: Optional[str]) -> None:
+         date_range: Optional[str],
+         max_waveforms: Optional[int]) -> None:
     """Process GEDI L1B, L2A, and L4A granules to calculate the Ni-Meister Biomass
     Index (NMBI) for each footprint in the granules.
     """
@@ -279,6 +283,7 @@ def main(l1b_path: str,
                 output_path,
                 processor_kwargs_dict,
                 pickled_filters,
+                max_waveforms,
             )
             for beam in beams
         ]
@@ -300,6 +305,7 @@ def main(l1b_path: str,
                 output_path,
                 processor_kwargs_dict,
                 my_filters,
+                max_waveforms,
             )
 
     click.echo(f"Output written to {output_path}")
