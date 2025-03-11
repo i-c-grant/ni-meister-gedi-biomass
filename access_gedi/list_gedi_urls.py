@@ -39,11 +39,11 @@ def get_cmr_granules(
     Returns:
         List of granule URLs
     """
-    # Map product to collection names
-    collection_map = {
-        "l1b": "GEDI01_B",
-        "l2a": "GEDI02_A",
-        "l4a": "GEDI_L4A_AGB_Density_V2_1_2056"
+    # Map product to collection concept IDs
+    concept_map = {
+        "l1b": "C1234567890-NSIDC",
+        "l2a": "C0987654321-NSIDC",
+        "l4a": "C1122334455-NSIDC"
     }
     
     # Get bounding box from boundary
@@ -52,8 +52,8 @@ def get_cmr_granules(
     # Create GranuleQuery
     api = GranuleQuery()
     
-    # Set collection and spatial filter
-    api.short_name(collection_map[product])
+    # Set collection using concept ID and spatial filter
+    api.concept_id(concept_map[product])
     api.bounding_box(*bbox)
     
     # Set temporal filter if provided
