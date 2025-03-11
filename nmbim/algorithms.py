@@ -447,7 +447,4 @@ def select_parameter(default_value, raster_value):
     """
     Selects the final parameter value from the raster value or the default value.
     """
-    if not isinstance(raster_value, (int, float)):
-        return default_value
-    else:
-        return raster_value
+    return raster_value if raster_value else default_value
