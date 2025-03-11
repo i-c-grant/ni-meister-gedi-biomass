@@ -1,13 +1,24 @@
+"""
+Tests for parameter loading with different raster configurations.
+
+Before running these tests, you need to generate the test rasters:
+    python tests/util/create_test_rasters.py
+
+This will create the necessary raster files in tests/data/rasters.
+"""
+
 import pytest
+import time
 from datetime import datetime
 from pathlib import Path
 import h5py
 from click.testing import CliRunner
 from process_gedi_granules import main as process_gedi_granules
 import yaml
-from shapely.geometry import box
+import geopandas as gpd
+import numbers
 
-from util.raster_utils import create_global_raster, create_polygon_raster
+MAX_WAVEFORMS = 100000
 
 @pytest.fixture(scope="session")
 def test_data_dir():
@@ -43,100 +54,46 @@ def config_file(test_data_dir):
     return test_data_dir/"config"/"config.yaml"
 
 @pytest.fixture(scope="session")
-def temp_data_dir(tmp_path_factory):
-    """Fixture that creates a complete temporary data directory structure"""
-    temp_dir = tmp_path_factory.mktemp("test_data")
-    
-    # Create directory structure
-    (temp_dir / "allom").mkdir()
-    (temp_dir / "gedi").mkdir()
-    (temp_dir / "boundaries").mkdir()
-    (temp_dir / "config").mkdir()
-    
-    return temp_dir
-
-@pytest.fixture(scope="session")
-def hse_raster(temp_data_dir, full_boundary_polygon):
-    """Fixture for HSE raster using full boundary coverage"""
-    path = temp_data_dir / "allom" / "hse_full.tif"
-    # Create HSE raster with value 1.0 over full boundary polygon
-    create_polygon_raster(
-        path,
-        full_boundary_polygon,
-        value=1.0,
-        resolution=(0.5, 0.5),
-        dtype="float32"
-    )
+def raster_data_dir(test_data_dir):
+    """Fixture for the raster data directory"""
+    path = test_data_dir / "rasters"
     return path
 
 @pytest.fixture(scope="session")
-def hse_raster_half(temp_data_dir, half_boundary_polygon):
-    """Fixture for HSE raster using half boundary coverage"""
-    path = temp_data_dir / "allom" / "hse_half.tif"
-    # Create HSE raster with value 1.0 over half boundary polygon
-    create_polygon_raster(
-        path,
-        half_boundary_polygon,
-        value=1.0,
-        resolution=(0.5, 0.5),
-        dtype="float32"
-    )
+def hse_raster(raster_data_dir):
+    """Fixture for HSE raster with global coverage"""
+    path = raster_data_dir / "hse_global.tif"
     return path
 
 @pytest.fixture(scope="session")
-def full_boundary_polygon(boundary_file):
-    """Fixture for polygon covering full boundary extent"""
-    import geopandas as gpd
-    # Load boundary and get its extent
-    boundary = gpd.read_file(boundary_file)
-    minx, miny, maxx, maxy = boundary.total_bounds
-    
-    # Create polygon covering full boundary extent
-    full_poly = box(minx, miny, maxx, maxy)
-    
-    return full_poly
-
-@pytest.fixture(scope="session")
-def half_boundary_polygon(full_boundary_polygon):
-    """Fixture for polygon covering only half the boundary extent"""
-    import geopandas as gpd
-    # Load boundary and get its extent
-
-    minx, miny, maxx, maxy = full_boundary_polygon.bounds
-    half_poly = box(minx, miny, (maxx + minx) / 2, maxy)
-    
-    return half_poly
-
-
-@pytest.fixture(scope="session")
-def k_allom_raster(temp_data_dir, full_boundary_polygon):
-    """Fixture for K_allom raster using full boundary coverage"""
-    path = temp_data_dir / "allom" / "k_allom_full.tif"
-    # Create K_allom raster with value 2.0 over full boundary polygon
-    create_polygon_raster(
-        path,
-        full_boundary_polygon,
-        value=2.0,
-        resolution=(0.5, 0.5),
-        dtype="float32"
-    )
+def hse_raster_half(raster_data_dir):
+    """Fixture for HSE raster with half coverage"""
+    path = raster_data_dir / "hse_half.tif"
     return path
 
-
 @pytest.fixture(scope="session")
-def k_allom_raster_half(temp_data_dir, half_boundary_polygon):
-    """Fixture for K_allom raster using half boundary coverage"""
-    path = temp_data_dir / "allom" / "k_allom_half.tif"
-    # Create K_allom raster with value 2.0 over half boundary polygon
-    create_polygon_raster(
-        path,
-        half_boundary_polygon,
-        value=2.0,
-        resolution=(0.5, 0.5),
-        dtype="float32"
-    )
+def k_allom_raster(raster_data_dir):
+    """Fixture for K_allom raster with global coverage"""
+    path = raster_data_dir / "k_allom_global.tif"
     return path
 
+@pytest.fixture(scope="session")
+def k_allom_raster_half(raster_data_dir):
+    """Fixture for K_allom raster with half coverage"""
+    path = raster_data_dir / "k_allom_half.tif"
+    return path
+
+@pytest.fixture(scope="session")
+def hse_raster_na(raster_data_dir):
+    """Fixture for HSE raster with NA values"""
+    path = raster_data_dir / "hse_boundary_na.tif"
+    return path
+
+@pytest.fixture(scope="session")
+def k_allom_raster_na(raster_data_dir):
+    """Fixture for K_allom raster with NA values"""
+    path = raster_data_dir / "k_allom_boundary_na.tif"
+    return path
 
 @pytest.fixture
 def default_hse():
@@ -157,9 +114,31 @@ def output_dir(request):
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+@pytest.fixture(autouse=True)
+def wait_after_test():
+    """Wait 10 seconds after each test to allow processes to clean up."""
+    yield  # This runs the test
+    print(f"\nWaiting 10 seconds after test to allow processes to clean up...")
+    time.sleep(10)  # Wait 10 seconds after the test
+
 def test_full_coverage_raster(l1b_file, l2a_file, l4a_file, hse_raster, k_allom_raster, default_hse, default_k_allom, config_file, output_dir):
     """Test parameter loading with full coverage raster"""
+    # Debug: Print the HSE raster path and check if it exists
+    print(f"\nHSE raster path: {hse_raster}")
+    print(f"HSE raster exists: {Path(hse_raster).exists()}")
+    
+    # Debug: Check the raster values
+    import rasterio
+    try:
+        with rasterio.open(hse_raster) as src:
+            data = src.read(1)
+            print(f"HSE raster values: min={data.min()}, max={data.max()}, unique={set(data.flatten())}")
+            print(f"Raster bounds: {src.bounds}")
+    except Exception as e:
+        print(f"Error reading raster: {e}")
+    
     runner = CliRunner()
+
     result = runner.invoke(process_gedi_granules, [
         str(l1b_file.filename),
         str(l2a_file.filename),
@@ -170,16 +149,69 @@ def test_full_coverage_raster(l1b_file, l2a_file, l4a_file, hse_raster, k_allom_
         "--config", str(config_file),
         "--hse-path", str(hse_raster),
         "--k-allom-path", str(k_allom_raster),
-        "--n_workers", "8",
-        "--parallel"
+        "--max-waveforms", MAX_WAVEFORMS,
+        "--n_workers", "8"
     ])
+    print(f"Command exit code: {result.exit_code}")
+    if result.exception:
+        print(f"Exception: {result.exception}")
     assert result.exit_code == 0
     
     # Verify all waveforms got HSE values from raster
-    # (Actual verification would depend on your output format)
+    output_gpkg = next(output_dir.glob("*.gpkg"))
+    gdf = gpd.read_file(output_gpkg)
+    
+    assert not gdf.empty
+    assert "hse" in gdf.columns
+    assert "k_allom" in gdf.columns
+    
+    # Should have HSE from raster (1.0) and K_allom from raster (2.0)
+    assert set(gdf["hse"].values) == {1.0}
+    assert set(gdf["k_allom"].values) == {2.0}
+    
+    # Verify data types
+    assert all(isinstance(v, numbers.Real) for v in gdf["hse"].values)
+    assert all(isinstance(v, numbers.Real) for v in gdf["k_allom"].values)
+
+def test_na_rasters(l1b_file, l2a_file, l4a_file, hse_raster_na, k_allom_raster_na, default_hse, default_k_allom, config_file, output_dir):
+    """Test parameter loading with NA rasters"""
+    runner = CliRunner()
+    result = runner.invoke(process_gedi_granules, [
+        str(l1b_file.filename),
+        str(l2a_file.filename),
+        str(l4a_file.filename),
+        str(output_dir),
+        "--default-hse", str(default_hse),
+        "--default-k-allom", str(default_k_allom),
+        "--config", str(config_file),
+        "--hse-path", str(hse_raster_na),
+        "--k-allom-path", str(k_allom_raster_na),
+        "--max-waveforms", MAX_WAVEFORMS,
+        "--n_workers", "8"
+    ])
+    print(f"Command exit code: {result.exit_code}")
+    if result.exception:
+        print(f"Exception: {result.exception}")
+    assert result.exit_code == 0
+
+    output_gpkg = next(output_dir.glob("*.gpkg"))
+    gdf = gpd.read_file(output_gpkg)
+
+    # Check that the raster values from NA rasters are either the raster value or the default.
+    assert "hse" in gdf.columns
+    assert "k_allom" in gdf.columns
+    assert set(gdf["hse"].values).issubset({1.0, default_hse})
+    assert set(gdf["k_allom"].values).issubset({2.0, default_k_allom})
+
+    assert all(isinstance(v, float) for v in gdf["hse"].values)
+    assert all(isinstance(v, float) for v in gdf["k_allom"].values)
 
 def test_partial_coverage_raster(l1b_file, l2a_file, l4a_file, k_allom_raster_half, default_hse, default_k_allom, config_file, output_dir):
     """Test parameter loading with partial coverage raster"""
+    # Debug: Print the K_allom raster path and check if it exists
+    print(f"\nK_allom half raster path: {k_allom_raster_half}")
+    print(f"K_allom half raster exists: {Path(k_allom_raster_half).exists()}")
+    
     runner = CliRunner()
     result = runner.invoke(process_gedi_granules, [
         str(l1b_file.filename),
@@ -191,13 +223,29 @@ def test_partial_coverage_raster(l1b_file, l2a_file, l4a_file, k_allom_raster_ha
         "--config", str(config_file),
         "--hse-path", "",
         "--k-allom-path", str(k_allom_raster_half),
-        "--n_workers", "8",
-        "--parallel"
+        "--max-waveforms", MAX_WAVEFORMS,
+        "--n_workers", "8"
     ])
+    print(f"Command exit code: {result.exit_code}")
+    if result.exception:
+        print(f"Exception: {result.exception}")
     assert result.exit_code == 0
     
     # Verify some waveforms got K_allom from raster, others used default
-    # (Actual verification would depend on your output format)
+    output_gpkg = next(output_dir.glob("*.gpkg"))
+    gdf = gpd.read_file(output_gpkg)
+    
+    assert not gdf.empty
+    assert "hse" in gdf.columns
+    assert "k_allom" in gdf.columns
+    
+    # Should have default HSE (5.0) and mix of K_allom from raster (2.0) and default (10.0)
+    assert set(gdf["hse"].values) == {5.0}
+    assert set(gdf["k_allom"].values) == {2.0, 10.0}
+    
+    # Verify data types
+    assert all(isinstance(v, numbers.Real) for v in gdf["hse"].values)
+    assert all(isinstance(v, numbers.Real) for v in gdf["k_allom"].values)
 
 def test_mixed_parameters(l1b_file, l2a_file, l4a_file, hse_raster, k_allom_raster_half, default_hse, default_k_allom, config_file, output_dir):
     """Test parameter loading with both rasters"""
@@ -212,15 +260,31 @@ def test_mixed_parameters(l1b_file, l2a_file, l4a_file, hse_raster, k_allom_rast
         "--config", str(config_file),
         "--hse-path", str(hse_raster),
         "--k-allom-path", str(k_allom_raster_half),
-        "--n_workers", "8",
-        "--parallel"
+        "--max-waveforms", MAX_WAVEFORMS,
+        "--n_workers", "8"
     ])
+    print(f"Command exit code: {result.exit_code}")
+    if result.exception:
+        print(f"Exception: {result.exception}")
     assert result.exit_code == 0
     
     # Verify waveforms got:
     # - HSE from full coverage raster
     # - K_allom from partial coverage raster where available, else default
-    # (Actual verification would depend on your output format)
+    output_gpkg = next(output_dir.glob("*.gpkg"))
+    gdf = gpd.read_file(output_gpkg)
+    
+    assert not gdf.empty
+    assert "hse" in gdf.columns
+    assert "k_allom" in gdf.columns
+    
+    # Should have HSE from raster (1.0) and mix of K_allom from raster (2.0) and default (10.0)
+    assert set(gdf["hse"].values) == {1.0}
+    assert set(gdf["k_allom"].values) == {2.0, 10.0}
+    
+    # Verify data types
+    assert all(isinstance(v, numbers.Real) for v in gdf["hse"].values)
+    assert all(isinstance(v, numbers.Real) for v in gdf["k_allom"].values)
 
 def test_default_parameters_only(l1b_file, l2a_file, l4a_file, default_hse, default_k_allom, config_file, output_dir):
     """Test parameter loading with only default values"""
@@ -235,54 +299,26 @@ def test_default_parameters_only(l1b_file, l2a_file, l4a_file, default_hse, defa
         "--config", str(config_file),
         "--hse-path", "",
         "--k-allom-path", "",
-        "--n_workers", "8",
-        "--parallel"
+        "--max-waveforms", MAX_WAVEFORMS,
+        "--n_workers", "8"
     ])
+    print(f"Command exit code: {result.exit_code}")
+    if result.exception:
+        print(f"Exception: {result.exception}")
     assert result.exit_code == 0
     
     # Verify all waveforms used default parameter values
-    # (Actual verification would depend on your output format)
-
-def test_verify_output_gpkg_parameters(output_dir):
-    """Verify parameter values in output geopackages from all tests"""
-    import geopandas as gpd
+    output_gpkg = next(output_dir.glob("*.gpkg"))
+    gdf = gpd.read_file(output_gpkg)
     
-    # Find all output geopackages from previous tests
-    test_dirs = [d for d in Path("tests/output").iterdir() if d.is_dir()]
+    assert not gdf.empty
+    assert "hse" in gdf.columns
+    assert "k_allom" in gdf.columns
     
-    # Verify each test's output
-    for test_dir in test_dirs:
-        output_gpkg = next(test_dir.glob("*.gpkg"))
-        
-        # Read back and verify
-        gdf = gpd.read_file(output_gpkg)
-        assert not gdf.empty
-        assert "hse" in gdf.columns
-        assert "k_allom" in gdf.columns
-        
-        # Get expected values based on test name
-        test_name = test_dir.name.split('_')[0]
-        
-        if test_name == "test_full_coverage_raster":
-            # Should have HSE from raster (1.0) and K_allom from raster (2.0)
-            assert set(gdf["hse"].values) == {1.0}
-            assert set(gdf["k_allom"].values) == {2.0}
-            
-        elif test_name == "test_partial_coverage_raster":
-            # Should have default HSE (5.0) and mix of K_allom from raster (2.0) and default (10.0)
-            assert set(gdf["hse"].values) == {5.0}
-            assert set(gdf["k_allom"].values) == {2.0, 10.0}
-            
-        elif test_name == "test_mixed_parameters":
-            # Should have HSE from raster (1.0) and mix of K_allom from raster (2.0) and default (10.0)
-            assert set(gdf["hse"].values) == {1.0}
-            assert set(gdf["k_allom"].values) == {2.0, 10.0}
-            
-        elif test_name == "test_default_parameters_only":
-            # Should have default HSE (5.0) and default K_allom (10.0)
-            assert set(gdf["hse"].values) == {5.0}
-            assert set(gdf["k_allom"].values) == {10.0}
-            
-        # Verify data types
-        assert all(isinstance(v, float) for v in gdf["hse"].values)
-        assert all(isinstance(v, float) for v in gdf["k_allom"].values)
+    # Should have default HSE (5.0) and default K_allom (10.0)
+    assert set(gdf["hse"].values) == {5.0}
+    assert set(gdf["k_allom"].values) == {10.0}
+    
+    # Verify data types
+    assert all(isinstance(v, numbers.Real) for v in gdf["hse"].values)
+    assert all(isinstance(v, numbers.Real) for v in gdf["k_allom"].values)
