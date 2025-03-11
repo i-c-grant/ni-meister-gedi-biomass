@@ -12,9 +12,9 @@ logfile="output/output.log"
 exec > >(tee -i "$logfile") 2>&1
 
 # Check if required arguments are provided
-if [ $# -lt 3 ]; then
-    echo "Error: L1B, L2A, and L4A names are required!"
-    echo "Usage: $0 <L1B_name> <L2A_name> <L4A_name> [date_range]"
+if [ $# -lt 5 ]; then
+    echo "Error: L1B, L2A, L4A names, default HSE, and default k_allom are required!"
+    echo "Usage: $0 <L1B_name> <L2A_name> <L4A_name> <default_hse> <default_k_allom> [date_range]"
     exit 1
 fi
 
@@ -22,7 +22,9 @@ fi
 L1B_name="$1"
 L2A_name="$2"
 L4A_name="$3"
-date_range="${4:-}"  # Optional 4th argument for date range
+default_hse="$4"
+default_k_allom="$5"
+date_range="${6:-}"  # Optional 6th argument for date range
 
 # print parsed arguments
 echo "L1B name: $L1B_name"
@@ -117,39 +119,36 @@ if [ $(echo "$config_path" | wc -l) -gt 1 ]; then
 	exit 1
 fi
 
-# Find the HSE raster, which is named 'hse.tif' and may be a symlink
+# Find optional HSE raster if present
 hse_path=$(find input \( \
-	-type f -name '*hse.tif' -o \
-	-type l -lname '*hse.tif' \))
+    -type f -name '*hse.tif' -o \
+    -type l -lname '*hse.tif' \))
 
-# Check if unique HSE raster was found
-if [ -z "$hse_path" ]; then
-	echo "Error: No HSE raster found!"
-	exit 1
+if [ -n "$hse_path" ]; then
+    if [ $(echo "$hse_path" | wc -l) -gt 1 ]; then
+        echo "Warning: Multiple HSE files found:"
+        echo "$hse_path"
+        exit 1
+    fi
+    echo "Using HSE raster: $hse_path"
+else
+    echo "Using default HSE value: $default_hse"
 fi
 
-if [ $(echo "$hse_path" | wc -l) -gt 1 ]; then
-    echo "Warning: Multiple HSE files found:"
-    echo "$hse_path"
-    exit 1
-fi
-
-# Find the k_allom raster, which is named 'k_allom.tif'
-# and may be a symlink    
+# Find optional k_allom raster if present
 k_allom_path=$(find input \( \
-	-type f -name '*k_allom.tif' -o \
-	-type l -lname '*k_allom.tif' \))
+    -type f -name '*k_allom.tif' -o \
+    -type l -lname '*k_allom.tif' \))
 
-# Check if unique k_allom raster was found
-if [ -z "$k_allom_path" ]; then
-	echo "Error: No k_allom raster found!"
-	exit 1
-fi
-
-if [ $(echo "$k_allom_path" | wc -l) -gt 1 ]; then
-    echo "Warning: Multiple k_allom files found:"
-    echo "$k_allom_path"
-    exit 1
+if [ -n "$k_allom_path" ]; then
+    if [ $(echo "$k_allom_path" | wc -l) -gt 1 ]; then
+        echo "Warning: Multiple k_allom files found:"
+        echo "$k_allom_path"
+        exit 1
+    fi
+    echo "Using k_allom raster: $k_allom_path"
+else
+    echo "Using default k_allom value: $default_k_allom"
 fi
 
 # Print the identified paths
@@ -183,12 +182,20 @@ cmd=(
     "${L1B_path}"
     "${L2A_path}"
     "${L4A_path}"
-    "${hse_path}"
-    "${k_allom_path}"
+    "--default-hse" "${default_hse}"
+    "--default-k-allom" "${default_k_allom}"
     "output"
-    "--config"
-    "${config_path}"
+    "--config" "${config_path}"
 )
+
+# Add optional parameters if present
+if [ -n "$hse_path" ]; then
+    cmd+=("--hse-path" "${hse_path}")
+fi
+
+if [ -n "$k_allom_path" ]; then
+    cmd+=("--k-allom-path" "${k_allom_path}")
+fi
 
 if [ -n "$date_range" ]; then
     cmd+=("--date_range" "$date_range")
@@ -211,4 +218,3 @@ fi
 
 # Exit with the exit code from cmd
 exit $cmd_exit_code
-
