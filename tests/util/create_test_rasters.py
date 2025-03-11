@@ -1,128 +1,77 @@
-import numpy as np
-import rasterio
+#!/usr/bin/env python3
+"""
+Script to create test rasters for GEDI parameter testing.
+This creates fixed test assets that can be used by pytest.
+"""
+
+import argparse
 from pathlib import Path
-from typing import Optional, Tuple
-from shapely.geometry import Polygon
+from typing import Optional
+from raster_utils import create_global_raster, halve_raster, create_boundary_raster, create_random_na_raster
+import rasterio
 
-def create_global_raster(
-    output_path: Path,
-    value: float,
-    dtype: str = "float32",
-    nodata: Optional[float] = None
-) -> None:
-    """Create a single-cell global coverage raster with given value.
-    
-    Args:
-        output_path: Path to save the raster
-        value: Value to fill the raster with
-        dtype: Data type for the raster
-        nodata: No data value (optional)
-    """
-    with rasterio.open(
-        output_path,
-        "w",
-        driver="GTiff",
-        height=1,
-        width=1,
-        count=1,
-        dtype=dtype,
-        crs="EPSG:4326",
-        transform=rasterio.Affine(360.0, 0.0, -180.0, 0.0, -180.0, 90.0),
-        nodata=nodata
-    ) as dst:
-        dst.write(np.array([[value]]), 1)
 
-def create_polygon_raster(
-    output_path: Path,
-    polygon: Polygon,
-    value: float,
-    resolution: Tuple[float, float] = (1.0, 1.0),
-    dtype: str = "float32",
-    nodata: Optional[float] = None
-) -> None:
-    """Create a raster covering a polygon with given resolution and value.
+def main():
+    """Create test rasters for GEDI parameter testing."""
+    parser = argparse.ArgumentParser(description="Create test rasters for GEDI parameter testing")
+    parser.add_argument("--output-dir", type=str, default="tests/data/rasters",
+                        help="Directory to save test rasters")
+    parser.add_argument("--resolution", type=float, default=0.005,
+                        help="Resolution in degrees")
+    args = parser.parse_args()
     
-    Args:
-        output_path: Path to save the raster
-        polygon: Shapely polygon defining the area
-        value: Value to fill the raster with
-        resolution: Tuple of (x_resolution, y_resolution) in degrees
-        dtype: Data type for the raster
-        nodata: No data value (optional)
-    """
-    bounds = polygon.bounds
-    width = int((bounds[2] - bounds[0]) / resolution[0])
-    height = int((bounds[3] - bounds[1]) / resolution[1])
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
-    transform = rasterio.transform.from_origin(
-        west=bounds[0],
-        north=bounds[3],
-        xsize=resolution[0],
-        ysize=resolution[1]
+    # Create test rasters
+    create_global_raster(
+        output_dir / "hse_global.tif",
+        value=1.0,
+        resolution=args.resolution
     )
     
-    # Create mask from polygon
-    data = np.full((int(height), int(width)), value, dtype=dtype)
+    create_global_raster(
+        output_dir / "k_allom_global.tif",
+        value=2.0,
+        resolution=args.resolution
+    )
     
-    with rasterio.open(
-        output_path,
-        "w",
-        driver="GTiff",
-        height=height,
-        width=width,
-        count=1,
-        dtype=dtype,
-        crs="EPSG:4326",
-        transform=transform,
-        nodata=nodata
-    ) as dst:
-        dst.write(data, 1)
-
-def add_random_nodata(
-    raster_path: Path,
-    proportion: float,
-    nodata_value: float = np.nan
-) -> None:
-    """Randomly set proportion of cells to nodata.
     
-    Args:
-        raster_path: Path to existing raster
-        proportion: Proportion of cells to set to nodata (0.0-1.0)
-        nodata_value: Value to use for nodata
-    """
-    with rasterio.open(raster_path, 'r+') as dst:
-        data = dst.read(1)
-        mask = np.random.random(data.shape) < proportion
-        data[mask] = nodata_value
-        dst.write(data, 1)
+    # Create boundary-based rasters
+    boundary_path = Path("/home/ian/projects/ni-meister-gedi-biomass-global/tests/data/boundaries/test_boundary.gpkg")
+    
+    create_boundary_raster(
+        output_dir / "hse_boundary.tif",
+        value=1.0,
+        resolution=args.resolution,
+        boundary_path=boundary_path
+    )
+    
+    create_boundary_raster(
+        output_dir / "k_allom_boundary.tif",
+        value=2.0,
+        resolution=args.resolution,
+        boundary_path=boundary_path
+    )
+    
+    halve_raster(output_dir / "hse_boundary.tif", output_dir / "hse_half.tif")
+    halve_raster(output_dir / "k_allom_boundary.tif", output_dir / "k_allom_half.tif")
+    
+    # Create NA versions from the boundary rasters
+    create_random_na_raster(
+        output_dir / "hse_boundary.tif",
+        output_dir / "hse_boundary_na.tif",
+        na_probability=0.5
+    )
+    
+    create_random_na_raster(
+        output_dir / "k_allom_boundary.tif",
+        output_dir / "k_allom_boundary_na.tif",
+        na_probability=0.5
+    )
+    
+    print(f"Created all test rasters in {output_dir}")
+    print("To use these rasters in tests, make sure they're in the tests/data/rasters directory")
 
 if __name__ == "__main__":
-    # Create in tests/input directory
-    output_dir = Path(__file__).parent/"input"
-    output_dir.mkdir(exist_ok=True)
-    
-    # Create all test rasters
-    nan_raster_path = output_dir/"nan_raster.tif"
-    create_global_raster(nan_raster_path, np.nan, dtype="float64")
-    print(f"Created NaN raster at: {nan_raster_path}")
-    
-    hse_raster_path = output_dir/"hse.tif"
-    create_global_raster(hse_raster_path, 1.0)
-    print(f"Created HSE raster at: {hse_raster_path}")
-    
-    k_allom_raster_path = output_dir/"k_allom.tif"
-    create_global_raster(k_allom_raster_path, 2.0)
-    print(f"Created K_allom raster at: {k_allom_raster_path}")
-    
-    # Example usage of new functions:
-    from shapely.geometry import box
-    
-    # Create a polygon raster
-    polygon = box(-10, -10, 10, 10)  # 20x20 degree box
-    poly_raster = output_dir/"polygon_raster.tif"
-    create_polygon_raster(poly_raster, polygon, 5.0, resolution=(0.5, 0.5))
-    print(f"Created polygon raster at: {poly_raster}")
-    
-    # Add random nodata
-    add_random_nodata(poly_raster, 0.2)  # 20% nodata
-    print(f"Added random nodata to polygon raster")
+    main()
