@@ -360,10 +360,7 @@ class Waveform:
         for key in file.keys():
             if key[0:4] == "BEAM":
                 beam = key
-                try:
-                    shot_numbers = file[beam]["shot_number"]
-                except:
-                    breakpoint()
+                shot_numbers = file[beam]["shot_number"]
                 if shot_number in shot_numbers:
                     return beam
         return None
