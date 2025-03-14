@@ -344,9 +344,13 @@ def main(username: str,
             "config": config,  # Pass S3 URL directly
             "default_hse": default_hse,
             "default_k_allom": default_k_allom,
-            "hse_path": hse_path if hse_path else "",
-            "k_allom_path": k_allom_path if k_allom_path else "",
         }
+
+        # Only add raster parameters if they exist
+        if hse_path:
+            job_kwargs["hse_raster"] = hse_path
+        if k_allom_path:
+            job_kwargs["k_allom_raster"] = k_allom_path
 
         if boundary:
             job_kwargs['boundary'] = boundary  # Pass S3 URL directly
