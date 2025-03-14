@@ -35,7 +35,7 @@ import shutil
 import time
 import warnings
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import click
 import geopandas as gpd
@@ -88,7 +88,7 @@ def s3_url_to_local_path(s3_url: str) -> str:
     Args:
         s3_url: S3 URL starting with s3://maap-ops-workspace/
         
-    Returns:
+    returns:
         Local filesystem path
     """
     if not s3_url.startswith("s3://maap-ops-workspace/"):
@@ -153,36 +153,45 @@ def update_job_states(job_states: Dict[str, str],
               help=("Path or URL to a shapefile or GeoPackage containing "
                     "a boundary polygon. Note: should be accessible "
                     "to MAAP DPS workers."))
-@click.option("--date_range", "-d", type=str,
+@click.option("--date-range", "-d", type=str,
               help=("Date range for granule search. "
                     "See <https://cmr.earthdata.nasa.gov/search/site/"
                     "docs/search/api.html#temporal-range-searches> "
                     "for valid formats."))
 @click.option("--config", "-c", type=str, required=True,
               help="Path to the configuration YAML file. Filename must be 'config.yaml' or 'config.yml'.")
-@click.option("--hse", type=str, required=True,
-              help="Path to HSE raster file or numeric value.")
-@click.option("--k_allom", type=str, required=True,
-              help="Path to k_allom raster file or numeric value.")
-@click.option("--algo_id", "-a", type=str, required=True,
+@click.option("--default-hse", type=float, required=True,
+              help="Default height scaling exponent value")
+@click.option("--default-k-allom", type=float, required=True,
+              help="Default k-allometric value")
+@click.option("--hse-path", type=str,
+              help="Optional path to HSE raster file")
+@click.option("--k-allom-path", type=str,
+              help="Optional path to k_allom raster file")
+@click.option("--algo-id", "-a", type=str, required=True,
               help="Algorithm ID to run.")
-@click.option("--algo_version", "-v", type=str, required=True,
+@click.option("--algo-version", "-v", type=str, required=True,
               help="Algorithm version to run.")
-@click.option("--job_limit", "-j", type=int,
+@click.option("--job-limit", "-j", type=int,
               help="Limit the number of jobs submitted.")
-@click.option("--check_interval", "-i", type=int, default=120,
+@click.option("--check-interval", "-i", type=int, default=120,
               help="Time interval (in seconds) between job status checks.")
+@click.option("--max-waveforms", type=int,
+              help="Maximum number of waveforms to process per granule.")
 def main(username: str,
          tag: str,
          boundary: str,
          date_range: str,
-         job_limit: int,
-         check_interval: int,
          config: str,
-         hse: str,
-         k_allom: str,
+         default_hse: float,
+         default_k_allom: float,
+         hse_path: Optional[str],
+         k_allom_path: Optional[str],
          algo_id: str,
-         algo_version: str):
+         algo_version: str,
+         job_limit: Optional[int],
+         check_interval: int,
+         max_waveforms: Optional[int] = None):
 
     start_time = datetime.datetime.now()
 
@@ -315,6 +324,12 @@ def main(username: str,
     log_and_print(f"Submitting {n_jobs} "
                   f"jobs.")
 
+    # Validate parameter combinations
+    if hse_path and not os.path.exists(s3_url_to_local_path(hse_path)):
+        raise ValueError(f"HSE raster path not found: {hse_path}")
+    if k_allom_path and not os.path.exists(s3_url_to_local_path(k_allom_path)):
+        raise ValueError(f"k_allom raster path not found: {k_allom_path}")
+
     job_kwargs_list = []
     for matched in matched_granules:
         job_kwargs = {
@@ -327,15 +342,18 @@ def main(username: str,
             "L2A": extract_s3_url_from_granule(matched['l2a']),
             "L4A": extract_s3_url_from_granule(matched['l4a']),
             "config": config,  # Pass S3 URL directly
-            "hse": hse,  # Pass S3 URL or numeric value directly
-            "k_allom": k_allom  # Pass S3 URL or numeric value directly
+            "default_hse": default_hse,
+            "default_k_allom": default_k_allom,
+            "hse_path": hse_path if hse_path else "",
+            "k_allom_path": k_allom_path if k_allom_path else "",
         }
 
         if boundary:
             job_kwargs['boundary'] = boundary  # Pass S3 URL directly
 
         if date_range:
-            job_kwargs['date_range'] = date_range
+            job_kwargs['date-range'] = date_range
+            
 
         job_kwargs_list.append(job_kwargs)
 

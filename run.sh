@@ -182,9 +182,9 @@ cmd=(
     "${L1B_path}"
     "${L2A_path}"
     "${L4A_path}"
+    "output"
     "--default-hse" "${default_hse}"
     "--default-k-allom" "${default_k_allom}"
-    "output"
     "--config" "${config_path}"
 )
 
@@ -198,7 +198,7 @@ if [ -n "$k_allom_path" ]; then
 fi
 
 if [ -n "$date_range" ]; then
-    cmd+=("--date_range" "$date_range")
+    cmd+=("--date-range" "$date_range")
 fi
 
 if [ -n "$boundary_path" ]; then
