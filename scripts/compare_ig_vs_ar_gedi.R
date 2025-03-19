@@ -56,7 +56,7 @@ for (key in common_keys) {
   
   # Create scatterplot using ggplot2
   p <- ggplot(merged_df, aes(x = `BIWF (IG estimate)`, y = `BIWF (AR estimate)`)) +
-    geom_point() +
+    geom_point(size = .5, alpha = .3) +
     geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
     ggtitle(paste("Scatterplot for key:", key)) +
     xlab("BIWF (IG estimate)") +
