@@ -47,6 +47,7 @@ for (key in common_keys) {
   names(gpkg_df)[names(gpkg_df) == "biwf"] <- "BIWF (IG estimate)"
   
   # Merge on shot_number (assumes both files contain a column named 'shot_number')
+  browser()
   merged_df <- merge(csv_df, gpkg_df, by = "shot_number")
   
   if (nrow(merged_df) == 0) {
