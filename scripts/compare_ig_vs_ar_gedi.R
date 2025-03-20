@@ -1,5 +1,6 @@
 library(sf)
 library(ggplot2)
+library(tidyverse)
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 3) {
@@ -37,17 +38,17 @@ for (key in common_keys) {
   csv_file  <- csv_files[which(csv_keys == key)[1]]
   gpkg_file <- gpkg_files[which(gpkg_keys == key)[1]]
   
-  # Read CSV and rename 'biwf' column
-  csv_df <- read.csv(csv_file, stringsAsFactors = FALSE)
-  names(csv_df)[names(csv_df) == "biwf"] <- "BIWF (AR estimate)"
+  csv_df <- read_csv(csv_file, col_types = cols(shot_number = col_character()))
+  csv_df <- as_tibble(csv_df)
+  csv_df <- dplyr::rename(csv_df, `BIWF (AR estimate)` = biwf)
   
-  # Read GPKG (using sf) and drop geometry if not required; rename 'biwf'
   gpkg_df <- st_read(gpkg_file, quiet = TRUE)
   gpkg_df <- st_drop_geometry(gpkg_df)
-  names(gpkg_df)[names(gpkg_df) == "biwf"] <- "BIWF (IG estimate)"
+  gpkg_df <- as_tibble(gpkg_df)
+  gpkg_df <- dplyr::mutate(gpkg_df, shot_number = as.character(shot_number))
+  gpkg_df <- dplyr::rename(gpkg_df, `BIWF (IG estimate)` = biwf)
   
   # Merge on shot_number (assumes both files contain a column named 'shot_number')
-  browser()
   merged_df <- merge(csv_df, gpkg_df, by = "shot_number")
   
   if (nrow(merged_df) == 0) {
