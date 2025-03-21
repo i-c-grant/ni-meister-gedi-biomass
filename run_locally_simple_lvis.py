@@ -83,8 +83,8 @@ def main(lvis_dir: str,
     logging.getLogger().setLevel(logging.INFO)
     
     # Recursively search for LVIS1B (.h5) and LVIS2 (.txt) files in the directory
-    lvis_l1_files = sorted([f for f in Path(lvis_dir).rglob("*.h5") if "LVIS1B" in f.name])
-    lvis_l2_files = sorted([f for f in Path(lvis_dir).rglob("*.[tT][xX][tT]") if "LVIS2" in f.name])
+    lvis_l1_files = sorted([f for f in Path(lvis_dir).rglob("*.h5") if ("LVIS1B" in f.name or "LVISC1B" in f.name)])
+    lvis_l2_files = sorted([f for f in Path(lvis_dir).rglob("*.[tT][xX][tT]") if ("LVIS2" in f.name or "LVISC2" in f.name)])
 
     # Verify equal lengths
     if len(lvis_l1_files) != len(lvis_l2_files):
