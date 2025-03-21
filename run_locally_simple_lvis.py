@@ -85,10 +85,8 @@ def main(lvis_dir: str,
     # Recursively search for LVIS1B (.h5) and LVIS2 (.txt) files in the directory
     lvis_l1_files = sorted([f for f in Path(lvis_dir).rglob("*.h5") if ("LVIS1B" in f.name or "LVISC1B" in f.name)])
     lvis_l2_files = sorted([f for f in Path(lvis_dir).rglob("*.[tT][xX][tT]") if ("LVIS2" in f.name or "LVISC2" in f.name)])
+    logging.info(f"Found {len(lvis_l1_files)} LVIS1B files and {len(lvis_l2_files)} LVIS2 files")
 
-    # Verify equal lengths
-    if len(lvis_l1_files) != len(lvis_l2_files):
-        raise click.ClickException("Directories must contain equal numbers of LVIS1B and LVIS2 files")
     
     logging.info(f"Found {len(lvis_l1_files)} file pairs")
     
@@ -108,7 +106,7 @@ def main(lvis_dir: str,
                 continue
         args_list.append((str(l1), str(l2), default_hse, default_k_allom, output_dir, hse_path, k_allom_path, config, max_shots, boundary))
     
-    # Process pairs in parallel
+    logging.info(f"Processing {len(args_list)} file pairs")
     with Pool(n_workers) as pool:
         pool.map(process_pair, args_list)
     
