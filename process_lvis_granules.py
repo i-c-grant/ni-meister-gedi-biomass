@@ -46,14 +46,21 @@ def load_config(config_path: str) -> Dict[str, Any]:
 @click.option("--boundary", type=click.Path(exists=True), help="Path to boundary file (e.g., .gpkg)")
 @click.option("--date_range", help="Date range in format 'YYYY-MM-DDTHH:MM:SSZ,YYYY-MM-DDTHH:MM:SSZ'")
 @click.option("--max_shots", type=int, help="Maximum number of shots to process")
+# Add profiling flag
+@click.option("--profile", is_flag=True, help="Enable profiling")
 def main(lvis_l1_path: str, lvis_l2_path: str, output_dir: str,
          default_hse: float, default_k_allom: float,
          config: str, hse_path: Optional[str], k_allom_path: Optional[str],
-         boundary: Optional[str], date_range: Optional[str], max_shots: Optional[int]) -> None:
+         boundary: Optional[str], date_range: Optional[str], max_shots: Optional[int], profile: bool) -> None:
     """
     Process LVIS L1 and L2 granules to calculate parameters for each LVIS footprint.
     Constructs a WaveformCollection from LVISWaveform objects.
     """
+    if profile:
+        import cProfile
+        profiler = cProfile.Profile()
+        profiler.enable()
+
     start_time = datetime.now()
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -135,6 +142,13 @@ def main(lvis_l1_path: str, lvis_l2_path: str, output_dir: str,
     # Write outputs
     app_utils.write_waveforms(collection, str(output_path))
     log_and_print(f"Output written to {output_path}")
+
+    if profile:
+        profiler.disable()
+        # Create a unique profile filename based on the lvis_l1_path stem
+        profile_path = Path(output_dir) / f"profile_{Path(lvis_l1_path).stem}.prof"
+        profiler.dump_stats(str(profile_path))
+        logging.info(f"Profiling data saved to {profile_path}")
 
     finish_time = datetime.now()
     logging.info(f"Run completed at {finish_time.strftime('%Y-%m-%d %H:%M:%S')}")

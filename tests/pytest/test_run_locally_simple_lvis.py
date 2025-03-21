@@ -32,6 +32,7 @@ def test_run_locally_simple_lvis_system(lvis_output_dir):
         "--config", config_path,
         "--max_shots", "1000",
         "--n-workers", "1",
+        "--profile",
         real_lvis_dir,
         lvis_output_dir
     ], catch_exceptions=False)
@@ -41,6 +42,10 @@ def test_run_locally_simple_lvis_system(lvis_output_dir):
     output_files = os.listdir(lvis_output_dir)
     gpkg_files = [fname for fname in output_files if fname.endswith(".gpkg")]
     assert len(gpkg_files) > 0, "No output .gpkg file found in output directory"
+    
+    # Check for the existence of the profile file
+    profile_files = [fname for fname in output_files if fname.startswith("profile_") and fname.endswith(".prof")]
+    assert len(profile_files) > 0, "No profile file found in output directory"
     
     
 def test_run_locally_simple_lvis_skip_existing(lvis_output_dir):

@@ -7,24 +7,23 @@ import os
 from pathlib import Path
 from multiprocessing import Pool
 import subprocess
-from typing import Tuple
+from typing import Tuple, Optional
 import logging
 import click
 
-def process_pair(args: Tuple[str, str, float, float, str, str, str, str, int, str]):
+def process_pair(args: Tuple[str, str, float, float, str, str, str, str, Optional[int], str, bool]):
     """Process a single pair using process_lvis_granules.py"""
-    lvis_l1, lvis_l2, default_hse, default_k_allom, output_dir, hse_path, k_allom_path, config, max_shots, boundary = args
+    lvis_l1, lvis_l2, default_hse, default_k_allom, output_dir, hse_path, k_allom_path, config, max_shots, boundary, profile = args
 
+    # Construct command with required arguments
     cmd = [
         "python", "process_lvis_granules.py",
+        lvis_l1, lvis_l2, output_dir,
         "--default-hse", str(default_hse),
         "--default-k-allom", str(default_k_allom),
         "--config", config,
     ]
-    if max_shots is not None:
-        cmd.extend(["--max_shots", str(max_shots)])
-    cmd.extend([lvis_l1, lvis_l2, output_dir])
-    
+
     # Add optional arguments
     if hse_path:
         cmd.extend(["--hse-path", hse_path])
@@ -32,7 +31,11 @@ def process_pair(args: Tuple[str, str, float, float, str, str, str, str, int, st
         cmd.extend(["--k-allom-path", k_allom_path])
     if boundary:
         cmd.extend(["--boundary", boundary])
-    
+    if max_shots is not None:
+        cmd.extend(["--max_shots", str(max_shots)])
+    if profile:
+        cmd.append("--profile")
+
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
@@ -59,6 +62,7 @@ def process_pair(args: Tuple[str, str, float, float, str, str, str, str, int, st
               help="Number of parallel workers to use")
 @click.option("--skip-existing", is_flag=True,
               help="Skip file pairs if an output with a matching key already exists")
+@click.option("--profile", is_flag=True, help="Enable profiling in process_lvis_granules")
 def main(lvis_dir: str,
          output_dir: str,
          default_hse: float,
@@ -69,7 +73,8 @@ def main(lvis_dir: str,
          max_shots: int,
          boundary: str,
          n_workers: int,
-         skip_existing: bool):
+         skip_existing: bool,
+         profile: bool):
     """Process matching LVIS file pairs in parallel."""
     
     # Ensure output directory exists and set up file logging to run.log
@@ -104,7 +109,7 @@ def main(lvis_dir: str,
             if key in existing_keys:
                 logging.info(f"Skipping pair: {l1.name}, {l2.name} (file corresponding to {key} already in output directory)")
                 continue
-        args_list.append((str(l1), str(l2), default_hse, default_k_allom, output_dir, hse_path, k_allom_path, config, max_shots, boundary))
+        args_list.append((str(l1), str(l2), default_hse, default_k_allom, output_dir, hse_path, k_allom_path, config, max_shots, boundary, profile))
     
     logging.info(f"Processing {len(args_list)} file pairs")
     with Pool(n_workers) as pool:
