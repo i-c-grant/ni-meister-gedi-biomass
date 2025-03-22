@@ -30,30 +30,78 @@ class LVISCacheL2:
             if not header:
                 raise ValueError("Header with 'LFID' not found in file")
 
-        # Step 2: Build DataFrame
+        # Step 2: Build DataFrame with only required columns
+        required_columns = {"LFID", "SHOTNUMBER", "RH50", "RH75", "RH90", "RH95", "RH100", "ZG", "ZH", "ZT"}
+        
+        # Find indices of required columns in header
+        col_indices = []
+        present_columns = []
+        for idx, col in enumerate(header):
+            if col.upper() in required_columns:
+                col_indices.append(idx)
+                present_columns.append(col)
+        
+        missing = required_columns - set(col.upper() for col in present_columns)
+        if missing:
+            print(f"Warning: Missing required columns in {self.filepath}: {missing}")
+
+        # Build data with only required columns
         data = []
         for line in lines:
             row = line.strip().split()
-            if len(row) == len(header):
-                data.append(row)
-            else:
+            if len(row) != len(header):
                 print(f"Warning: Skipping malformed row: {line}")
+                continue
+                
+            # Only keep columns we need
+            filtered_row = [row[i] for i in col_indices]
+            data.append(filtered_row)
         
-        df = pd.DataFrame(data, columns=header)
+        # Create DataFrame with explicit schema
+        dtype_map = {
+            "LFID": "Int64",
+            "SHOTNUMBER": "Int64",
+            "RH50": "float32",
+            "RH75": "float32", 
+            "RH90": "float32",
+            "RH95": "float32",
+            "RH100": "float32",
+            "ZG": "float32",
+            "ZH": "float32",
+            "ZT": "float32"
+        }
         
-        # Step 3: Precompute column names and index
-        self.lfid_col = next(c for c in df.columns if c.upper() == "LFID")
-        self.shot_col = next(c for c in df.columns if c.upper() == "SHOTNUMBER")
+        # Convert data to appropriate types during DataFrame creation
+        typed_data = []
+        for row in data:
+            typed_row = []
+            for val, col in zip(row, present_columns):
+                col_upper = col.upper()
+                if col_upper in ("LFID", "SHOTNUMBER"):
+                    typed_row.append(int(val) if val.isdigit() else None)
+                else:
+                    typed_row.append(float(val) if self._is_float(val) else None)
+            typed_data.append(typed_row)
         
-        # Convert numeric columns and set index
-        for col in df.columns:
-            try:
-                df[col] = pd.to_numeric(df[col])
-            except Exception:
-                pass
+        # Create DataFrame with enforced types
+        df = pd.DataFrame(typed_data, columns=present_columns).astype(dtype_map)
         
+        # Set index
+        self.lfid_col = "LFID" if "LFID" in df.columns else df.columns[0]
+        self.shot_col = "SHOTNUMBER" if "SHOTNUMBER" in df.columns else df.columns[1]
         df = df.set_index([self.lfid_col, self.shot_col])
         self._cache = df
+
+    def _is_float(self, val: str) -> bool:
+        """Helper method to check if a string can be converted to float."""
+        try:
+            float(val)
+            return True
+        except ValueError:
+            return False
+
+    def get_max_index(self) -> int:
+        return self.max_index
 
     def extract_value(self, lfid: int, shot_number: int, field: str) -> Any:
         """Get value from cached DataFrame using precomputed index."""
