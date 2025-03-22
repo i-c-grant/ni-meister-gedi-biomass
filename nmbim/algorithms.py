@@ -97,6 +97,7 @@ def create_ground_return(
 ) -> ArrayLike:
     """
     Create a synthetic ground return for a waveform using a Gaussian centered at the ground return.
+    Vectorized version for improved performance.
 
     Parameters
     ----------
@@ -114,26 +115,19 @@ def create_ground_return(
         Standard deviation of the Gaussian as a ratio of the ground
         return height.
     """
-
-    ground_index = np.where(np.abs(ht) == np.min(np.abs(ht)))[0]
-    if len(ground_index) > 1:
-        warnings.warn(f"{len(ground_index)} ground returns found, using first.")
+    ground_index = np.argmin(np.abs(ht))
+    if isinstance(ground_index, np.ndarray):  # Handle multiple minima
         ground_index = ground_index[0]
+        warnings.warn(f"{len(ground_index)} ground returns found, using first.")
     ground_peak = wf[ground_index]
 
-    # Initialize new array of same length as wf
-    ground_wf = np.zeros_like(wf)
-
-    # Define standard deviation for Gaussian
+    # Vectorized Gaussian calculation
     sigma = ground_return_max_height * sd_ratio
-
-    # Assign values as a Gaussian centered at the ground return
-    for i in range(len(ground_wf)):
-        ground_wf[i] = np.exp(-(ht[i] ** 2) / (2 * sigma**2))
-    ground_wf = np.round(ground_wf, 2)
-
-    # Scale to the peak of the ground return
+    ground_wf = np.exp(-(ht ** 2) / (2 * sigma ** 2))
+    
+    # Scale and round in vectorized operations
     ground_wf *= ground_peak
+    ground_wf = np.round(ground_wf, 2)
 
     return ground_wf
 
