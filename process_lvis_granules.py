@@ -97,24 +97,23 @@ def main(lvis_l1_path: str, lvis_l2_path: str, output_dir: str,
     l1_cache = LVISCacheL1(lvis_l1_path)
     l2_cache = LVISCacheL2(lvis_l2_path)
     
-    # Get shot numbers from L1 cache
-    shot_numbers = l1_cache.get_shot_numbers()
-    if shot_numbers is None or len(shot_numbers) == 0:
-        log_and_print("No shot numbers found in LVIS L1 data.")
-        return
-    log_and_print(f"{len(shot_numbers)} shots found in LVIS L1 data.")
-    if max_shots is not None:
-        shot_numbers = shot_numbers[:max_shots]
+    # Get maximum index from L1 cache and iterate from 0 to max_index
+    max_index = l1_cache.get_max_index()
+    log_and_print(f"{max_index} shots available in LVIS L1 data.")
     
-    # Construct LVISWaveform objects with progress bar, skipping filtering entirely
+    indices = list(range(max_index))
+    if max_shots is not None:
+        indices = indices[:max_shots]
+    
+    # Construct LVISWaveform objects using the cache index
     waveforms = []
-    with click.progressbar(shot_numbers, label="Loading waveforms") as bar:
-        for shot in bar:
+    with click.progressbar(indices, label="Loading waveforms") as bar:
+        for idx in bar:
             try:
-                wf = LVISWaveform(shot, l1_cache, l2_cache)
+                wf = LVISWaveform(l1_cache, l2_cache, cache_index=idx)
                 waveforms.append(wf)
             except Exception as e:
-                logging.error(f"Error processing shot {shot}: {e}")
+                logging.error(f"Error processing cache index {idx}: {e}")
                 continue
     log_and_print(f"{len(waveforms)} waveforms selected after filtering.")
     

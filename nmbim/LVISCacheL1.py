@@ -51,6 +51,7 @@ class LVISCacheL1:
         self.filepath = filepath
         # Ensure the file is loaded into the cache
         self.load(filepath)
+        self.max_index = len(self.extract_dataset("SHOTNUMBER"))
         
     def extract_dataset(self, path: str) -> ArrayLike:
         """Extract a full dataset from the cached data.
@@ -97,6 +98,13 @@ class LVISCacheL1:
             raise ValueError(f"Shot number {shot_number} not found in {self.filepath}")
         return indices[0]
 
+    def get_max_index(self) -> int:
+        return self.max_index
+
     def get_shot_numbers(self) -> ArrayLike:
         """Return the array of shot numbers from the cached data."""
         return self.extract_dataset("SHOTNUMBER")
+
+    def get_shot_number(self, index: int) -> int:
+        """Get shot number at given index."""
+        return self.get_shot_numbers()[index]

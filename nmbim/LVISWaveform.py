@@ -29,11 +29,33 @@ class LVISWaveform:
 
     def __init__(
         self,
-        shot_number: int,
-        l1_cache: LVISCacheL1,  
-        l2_cache: LVISCacheL2,  
-        immutable: bool = True,
+        l1_cache: LVISCacheL1,
+        l2_cache: LVISCacheL2,
+        shot_number: Optional[int] = None,
+        cache_index: Optional[int] = None,
+        immutable: bool = False,
     ) -> None:
+        """Initialize with either shot_number or cache_index."""
+        if (shot_number is None) == (cache_index is None):
+            raise ValueError("Must provide exactly one of shot_number or cache_index")
+
+        if cache_index is not None:
+            # Validate index and get shot number
+            try:
+                shot_number = l1_cache.get_shot_number(cache_index)
+                l2_shot_number = l2_cache.get_shot_number(cache_index)
+            except IndexError:
+                raise ValueError(f"Invalid cache_index: {cache_index}")
+
+            if shot_number != l2_shot_number:
+                raise ValueError(
+                    f"L1/L2 shot number mismatch at index {cache_index}: "
+                    f"L1={shot_number}, L2={l2_shot_number}"
+                )
+            shot_index = cache_index
+        else:
+            # Original lookup by shot_number
+            shot_index = l1_cache.where_shot(shot_number)
         """Initializes the LVISWaveform object with a shot number and cache objects.
         
         Uses provided cache objects to efficiently load data.

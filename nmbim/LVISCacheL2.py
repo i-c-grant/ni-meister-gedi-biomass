@@ -13,6 +13,7 @@ class LVISCacheL2:
         self.lfid_col = None
         self.shot_col = None
         self._load_cache()  # Load data during initialization
+        self.max_index = len(self._cache.index)
 
     def _load_cache(self) -> None:
         """Parse L2 TXT file and cache as a DataFrame with MultiIndex."""
@@ -60,3 +61,7 @@ class LVISCacheL2:
             return self._cache.loc[(lfid, shot_number), field]
         except KeyError:
             return None
+
+    def get_shot_number(self, index: int) -> int:
+        """Get shot number at given index."""
+        return self._cache.index[index][1]  # Index is (LFID, SHOTNUMBER) tuples
