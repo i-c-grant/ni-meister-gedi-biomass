@@ -56,7 +56,8 @@ p_jenk <- joined %>%
   geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed") +
   red_dashed_line +
   xlab("Jenkins biomass (Mg/ha; Menlove & Healey, 2020)") +
-  y_label 
+  y_label +
+  ggtitle("EVALIdator biomass vs Menlove & Healey (2020)")
 
 p_crm <-
   joined %>%
@@ -68,7 +69,8 @@ p_crm <-
   xlab("CRM biomass (Mg/ha; Menlove & Healey, 2020)") +
   y_label
 
-cowplot::plot_grid(p_jenk, p_crm, nrow = 2)
+p_scatterplots <- cowplot::plot_grid(p_jenk, p_crm, nrow = 2)
+ggsave("reports/fia_comparison/scatterplots.png", plot = p_scatterplots, width = 8, height = 6, dpi = 300)
 
 ggplot(joined) +
   geom_point(aes(x = live_dry_mg_ha,
@@ -78,3 +80,61 @@ ggplot(joined) +
              alpha = .5)
 
 plot(joined["NUMERATOR_ESTIMATE"])
+
+# Reshape the data into a long format for easier plotting
+joined_long <- joined %>%
+  pivot_longer(
+    cols = c("CRM_LIVE", "JENK_LIVE", "live_dry_mg_ha"),
+    names_to = "source",
+    values_to = "biomass"
+  ) %>%
+  mutate(source = case_match(source,
+                             "CRM_LIVE" ~ "CRM",
+                             "JENK_LIVE" ~ "Jenkins",
+                             .default = source))
+
+# --- Alternative mixed overlay histogram version ---
+overlay_histogram_mixed <- ggplot() +
+  # Plot CRM and Jenkins as filled histograms
+  geom_histogram(
+    data = dplyr::filter(joined_long, source %in% c("CRM", "Jenkins")),
+    aes(x = biomass, fill = source),
+    bins = 100,
+    position = "identity",
+    alpha = 0.4,  # keeps transparency for fill
+    color = NA   # no outline
+  ) +
+  # Plot Evalidator distribution as a red line
+  stat_bin(
+    data = dplyr::filter(joined_long, source == "live_dry_mg_ha"),
+    aes(x = biomass, y = after_stat(count)),
+    bins = 100,
+    geom = "line",
+    color = "red",
+    size = 1
+  ) +
+  labs(
+    title = "EVALIDator vs Menlove & Healey (2020)",
+    x = "Biomass (Mg/ha)",
+    y = "Number of EMAP hexagons",
+    fill = "Source"
+  ) +
+  theme_classic() +
+  xlim(0, 400) +
+  ylim(0, 2000)
+
+# Render the mixed overlay histogram plot
+print(overlay_histogram_mixed)
+
+ggsave("reports/fia_comparison/overlay_histogram_mixed.png", plot = overlay_histogram_mixed, width = 8, height = 6, dpi = 300)
+
+## Calculate differences between biomass estimates
+joined <- joined %>%
+  mutate(
+    diff_evalidator_crm = live_dry_mg_ha - CRM_LIVE,
+    diff_evalidator_jenk = live_dry_mg_ha - JENK_LIVE,
+    diff_crm_jenk = CRM_LIVE - JENK_LIVE
+  )
+
+## Write to a geopackage in /home/ian/projects/ni-meister-gedi-biomass-global/data/fia/
+st_write(joined, "/home/ian/projects/ni-meister-gedi-biomass-global/data/fia/joined_fia.gpkg", delete_dsn = TRUE)
