@@ -55,6 +55,7 @@ def process_beam(
     hse_path: Optional[str],
     k_allom_path: Optional[str],
     output_path: str,
+    output_cols: Dict[str, str],
     processor_kwargs_dict: Dict[str, Dict[str, Any]],
     filters: Union[Dict[str, Optional[Callable]], bytes],
     max_waveforms: Optional[int] = None,
@@ -120,7 +121,9 @@ def process_beam(
     app_utils.process_waveforms(waveforms, processor_kwargs_dict)
     click.echo(f"Waveforms for beam {beam} processed.")
 
-    app_utils.write_waveforms(waveforms, output_path)
+    from nmbim.WaveformWriter import WaveformWriter
+    writer = WaveformWriter(path=output_path, cols=output_cols, append=True, waveforms=waveforms)
+    writer.write()
     click.echo(f"Waveforms for beam {beam} written to {output_path}.\n")
 
 
@@ -254,12 +257,23 @@ def main(l1b_path: str,
     # Log the updated configuration
     logging.info("Updated configuration:")
     logging.info(yaml.dump(full_config))
+    output_cols = full_config.get("output")
+    if not output_cols:
+        output_cols = {
+            "l1b_file": "metadata/l1b_file",
+            "l2a_file": "metadata/l2a_file",
+            "l4a_file": "metadata/l4a_file",
+            "time": "metadata/time",
+            "hse": "metadata/parameters/hse",
+            "k_allom": "metadata/parameters/k_allom",
+            "biwf": "results/biomass_index",
+        }
 
     ###############################
     # Run the processing pipeline #
     ###############################
     beams = app_utils.get_beam_names()
-           
+
     if not MULTIPROCESSING_AVAILABLE and parallel:
         logging.warning(
             "Multiprocessing is not available on this system. "
@@ -281,6 +295,7 @@ def main(l1b_path: str,
                 hse_path,
                 k_allom_path,
                 output_path,
+                output_cols,
                 processor_kwargs_dict,
                 pickled_filters,
                 max_waveforms,
@@ -303,6 +318,7 @@ def main(l1b_path: str,
                 hse_path,
                 k_allom_path,
                 output_path,
+                output_cols,
                 processor_kwargs_dict,
                 my_filters,
                 max_waveforms,
@@ -322,6 +338,7 @@ def main(l1b_path: str,
         f"l2a_path={l2a_path}, "
         f"l4a_path={l4a_path}"
     )
+
 
 if __name__ == "__main__":
     main()
