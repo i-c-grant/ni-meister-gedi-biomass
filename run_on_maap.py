@@ -356,7 +356,7 @@ def main(username: str,
             job_kwargs['boundary'] = boundary  # Pass S3 URL directly
 
         if date_range:
-            job_kwargs['date-range'] = date_range
+            job_kwargs['date_range'] = date_range
             
 
         job_kwargs_list.append(job_kwargs)
