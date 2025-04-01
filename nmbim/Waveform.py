@@ -254,9 +254,9 @@ class Waveform:
             path="raw/elev",
         )
 
-        # Store sensitivity
+        # Store sensitivity from L2A file
         self.save_data(
-            data=self.l4a_beam.extract_value("sensitivity", shot_index),
+            data=self.l2a_beam.extract_value("sensitivity", shot_index),
             path="raw/sensitivity",
         )
 
