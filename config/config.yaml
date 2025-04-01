@@ -3,7 +3,6 @@
 #########################################################
 
 # Define the filters to be applied to the waveforms
-
 filters:
   flag: {}
   modes:
@@ -176,3 +175,11 @@ processing_pipeline:
       k_allom: metadata/parameters/k_allom
     output_path: results/adj_biomass_index
     params: {}
+
+output:
+  l1b_file: metadata/l1b_file
+  l2a_file: metadata/l2a_file
+  l4a_file: metadata/l4a_file
+  time: metadata/time
+  biwf: results/biomass_index
+  k_allom: metadata/parameters/k_allom
