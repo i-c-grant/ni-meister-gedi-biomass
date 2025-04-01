@@ -43,7 +43,8 @@ megagrams_per_ton <- .9071848
 joined <- joined %>%
   mutate(live_dry_mg_ha = NUMERATOR_ESTIMATE * megagrams_per_ton / hex_area_ha)
 
-red_dashed_line <- geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed")
+red_dashed_line <-
+    geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed")
 
 points <- geom_point(aes(y = live_dry_mg_ha), size = .25, alpha = .5)
 
