@@ -72,8 +72,8 @@ def granules_match(g1: Granule, g2: Granule) -> bool:
     for ur in urs:
         # Truncate string to begin with first instance of "GEDI"
         if "GEDI" in ur:
-            # Start UR from last instance of "GEDI", since some URs are prefixed
-            # by other identifiers (known isuse for L4A).
+            # Start UR from last instance of "GEDI", since some URs
+            # are prefixed by other identifiers (known issue for L4A).
             ur = ur[ur.rfind("GEDI"):]
             base = ur.split("_")[2:5]
 
@@ -98,9 +98,15 @@ def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
 
 
-def get_existing_outputs(username: str, algo_id: str, 
+def get_existing_outputs(username: str, algo_id: str,
                          version: str, redo_tag: str) -> Set[str]:
-    """Get set of processed output keys from previous run"""
+    """Get set of processed output keys from previous run
+
+    Note: Assumes that the output GeoPackages are named consistent with the
+    keys specified in extract_key_from_granule and that the outputs are
+    compressed, i.e. <key>.gpkg.bz2 (this is the current behavior of
+    WaveformWriter).
+    """
     s3 = boto3.client('s3')
     existing = set()
 
@@ -117,6 +123,7 @@ def get_existing_outputs(username: str, algo_id: str,
                 existing.add(key)
 
     return existing
+
 
 def s3_url_to_local_path(s3_url: str) -> str:
     """
@@ -157,11 +164,15 @@ def job_result_for(job_id: str) -> str:
 
 
 def to_job_output_dir(job_result_url: str, username: str) -> str:
-    return f"/projects/my-private-bucket/" f"{job_result_url.split(f'/{username}/')[1]}"
+    return (f"/projects/my-private-bucket/"
+            f"{job_result_url.split(f'/{username}/')[1]}")
 
 
 def update_job_states(
-    job_states: Dict[str, str], final_states: List[str], batch_size: int, delay: int
+    job_states: Dict[str, str],
+    final_states: List[str],
+    batch_size: int,
+    delay: int
 ) -> Dict[str, str]:
     """Update the job states dictionary in place.
 
@@ -187,7 +198,11 @@ def update_job_states(
 
 
 @click.command()
-@click.option("--username", "-u", type=str, required=True, help="MAAP username.")
+@click.option("--username",
+              "-u",
+              type=str,
+              required=True,
+              help="MAAP username.")
 @click.option("--tag", "-t", type=str, required=True, help="Job tag.")
 @click.option(
     "--boundary",
@@ -215,15 +230,32 @@ def update_job_states(
     "-c",
     type=str,
     required=True,
-    help="Path to the configuration YAML file. Filename must be 'config.yaml' or 'config.yml'.",
-)
-@click.option("--hse", type=str, required=True, help="Path to HSE raster file.")
-@click.option("--k_allom", type=str, required=True, help="Path to k_allom raster file.")
-@click.option("--algo_id", "-a", type=str, required=True, help="Algorithm ID to run.")
+    help=("Path to the configuration YAML file. "
+          "Filename must be 'config.yaml' or 'config.yml'."))
+@click.option("--hse",
+              type=str,
+              required=True,
+              help="Path to HSE raster file.")
+@click.option("--k_allom",
+              type=str,
+              required=True,
+              help="Path to k_allom raster file.")
+@click.option("--algo_id",
+              "-a",
+              type=str,
+              required=True,
+              help="Algorithm ID to run.")
 @click.option(
-    "--algo_version", "-v", type=str, required=True, help="Algorithm version to run."
+    "--algo_version",
+    "-v",
+    type=str,
+    required=True,
+    help="Algorithm version to run."
 )
-@click.option("--job_limit", "-j", type=int, help="Limit the number of jobs submitted.")
+@click.option("--job_limit",
+              "-j",
+              type=int,
+              help="Limit the number of jobs submitted.")
 @click.option(
     "--check_interval",
     "-i",
@@ -273,9 +305,10 @@ def main(
     if redo_tag:
         if not force_redo and redo_tag == tag:
             raise ValueError(
-                f"Cannot redo with same tag '{tag}' - use --force-redo to override"
+                f"Cannot redo with same tag '{tag}'"
+                "- use --force-redo to override"
             )
-        
+
         # Verify S3 path exists
         s3 = boto3.client('s3')
         prefix = f"{username}/dps_output/{algo_id}/{algo_version}/{redo_tag}/"
@@ -285,7 +318,8 @@ def main(
             MaxKeys=1  # Just check existence
         )
         if not result.get('KeyCount'):
-            raise ValueError(f"No output directory found for redo tag '{redo_tag}'")
+            raise ValueError("No output directory found"
+                             f"for redo tag '{redo_tag}'")
 
     # Read and log full configuration
     config_path = s3_url_to_local_path(config)
@@ -293,7 +327,8 @@ def main(
         with open(config_path, "r") as config_file:
             full_config = config_file.read()
     except Exception as e:
-        log_and_print(f"Error reading config file from {config_path}: {str(e)}")
+        log_and_print("Error reading config file"
+                      f"from {config_path}: {str(e)}")
         raise
 
     log_and_print(f"Configuration:\n{full_config}")
@@ -335,18 +370,20 @@ def main(
     if boundary:
         # Get bounding box of boundary to restrict granule search
         boundary_path = s3_url_to_local_path(boundary)
-        boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path, driver="GPKG")
+        boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path,
+                                                   driver="GPKG")
         boundary_bbox: tuple = boundary_gdf.total_bounds
         boundary_bbox_str: str = ",".join(map(str, boundary_bbox))
         search_kwargs["bounding_box"] = boundary_bbox_str
 
     # Query CMR for granules
-    log_and_print(f"Searching for granules.")
+    log_and_print("Searching for granules.")
     click.echo("(This may take a few minutes.)")
 
     granules: List[Granule] = maap.searchGranule(**search_kwargs)
 
     log_and_print(f"Found {len(granules)} granules.")
+
 
     # Hash granules by product type using base key
     def extract_key_from_granule(granule: Granule) -> tuple:
@@ -354,6 +391,7 @@ def main(
         ur = granule["Granule"]["GranuleUR"]
         ur = ur[ur.rfind("GEDI"):]  # Get meaningful part
         return tuple(ur.split("_")[2:5])  # Convert to hashable tuple
+
 
     def hash_granules(granules: List[Granule]) -> Dict[tuple, Granule]:
         """Create {base_key: granule} mapping with duplicate checking"""
@@ -365,7 +403,6 @@ def main(
             hashed[key] = granule
         return hashed
 
-    # Separate and hash granules by product type
     def hash_granules_within_product(
             granules: List[Granule],
             product_name: str) -> Dict[tuple, Granule]:
@@ -403,19 +440,25 @@ def main(
 
     # Validate we found matches
     if not matched_granules:
-        raise ValueError("No matching granules found across all three products")
+        raise ValueError("No matching granules found"
+                         "across all three products")
 
-    log_and_print(f"Found {len(matched_granules)} matching " f"sets of granules.")
+    log_and_print(f"Found {len(matched_granules)} matching "
+                  "sets of granules.")
 
     pre_exclude_count = len(matched_granules)
-    
-    # Filter using redo outputs only
+
+    # Filter out existing granules if redo tag is specified
     excluded_granules = []
-    
+
     if redo_tag:
-        excluded_granules = get_existing_outputs(username, algo_id, algo_version, redo_tag)
+        excluded_granules = get_existing_outputs(username,
+                                                 algo_id,
+                                                 algo_version,
+                                                 redo_tag)
         if not excluded_granules:
-            log_and_print(f"Warning: No existing outputs found for redo tag '{redo_tag}'")
+            log_and_print("Warning: No existing outputs found"
+                          f"for redo tag '{redo_tag}'")
 
     # Apply exclusion filter if any keys found
     if excluded_granules:
