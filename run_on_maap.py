@@ -453,9 +453,13 @@ def main(
     job_batch_size = 50
     job_submit_delay = 10
     for job_kwargs in job_kwargs_list[:job_limit]:
-        job = maap.submitJob(**job_kwargs)
-        jobs.append(job)
-        job_batch_counter += 1
+        try:
+            job = maap.submitJob(**job_kwargs)
+            jobs.append(job)
+            job_batch_counter += 1
+        except Exception as e:
+            log_and_print(f"Error submitting job: {e}")
+            continue
 
         if job_batch_counter == job_batch_size:
             time.sleep(job_submit_delay)
