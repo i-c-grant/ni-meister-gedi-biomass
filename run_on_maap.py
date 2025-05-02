@@ -54,14 +54,15 @@ def log_and_print(message: str):
 
 
 # Granule and path utilities
-def extract_key_from_granule(granule: Granule) -> tuple:
-    """Extract matching base key tuple from granule UR"""
+def extract_key_from_granule(granule: Granule) -> str:
+    """Extract matching base key string from granule UR"""
     ur = granule["Granule"]["GranuleUR"]
     ur = ur[ur.rfind("GEDI"):]  # Get meaningful part
-    return tuple(ur.split("_")[2:5])  # Convert to hashable tuple
+    parts = ur.split("_")[2:5]  # Get the key segments
+    return "_".join(parts)  # Join with underscores as string
 
 
-def hash_granules(granules: List[Granule]) -> Dict[tuple, Granule]:
+def hash_granules(granules: List[Granule]) -> Dict[str, Granule]:
     """Create {base_key: granule} mapping with duplicate checking"""
     hashed = {}
     for granule in granules:
@@ -74,7 +75,7 @@ def hash_granules(granules: List[Granule]) -> Dict[tuple, Granule]:
 
 def hash_granules_within_product(
         granules: List[Granule],
-        product_name: str) -> Dict[tuple, Granule]:
+        product_name: str) -> Dict[str, Granule]:
     """Helper to filter and hash granules with a given product name"""
     return hash_granules([
         g for g in granules
