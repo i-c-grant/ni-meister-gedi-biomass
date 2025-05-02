@@ -408,6 +408,7 @@ def main(
                 for key in excluded_granules
                 for prod in ['l1b', 'l2a', 'l4a']
             )
+        )
         ]
 
     log_and_print(
