@@ -409,30 +409,20 @@ def main(
 
     pre_exclude_count = len(matched_granules)
     
-    # Combine exclusions from both sources
+    # Filter using redo outputs only
     excluded_granules = []
     
-    # Load exclude_path if provided
-    if exclude_path:
-        with open(s3_url_to_local_path(exclude_path), "r") as f:
-            excluded_granules.extend(line.strip() for line in f.readlines())
-    
-    # Add redo outputs if specified
     if redo_tag:
-        existing_keys = get_existing_outputs(username, algo_id, algo_version, redo_tag)
-        excluded_granules.extend(existing_keys)
-        if not existing_keys:
+        excluded_granules = get_existing_outputs(username, algo_id, algo_version, redo_tag)
+        if not excluded_granules:
             log_and_print(f"Warning: No existing outputs found for redo tag '{redo_tag}'")
 
-    # Filter granules based on combined exclusion list
+    # Apply exclusion filter if any keys found
     if excluded_granules:
         matched_granules = [
             matched
             for matched in matched_granules
-            if not any(
-                key in stripped_granule_name(matched['l1b'])
-                for key in excluded_granules
-        )
+            if stripped_granule_name(matched['l1b']) not in excluded_granules
         ]
 
     log_and_print(
