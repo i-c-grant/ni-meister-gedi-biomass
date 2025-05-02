@@ -35,7 +35,11 @@ def get_key_from_output(filename: str) -> str:
 #+end_src
 
 ** 3. S3 Output Querying
-Note: the output files are named according to date of acquisition, time of acquisition, and sub-orbit granule number, as described [[https://lpdaac.usgs.gov/documents/590/GEDIL01_User_Guide_V1.pdf][in the L1B guide]].
+Note: Output filenames follow pattern: YYYYDDDHHMMSS_ORNNNN_XX.gpkg.bz2 where:
+- YYYYDDDHHMMSS: Acquisition datetime
+- ORNNNN: Orbit number
+- XX: Granule number
+This matches the GEDI L1B/L2A/L4A granule naming convention.
 
 #+begin_src python
 def get_existing_outputs(username: str, algo_id: str, 
@@ -69,12 +73,13 @@ granule_keys = {
     for prod in ['l1b', 'l2a', 'l4a']
 }
 
-# Filter out any triplet where any granule matches an existing key
+# Filter out any triplet where any granule contains an existing key
 matched_granules = [
     matched
     for matched in matched_granules
     if not any(
-        stripped_granule_name(matched[prod]) in existing_keys
+        any(key in stripped_granule_name(matched[prod])  # Substring match
+        for key in existing_keys
         for prod in ['l1b', 'l2a', 'l4a']
     )
 ]
@@ -87,18 +92,30 @@ if exclude_path:
     with open(s3_url_to_local_path(exclude_path), "r") as f:
         excluded_granules = [line.strip() for line in f]
         
-# New redo-based exclusion takes priority
-if redo_tag:
+# Combine exclusions with existing_path if provided
+excluded_granules = []
+if exclude_path:
+    with open(s3_url_to_local_path(exclude_path), "r") as f:
+        excluded_granules.extend(line.strip() for line in f)
+
+if redo_tag:  # Takes priority
     existing_keys = get_existing_outputs(username, algo_id, algo_version, redo_tag)
-    excluded_granules = list(existing_keys)
+    excluded_granules.extend(existing_keys)
    
 ** 5. Safety Checks
 #+begin_src python
 if redo_tag:
     if not force_redo and redo_tag == tag:
         raise ValueError(f"Cannot redo with same tag '{tag}'")
+    # Verify S3 path exists before checking contents
+    s3 = boto3.client('s3')
+    prefix = f"{username}/dps_output/{algo_id}/{algo_version}/{redo_tag}/"
+    result = s3.list_objects_v2(Bucket="maap-ops-workspace", Prefix=prefix, MaxKeys=1)
+    if not result.get('KeyCount'):
+        raise ValueError(f"No output directory found for redo tag '{redo_tag}'")
+        
     existing = get_existing_outputs(username, algo_id, algo_version, redo_tag)
     if not existing:
-        raise ValueError(f"No valid outputs found for redo tag '{redo_tag}'")
+        raise ValueError(f"Redo tag '{redo_tag}' exists but contains no valid outputs")
 #+end_src
 

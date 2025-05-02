@@ -35,8 +35,9 @@ import shutil
 import time
 import warnings
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Set
 
+import boto3
 import click
 import geopandas as gpd
 import pandas as pd
@@ -88,6 +89,26 @@ def l4a_matches(l1b: Granule, l4a: Granule):
     l4a_base = l4a_name.split(".")[1].split("_")[2:5]
     return l1b_base == l4a_base
 
+
+def get_existing_outputs(username: str, algo_id: str, 
+                        version: str, redo_tag: str) -> Set[str]:
+    """Get set of processed output keys from previous run"""
+    s3 = boto3.client('s3')
+    existing = set()
+    
+    paginator = s3.get_paginator('list_objects_v2')
+    for page in paginator.paginate(
+        Bucket="maap-ops-workspace",
+        Prefix=f"{username}/dps_output/{algo_id}/{version}/{redo_tag}/"
+    ):
+        for obj in page.get('Contents', []):
+            if obj['Key'].endswith('.gpkg.bz2'):
+                # Extract just the filename without path or extensions
+                filename = Path(obj['Key']).name
+                key = filename.split(".")[0].strip()
+                existing.add(key)
+                
+    return existing
 
 def s3_url_to_local_path(s3_url: str) -> str:
     """
@@ -202,6 +223,8 @@ def update_job_states(
     default=120,
     help="Time interval (in seconds) between job status checks.",
 )
+@click.option("--redo", "-r", type=str, help="Tag of previous run to exclude")
+@click.option("--force-redo", is_flag=True, help="Allow redo with same tag")
 @click.option("--exclude_path", "-e", type=str)
 def main(
     username: str,
@@ -215,6 +238,8 @@ def main(
     k_allom: str,
     algo_id: str,
     algo_version: str,
+    redo_tag: str,
+    force_redo: bool,
     exclude_path: str,
 ):
 
@@ -235,6 +260,24 @@ def main(
     log_and_print(f"Starting new model run at MAAP at {start_time}.")
     log_and_print(f"Boundary: {boundary}")
     log_and_print(f"Date Range: {date_range}")
+
+    # Validate redo tag if specified
+    if redo_tag:
+        if not force_redo and redo_tag == tag:
+            raise ValueError(
+                f"Cannot redo with same tag '{tag}' - use --force-redo to override"
+            )
+        
+        # Verify S3 path exists
+        s3 = boto3.client('s3')
+        prefix = f"{username}/dps_output/{algo_id}/{algo_version}/{redo_tag}/"
+        result = s3.list_objects_v2(
+            Bucket="maap-ops-workspace",
+            Prefix=prefix,
+            MaxKeys=1  # Just check existence
+        )
+        if not result.get('KeyCount'):
+            raise ValueError(f"No output directory found for redo tag '{redo_tag}'")
 
     # Read and log full configuration
     config_path = s3_url_to_local_path(config)
@@ -342,20 +385,31 @@ def main(
     log_and_print(f"Found {len(matched_granules)} matching " f"sets of granules.")
 
     pre_exclude_count = len(matched_granules)
-    # Remove excluded granules
+    
+    # Combine exclusions from both sources
+    excluded_granules = []
+    
+    # Load exclude_path if provided
     if exclude_path:
         with open(s3_url_to_local_path(exclude_path), "r") as f:
-            excluded_granules = [
-                excluded.strip().split(".")[0] for excluded in f.readlines()
-            ]
+            excluded_granules.extend(line.strip() for line in f.readlines())
+    
+    # Add redo outputs if specified
+    if redo_tag:
+        existing_keys = get_existing_outputs(username, algo_id, algo_version, redo_tag)
+        excluded_granules.extend(existing_keys)
+        if not existing_keys:
+            log_and_print(f"Warning: No existing outputs found for redo tag '{redo_tag}'")
+
+    # Filter granules based on combined exclusion list
+    if excluded_granules:
         matched_granules = [
             matched
             for matched in matched_granules
-            if (
-                stripped_granule_name(matched["l1b"]) not in excluded_granules
-                and stripped_granule_name(matched["l2a"]) not in excluded_granules
-                and stripped_granule_name(matched["l4a"]) not in excluded_granules
-            )
+            if not any(
+                key in stripped_granule_name(matched['l1b'])
+                for key in excluded_granules
+        )
         ]
 
     log_and_print(
