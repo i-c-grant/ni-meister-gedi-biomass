@@ -108,7 +108,7 @@ def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
 
 
-def get_existing_outputs(username: str, algo_id: str,
+def get_existing_keys(username: str, algo_id: str,
                          version: str, redo_tag: str) -> Set[str]:
     """Get set of processed output keys from previous run
 
@@ -366,7 +366,7 @@ def main(
         cloud_hosted="true"
     )[0]["concept-id"]
 
-    # Set up search parameters
+    # Set up search parameters for CMR granule query
     max_results = 10000
     search_kwargs = {
         "concept_id": [l1b_id, l2a_id, l4a_id],
@@ -394,8 +394,7 @@ def main(
 
     log_and_print(f"Found {len(granules)} granules.")
 
-
-
+    # Match returned granules
     # Map granules within each product to their unique keys
     hashed_granules = {
         key: hash_granules_within_product(granules, product_name)
@@ -422,7 +421,7 @@ def main(
             "l4a": hashed_granules["l4a"][key]
         })
 
-    # Validate we found matches
+    # Validate that we found matches
     if not matched_granules:
         raise ValueError("No matching granules found"
                          "across all three products")
@@ -430,31 +429,30 @@ def main(
     log_and_print(f"Found {len(matched_granules)} matching "
                   "sets of granules.")
 
-    pre_exclude_count = len(matched_granules)
-
-    # Filter out existing granules if redo tag is specified
-    excluded_granules = []
-
+    # Filter out already-processed granules if redo tag is specified
     if redo_tag:
-        excluded_granules = get_existing_outputs(username,
-                                                 algo_id,
-                                                 algo_version,
-                                                 redo_tag)
-        if not excluded_granules:
-            log_and_print("Warning: No existing outputs found"
-                          f"for redo tag '{redo_tag}'")
+        pre_exclude_count = len(matched_granules)
+        exclude_keys = get_existing_keys(username,
+                                         algo_id,
+                                         algo_version,
+                                         redo_tag)
 
-    # Apply exclusion filter if any keys found
-    if excluded_granules:
-        matched_granules = [
-            matched
-            for matched in matched_granules
-            if stripped_granule_name(matched['l1b']) not in excluded_granules
-        ]
+        if exclude_keys:
+            matched_granules = [
+                matched
+                for matched in matched_granules
+                if not any(
+                    key == extract_key_from_granule(matched["l1b"])
+                    for key in exclude_keys
+                )
+            ]
+        else:
+            log_and_print(f"Excluding granule triplet {key}"
+                          "from matched granules.")
 
-    log_and_print(
-        f"Excluded {pre_exclude_count - len(matched_granules)} sets of granules."
-    )
+        log_and_print(
+            f"Excluded {pre_exclude_count - len(matched_granules)}"
+            "sets of granules.")
 
     # Prepare job submission parameters for each triplet of granules
     if job_limit:
