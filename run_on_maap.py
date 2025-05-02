@@ -407,10 +407,8 @@ def main(
             matched
             for matched in matched_granules
             if not any(
-                any(key in stripped_granule_name(matched[prod])
+                key in stripped_granule_name(matched['l1b'])
                 for key in excluded_granules
-                for prod in ['l1b', 'l2a', 'l4a']
-            )
         )
         ]
 
