@@ -57,7 +57,7 @@ class RunConfig:
     tag: str
     algo_id: str
     algo_version: str
-    config: str
+    model_config: str
     hse: str
     k_allom: str
     boundary: str = None
@@ -412,8 +412,8 @@ def prepare_job_kwargs(
     """Prepare job submission parameters for each triplet of granules."""
 
     job_kwargs_list = []
-    if job_limit:
-        n_jobs = min(len(matched_granules), job_limit)
+    if config.job_limit:
+        n_jobs = min(len(matched_granules), config.job_limit)
     else:
         n_jobs = len(matched_granules)
     log_and_print(f"Submitting {n_jobs} " f"jobs.")
@@ -429,9 +429,9 @@ def prepare_job_kwargs(
             "L1B": extract_s3_url_from_granule(matched["l1b"]),
             "L2A": extract_s3_url_from_granule(matched["l2a"]),
             "L4A": extract_s3_url_from_granule(matched["l4a"]),
-            "config": config.config,  # Pass S3 URL directly
-            "hse": config.hse,  # Pass S3 URL directly
-            "k_allom": config.k_allom,  # Pass S3 URL directly
+            "config": config.model_config,  # Pass S3 URL directly
+            "hse": config.hse,
+            "k_allom": config.k_allom
         }
 
         if config.boundary:
@@ -604,7 +604,7 @@ def main(
     jobs = []
     job_batch_counter = 0
     job_batch_size = 50
-    job_submit_delay = 10
+    job_submit_delay = 2
     for job_kwargs in job_kwargs_list[:job_limit]:
         try:
             job = maap.submitJob(**job_kwargs)
