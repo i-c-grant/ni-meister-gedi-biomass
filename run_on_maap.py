@@ -421,10 +421,10 @@ def prepare_job_kwargs(
     job_kwargs_list = []
     for matched in matched_granules:
         job_kwargs = {
-            "identifier": tag,
-            "algo_id": algo_id,
-            "version": algo_version,
-            "username": username,
+            "identifier": config.tag,
+            "algo_id": config.algo_id,
+            "version": config.algo_version,
+            "username": config.username,
             "queue": "maap-dps-worker-16gb",
             "L1B": extract_s3_url_from_granule(matched["l1b"]),
             "L2A": extract_s3_url_from_granule(matched["l2a"]),
