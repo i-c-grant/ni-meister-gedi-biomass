@@ -389,14 +389,20 @@ def main(
         "l2a": [],
         "l4a": []
     }
-    
+
     for concept_id, product_key in zip(
         [l1b_id, l2a_id, l4a_id],
         ["l1b", "l2a", "l4a"]
     ):
         product_search_kwargs = search_kwargs.copy()
         product_search_kwargs["concept_id"] = concept_id
-        product_granules[product_key] = maap.searchGranule(**product_search_kwargs)
+        log_and_print("Searching for "
+                      f"{product_key} granules.")
+        product_granules[product_key] = (
+            maap.searchGranule(**product_search_kwargs)
+        )
+        log_and_print(f"Found {len(product_granules[product_key])} "
+                      f"{product_key} granules.")
 
     # Hash each product's granules separately
     hashed_granules = {
