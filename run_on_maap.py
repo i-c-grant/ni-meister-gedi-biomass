@@ -120,8 +120,7 @@ def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
 
 
-def get_existing_keys(username  : str, algo_id: str,
-                      version: str, redo_tag: str) -> Set[str]:
+def get_existing_keys(config: RunConfig) -> Set[str]:
     """Get set of processed output keys from previous run
 
     Note: Assumes that the output GeoPackages are named consistent with the
@@ -135,7 +134,7 @@ def get_existing_keys(username  : str, algo_id: str,
     paginator = s3.get_paginator('list_objects_v2')
     for page in paginator.paginate(
         Bucket="maap-ops-workspace",
-        Prefix=f"{username}/dps_output/{algo_id}/{version}/{redo_tag}/"
+        Prefix=f"{config.username}/dps_output/{config.algo_id}/{config.algo_version}/{config.redo_tag}/"
     ):
         for obj in page.get('Contents', []):
             if obj['Key'].endswith('.gpkg.bz2'):
