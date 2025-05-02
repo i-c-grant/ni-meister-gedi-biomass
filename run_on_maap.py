@@ -35,8 +35,9 @@ import shutil
 import time
 import warnings
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Set
 
+import boto3
 import click
 import geopandas as gpd
 import pandas as pd
@@ -237,6 +238,8 @@ def main(
     k_allom: str,
     algo_id: str,
     algo_version: str,
+    redo_tag: str,
+    force_redo: bool,
     exclude_path: str,
 ):
 
