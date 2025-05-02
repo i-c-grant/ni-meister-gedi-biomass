@@ -385,15 +385,9 @@ def match_granules(
 
 def exclude_processed_granules(
         matched_granules: List[Dict[str, Granule]],
-        algo_id: str,
-        algo_version: str,
-        username: str,
-        redo_tag: str
+        config: RunConfig
 ):
-    exclude_keys = get_existing_keys(username,
-                                     algo_id,
-                                     algo_version,
-                                     redo_tag)
+    exclude_keys = get_existing_keys(config)
 
     if exclude_keys:
         pre_count = len(matched_granules)
@@ -607,14 +601,8 @@ def main(
     )
 
     # Filter out already-processed granules if redo tag is specified
-    if redo_tag:
-        matched_granules = exclude_processed_granules(
-            matched_granules,
-            algo_id,
-            algo_version,
-            username,
-            redo_tag
-        )
+    if config.redo_tag:
+        matched_granules = exclude_processed_granules(matched_granules, config)
 
     job_kwargs_list = prepare_job_kwargs(
         matched_granules,
