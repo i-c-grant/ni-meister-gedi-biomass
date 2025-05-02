@@ -54,6 +54,34 @@ def log_and_print(message: str):
 
 
 # Granule and path utilities
+def extract_key_from_granule(granule: Granule) -> tuple:
+    """Extract matching base key tuple from granule UR"""
+    ur = granule["Granule"]["GranuleUR"]
+    ur = ur[ur.rfind("GEDI"):]  # Get meaningful part
+    return tuple(ur.split("_")[2:5])  # Convert to hashable tuple
+
+
+def hash_granules(granules: List[Granule]) -> Dict[tuple, Granule]:
+    """Create {base_key: granule} mapping with duplicate checking"""
+    hashed = {}
+    for granule in granules:
+        key = extract_key_from_granule(granule)
+        if key in hashed:
+            raise ValueError(f"Duplicate base key {key} found in granules")
+        hashed[key] = granule
+    return hashed
+
+
+def hash_granules_within_product(
+        granules: List[Granule],
+        product_name: str) -> Dict[tuple, Granule]:
+    """Helper to filter and hash granules with a given product name"""
+    return hash_granules([
+        g for g in granules
+        if g["Granule"]["Collection"]["ShortName"] == product_name
+    ])
+
+
 def extract_s3_url_from_granule(granule: Granule) -> str:
     urls = granule["Granule"]["OnlineAccessURLs"]["OnlineAccessURL"]
     s3_urls = [url["URL"] for url in urls if url["URL"].startswith("s3")]
@@ -385,32 +413,6 @@ def main(
     log_and_print(f"Found {len(granules)} granules.")
 
 
-    # Hash granules by product type using base key
-    def extract_key_from_granule(granule: Granule) -> tuple:
-        """Extract matching base key tuple from granule UR"""
-        ur = granule["Granule"]["GranuleUR"]
-        ur = ur[ur.rfind("GEDI"):]  # Get meaningful part
-        return tuple(ur.split("_")[2:5])  # Convert to hashable tuple
-
-
-    def hash_granules(granules: List[Granule]) -> Dict[tuple, Granule]:
-        """Create {base_key: granule} mapping with duplicate checking"""
-        hashed = {}
-        for granule in granules:
-            key = extract_key_from_granule(granule)
-            if key in hashed:
-                raise ValueError(f"Duplicate base key {key} found in granules")
-            hashed[key] = granule
-        return hashed
-
-    def hash_granules_within_product(
-            granules: List[Granule],
-            product_name: str) -> Dict[tuple, Granule]:
-        """Helper to filter and hash granules with a given product name"""
-        return hash_granules([
-            g for g in granules
-            if g["Granule"]["Collection"]["ShortName"] == product_name
-        ])
 
     # Map granules within each product to their unique keys
     hashed_granules = {
