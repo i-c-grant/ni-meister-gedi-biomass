@@ -110,7 +110,7 @@ def stripped_granule_name(granule: Granule) -> str:
 
 
 def get_existing_keys(username: str, algo_id: str,
-                         version: str, redo_tag: str) -> Set[str]:
+                      version: str, redo_tag: str) -> Set[str]:
     """Get set of processed output keys from previous run
 
     Note: Assumes that the output GeoPackages are named consistent with the
@@ -439,21 +439,18 @@ def main(
                                          redo_tag)
 
         if exclude_keys:
+            pre_count = len(matched_granules)
+            # Exact match filtering using sets for O(1) lookups
+            exclude_set = set(exclude_keys)
             matched_granules = [
                 matched
                 for matched in matched_granules
-                if not any(
-                    key == extract_key_from_granule(matched["l1b"])
-                    for key in exclude_keys
-                )
+                if extract_key_from_granule(matched["l1b"]) not in exclude_set
             ]
+            excluded_count = pre_count - len(matched_granules)
+            log_and_print(f"Excluded {excluded_count} granules with existing outputs")
         else:
-            log_and_print(f"Excluding granule triplet {key}"
-                          "from matched granules.")
-
-        log_and_print(
-            f"Excluded {pre_exclude_count - len(matched_granules)}"
-            "sets of granules.")
+            log_and_print("No existing outputs found for redo tag - processing all granules")
 
     # Prepare job submission parameters for each triplet of granules
     if job_limit:
