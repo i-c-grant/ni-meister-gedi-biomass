@@ -134,7 +134,8 @@ def get_existing_keys(config: RunConfig) -> Set[str]:
     paginator = s3.get_paginator('list_objects_v2')
     for page in paginator.paginate(
         Bucket="maap-ops-workspace",
-        Prefix=f"{config.username}/dps_output/{config.algo_id}/{config.algo_version}/{config.redo_tag}/"
+        Prefix=(f"{config.username}/dps_output/{config.algo_id}/"
+                "{config.algo_version}/{config.redo_tag}/")
     ):
         for obj in page.get('Contents', []):
             if obj['Key'].endswith('.gpkg.bz2'):
@@ -579,24 +580,19 @@ def main(
 
     # Validate redo tag if specified
     if redo_tag:
-        validate_redo_tag(username,
-                          algo_id,
-                          algo_version,
-                          redo_tag,
-                          tag,
-                          force_redo)
+        validate_redo_tag(config)
 
-    # Read and log full configuration
-    config_path = s3_url_to_local_path(config)
+    # Read and log full model configuration
+    model_config_path = s3_url_to_local_path(config)
     try:
-        with open(config_path, "r") as config_file:
-            full_config = config_file.read()
+        with open(model_config_path, "r") as config_file:
+            full_model_config = config_file.read()
     except Exception as e:
         log_and_print("Error reading config file"
-                      f"from {config_path}: {str(e)}")
+                      f"from {model_config_path}: {str(e)}")
         raise
 
-    log_and_print(f"Configuration:\n{full_config}")
+    log_and_print(f"Configuration:\n{full_model_config}")
 
     # Query the CMR for granules
     product_granules: Dict[str, List[Granule]] = {}
