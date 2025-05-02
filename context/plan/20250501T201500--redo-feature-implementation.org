@@ -1,0 +1,88 @@
+#+title:      Redo Feature Implementation Plan
+#+date:       [2025-05-01 Thu 20:15]
+#+filetags:   :nimeistergedibiomassglobal:project:implementation:
+#+identifier: 20250501T201500
+
+* Implementation Overview
+** Objective
+Add --redo option to run_on_maap.py to exclude previously successful granules from new runs
+
+** Key Components
+1. New CLI options: --redo and --force-redo
+2. S3 output path construction logic
+3. Granule ID extraction from output filenames
+4. Existing output detection and exclusion
+5. Safety checks for tag conflicts
+
+* Dependencies
+- MAAP API access
+- boto3 S3 client configuration
+- Existing filename/granule matching logic
+
+* Step-by-Step Implementation Plan
+
+** 1. Add New Command Line Options
+#+begin_src python
+@click.option("--redo", type=str, help="Tag of previous run to exclude")
+@click.option("--force-redo", is_flag=True, help="Allow redo with same tag")
+#+end_src
+
+** 2. Filename Parsing Utilities
+#+begin_src python
+def output_to_granule_ids(filename: str) -> tuple[str, str, str]:
+    """Extract L1B/L2A/L4A granule IDs from output filename"""
+    base = Path(filename).stem  # Remove .gpkg.bz2
+    parts = base.split("_")
+    return (
+        f"GEDI01_B_{parts[0]}_{parts[1]}_{parts[2]}",
+        f"GEDI02_A_{parts[0]}_{parts[1]}_{parts[2]}", 
+        f"GEDI_L4A_{parts[0]}_{parts[1]}_{parts[2]}_V2_1_2056"
+    )
+#+end_src
+
+** 3. S3 Output Querying
+#+begin_src python
+def get_existing_outputs(maap: MAAP, username: str, algo_id: str, 
+                        version: str, redo_tag: str) -> set[str]:
+    """Get set of processed granule IDs from previous run"""
+    s3_prefix = f"{username}/dps_output/{algo_id}/{version}/{redo_tag}/"
+    existing = set()
+    
+    for obj in maap.s3.list_objects_v2(Bucket="maap-ops-workspace", Prefix=s3_prefix):
+        if obj["Key"].endswith(".gpkg.bz2"):
+            for granule_id in output_to_granule_ids(obj["Key"]):
+                existing.add(granule_id.strip().split(".")[0])
+    return existing
+#+end_src
+
+** 4. Granule Filtering Integration
+Modify main() workflow:
+1. After granule matching (line ~280)
+2. Before job submission (line ~325)
+
+** 5. Safety Checks
+#+begin_src python
+if redo_tag:
+    if not force_redo and redo_tag == tag:
+        raise ValueError(f"Cannot redo with same tag '{tag}'")
+    if not get_existing_outputs(...):
+        raise ValueError(f"No outputs found for redo tag '{redo_tag}'")
+#+end_src
+
+* Testing Requirements
+1. New option validation
+2. Filename parsing edge cases
+3. S3 path construction accuracy
+4. Granule exclusion correctness
+5. Force flag override behavior
+
+* Documentation Updates
+1. Update CLI help text
+2. Add redo example to docs/nmbim_on_maap_guide.md
+3. Document filename-granule ID mapping scheme
+
+* Risk Mitigation
+- Maintain original exclude_path functionality as fallback
+- Add dry-run mode for safety checks
+- Preserve original timestamped output directories
+#+end_src
