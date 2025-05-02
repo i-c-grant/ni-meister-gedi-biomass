@@ -405,17 +405,10 @@ def exclude_processed_granules(
                       " - processing all granules")
 
 
-def prepare_job_kwargs(matched_granules: List[Dict[str, Granule]],
-                       algo_id: str,
-                       algo_version: str,
-                       username: str,
-                       tag: str,
-                       config: str,
-                       hse: str,
-                       k_allom: str,
-                       boundary: str = None,
-                       date_range: str = None,
-                       job_limit: int = None):
+def prepare_job_kwargs(
+        matched_granules: List[Dict[str, Granule]],
+        config: RunConfig
+):
     """Prepare job submission parameters for each triplet of granules."""
 
     job_kwargs_list = []
@@ -436,16 +429,16 @@ def prepare_job_kwargs(matched_granules: List[Dict[str, Granule]],
             "L1B": extract_s3_url_from_granule(matched["l1b"]),
             "L2A": extract_s3_url_from_granule(matched["l2a"]),
             "L4A": extract_s3_url_from_granule(matched["l4a"]),
-            "config": config,  # Pass S3 URL directly
-            "hse": hse,  # Pass S3 URL directly
-            "k_allom": k_allom,  # Pass S3 URL directly
+            "config": config.config,  # Pass S3 URL directly
+            "hse": config.hse,  # Pass S3 URL directly
+            "k_allom": config.k_allom,  # Pass S3 URL directly
         }
 
-        if boundary:
-            job_kwargs["boundary"] = boundary  # Pass S3 URL directly
+        if config.boundary:
+            job_kwargs["boundary"] = config.boundary  # Pass S3 URL directly
 
-        if date_range:
-            job_kwargs["date_range"] = date_range
+        if config.date_range:
+            job_kwargs["date_range"] = config.date_range
 
         job_kwargs_list.append(job_kwargs)
 
@@ -605,19 +598,7 @@ def main(
         matched_granules = exclude_processed_granules(matched_granules,
                                                       config)
 
-    job_kwargs_list = prepare_job_kwargs(
-        matched_granules,
-        algo_id,
-        algo_version,
-        username,
-        tag,
-        config,
-        hse,
-        k_allom,
-        boundary=boundary,
-        date_range=date_range,
-        job_limit=job_limit
-    )
+    job_kwargs_list = prepare_job_kwargs(matched_granules, config)
 
     # Submit jobs in batches
     jobs = []
