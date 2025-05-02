@@ -602,7 +602,8 @@ def main(
 
     # Filter out already-processed granules if redo tag is specified
     if config.redo_tag:
-        matched_granules = exclude_processed_granules(matched_granules, config)
+        matched_granules = exclude_processed_granules(matched_granules,
+                                                      config)
 
     job_kwargs_list = prepare_job_kwargs(
         matched_granules,
