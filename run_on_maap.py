@@ -336,28 +336,29 @@ def main(
 
     log_and_print(f"Configuration:\n{full_config}")
 
-    # Get collection IDs
-    host = "cmr.earthdata.nasa.gov"
+    # Collection ID lookup function
+    def get_collection_id(product: str) -> str:
+        """Get collection ID for a GEDI product (l1b/l2a/l4a)"""
+        host = "cmr.earthdata.nasa.gov"
+        product_map = {
+            "l1b": ("GEDI01_B", "002"),
+            "l2a": ("GEDI02_A", "002"),
+            "l4a": ("GEDI_L4A_AGB_Density_V2_1_2056", None)
+        }
+        short_name, version = product_map[product]
+        params = {
+            "short_name": short_name,
+            "cmr_host": host,
+            "cloud_hosted": "true"
+        }
+        if version:
+            params["version"] = version
+        return maap.searchCollection(**params)[0]["concept-id"]
 
-    l1b_id = maap.searchCollection(
-        short_name="GEDI01_B",
-        version="002",
-        cmr_host=host,
-        cloud_hosted="true"
-    )[0]["concept-id"]
-
-    l2a_id = maap.searchCollection(
-        short_name="GEDI02_A",
-        version="002",
-        cmr_host=host,
-        cloud_hosted="true"
-    )[0]["concept-id"]
-
-    l4a_id = maap.searchCollection(
-        short_name="GEDI_L4A_AGB_Density_V2_1_2056",
-        cmr_host=host,
-        cloud_hosted="true"
-    )[0]["concept-id"]
+    # Get collection IDs using the lookup function
+    l1b_id = get_collection_id("l1b")
+    l2a_id = get_collection_id("l2a")
+    l4a_id = get_collection_id("l4a")
 
     # Set up search parameters for CMR granule query
     max_results = 10000
