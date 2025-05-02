@@ -95,31 +95,13 @@ def extract_s3_url_from_granule(granule: Granule) -> str:
 
 
 def granules_match(g1: Granule, g2: Granule) -> bool:
-    urs = [g["Granule"]["GranuleUR"] for g in [g1, g2]]
-    bases = []
-    for ur in urs:
-        # Truncate string to begin with first instance of "GEDI"
-        if "GEDI" in ur:
-            # Start UR from last instance of "GEDI", since some URs
-            # are prefixed by other identifiers (known issue for L4A).
-            ur = ur[ur.rfind("GEDI"):]
-            base = ur.split("_")[2:5]
-
-            # Parsing check: verify that first element of parsed base is a year
-            try:
-                year = int(base[0][0:4])
-            except ValueError:
-                raise ValueError(f"Granule parsing error: {base[0][0:4]}"
-                                 "in {ur} should be a year.")
-            if not 2015 <= year <= 2035:
-                raise ValueError(f"Invalid year {year} in granule name: {ur}")
-            bases.append(base)
-
-        else:
-            raise ValueError(f"Granule name {ur} does not contain 'GEDI'.")
-
-    # Compare bases
-    return bases[0] == bases[1]
+    """Check if two granules match using their extracted keys"""
+    try:
+        key1 = extract_key_from_granule(g1)
+        key2 = extract_key_from_granule(g2)
+        return key1 == key2
+    except ValueError as e:
+        raise ValueError(f"Granule matching failed: {str(e)}")
 
 
 def stripped_granule_name(granule: Granule) -> str:
