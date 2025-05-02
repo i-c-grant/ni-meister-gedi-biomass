@@ -432,7 +432,6 @@ def main(
 
     # Filter out already-processed granules if redo tag is specified
     if redo_tag:
-        pre_exclude_count = len(matched_granules)
         exclude_keys = get_existing_keys(username,
                                          algo_id,
                                          algo_version,
@@ -440,7 +439,6 @@ def main(
 
         if exclude_keys:
             pre_count = len(matched_granules)
-            # Exact match filtering using sets for O(1) lookups
             exclude_set = set(exclude_keys)
             matched_granules = [
                 matched
@@ -448,9 +446,11 @@ def main(
                 if extract_key_from_granule(matched["l1b"]) not in exclude_set
             ]
             excluded_count = pre_count - len(matched_granules)
-            log_and_print(f"Excluded {excluded_count} granules with existing outputs")
+            log_and_print(f"Excluded {excluded_count} granules "
+                          "with existing outputs")
         else:
-            log_and_print("No existing outputs found for redo tag - processing all granules")
+            log_and_print("No existing outputs found for redo tag"
+                          " - processing all granules")
 
     # Prepare job submission parameters for each triplet of granules
     if job_limit:
