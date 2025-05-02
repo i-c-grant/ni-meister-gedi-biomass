@@ -73,8 +73,6 @@ def hash_granules(granules: List[Granule]) -> Dict[str, Granule]:
     return hashed
 
 
-
-
 def extract_s3_url_from_granule(granule: Granule) -> str:
     urls = granule["Granule"]["OnlineAccessURLs"]["OnlineAccessURL"]
     s3_urls = [url["URL"] for url in urls if url["URL"].startswith("s3")]
@@ -200,12 +198,18 @@ def update_job_states(
     return n_updated_to_final
 
 
-def validate_redo_tag(username: str, algo_id: str, algo_version: str, 
-                     redo_tag: str, current_tag: str, force_redo: bool) -> None:
+# Processing utilities
+def validate_redo_tag(username: str,
+                      algo_id: str,
+                      algo_version: str,
+                      redo_tag: str,
+                      current_tag: str,
+                      force_redo: bool) -> None:
     """Validate redo tag parameters and check for existing outputs"""
     if not force_redo and redo_tag == current_tag:
         raise ValueError(
-            f"Cannot redo with same tag '{current_tag}' - use --force-redo to override"
+            f"Cannot redo with same tag '{current_tag}' "
+            "- use --force-redo to override"
         )
 
     # Verify S3 path exists
@@ -217,7 +221,8 @@ def validate_redo_tag(username: str, algo_id: str, algo_version: str,
         MaxKeys=1  # Just check existence
     )
     if not result.get('KeyCount'):
-        raise ValueError(f"No output directory found for redo tag '{redo_tag}'")
+        raise ValueError("No output directory found for "
+                         f"redo tag '{redo_tag}'")
 
 
 def get_collection_id(product: str) -> str:
@@ -237,6 +242,203 @@ def get_collection_id(product: str) -> str:
     if version:
         params["version"] = version
     return maap.searchCollection(**params)[0]["concept-id"]
+
+
+def get_bounding_box(boundary: str) -> tuple:
+    """
+    Get bounding box of a shapefile or GeoPackage.
+
+    Args:
+        boundary: s3 path to the boundary shapefile or GeoPackage.
+
+    Returns:
+        Bounding box as a tuple (minx, miny, maxx, maxy).
+    """
+    boundary_path = s3_url_to_local_path(boundary)
+    boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path,
+                                               driver="GPKG")
+    bbox: tuple = boundary_gdf.total_bounds
+    return bbox
+
+
+def query_granules(product: str,
+                   date_range: str = None,
+                   boundary: str = None) -> Dict[str, List[Granule]]:
+    """
+    Query granules from CMR and filter by date range and boundary
+    Returns: Dictionary of lists of granules for each product
+    """
+
+    # Get collection IDs using the lookup function
+    collection_id = get_collection_id(product)
+
+    # Set up search parameters for CMR granule query
+    host = "cmr.earthdata.nasa.gov"  # Define host here
+    max_results = 10000
+    search_kwargs = {
+        "concept_id": collection_id,
+        "cmr_host": host,
+        "limit": max_results,
+    }
+
+    if date_range:
+        search_kwargs["temporal"] = date_range
+
+    if boundary:
+        boundary_bbox: tuple = get_bounding_box(boundary)
+        boundary_bbox_str: str = ",".join(map(str, boundary_bbox))
+        search_kwargs["bounding_box"] = boundary_bbox_str
+
+    # Query CMR for granules separately per product to handle response limits
+    log_and_print("Searching for granules.")
+    click.echo("(This may take a few minutes.)")
+
+    granules = maap.searchGranule(**search_kwargs)
+
+    log_and_print(f"Found {len(granules)} {product} granules.")
+
+    return granules
+
+# Hash each product's granules separately
+    hashed_granules = {
+        product_key: hash_granules(gran_list)
+        for product_key, gran_list in product_granules.items()
+    }
+
+    # Find subset of keys that occur in all 3 products
+    common_keys = (
+        set(hashed_granules["l1b"])
+        .intersection(hashed_granules["l2a"])
+        .intersection(hashed_granules["l4a"])
+    )
+
+    # Build matched granules list
+    matched_granules: List[Dict[str, Granule]] = []
+    for key in common_keys:
+        matched_granules.append({
+            "l1b": hashed_granules["l1b"][key],
+            "l2a": hashed_granules["l2a"][key],
+            "l4a": hashed_granules["l4a"][key]
+        })
+
+    # Validate that we found matches
+    if not matched_granules:
+        raise ValueError("No matching granules found"
+                         "across all three products")
+
+    log_and_print(f"Found {len(matched_granules)} matching "
+                  "sets of granules.")
+
+
+def match_granules(
+        product_granules: Dict[str: List[Granule]]
+) -> List[Dict[str, Granule]]:
+    # Hash each product's granules separately
+    hashed_granules = {
+        product_key: hash_granules(gran_list)
+        for product_key, gran_list in product_granules.items()
+    }
+
+    # Find subset of keys that occur in all 3 products
+    common_keys = (
+        set(hashed_granules["l1b"])
+        .intersection(hashed_granules["l2a"])
+        .intersection(hashed_granules["l4a"])
+    )
+
+    # Build matched granules list
+    matched_granules: List[Dict[str, Granule]] = []
+    for key in common_keys:
+        matched_granules.append({
+            "l1b": hashed_granules["l1b"][key],
+            "l2a": hashed_granules["l2a"][key],
+            "l4a": hashed_granules["l4a"][key]
+        })
+
+    # Validate that we found matches
+    if not matched_granules:
+        raise ValueError("No matching granules found"
+                         "across all three products")
+
+    log_and_print(f"Found {len(matched_granules)} matching "
+                  "sets of granules.")
+
+    return matched_granules
+
+
+def exclude_processed_granules(
+        matched_granules: List[Dict[str, Granule]],
+        algo_id: str,
+        algo_version: str,
+        username: str,
+        redo_tag: str
+):
+    exclude_keys = get_existing_keys(username,
+                                     algo_id,
+                                     algo_version,
+                                     redo_tag)
+
+    if exclude_keys:
+        pre_count = len(matched_granules)
+        exclude_set = set(exclude_keys)
+        matched_granules = [
+            matched
+            for matched in matched_granules
+            if extract_key_from_granule(matched["l1b"]) not in exclude_set
+        ]
+        excluded_count = pre_count - len(matched_granules)
+        log_and_print(f"Excluded {excluded_count} granules "
+                      "with existing outputs")
+    else:
+        log_and_print("No existing outputs found for redo tag"
+                      " - processing all granules")
+
+
+def prepare_job_kwargs(matched_granules: List[Dict[str, Granule]],
+                       algo_id: str,
+                       algo_version: str,
+                       username: str,
+                       tag: str,
+                       config: str,
+                       hse: str,
+                       k_allom: str,
+                       boundary: str = None,
+                       date_range: str = None,
+                       job_limit: int = None):
+    """Prepare job submission parameters for each triplet of granules."""
+
+    job_kwargs_list = []
+    if job_limit:
+        n_jobs = min(len(matched_granules), job_limit)
+    else:
+        n_jobs = len(matched_granules)
+    log_and_print(f"Submitting {n_jobs} " f"jobs.")
+
+    job_kwargs_list = []
+    for matched in matched_granules:
+        job_kwargs = {
+            "identifier": tag,
+            "algo_id": algo_id,
+            "version": algo_version,
+            "username": username,
+            "queue": "maap-dps-worker-16gb",
+            "L1B": extract_s3_url_from_granule(matched["l1b"]),
+            "L2A": extract_s3_url_from_granule(matched["l2a"]),
+            "L4A": extract_s3_url_from_granule(matched["l4a"]),
+            "config": config,  # Pass S3 URL directly
+            "hse": hse,  # Pass S3 URL directly
+            "k_allom": k_allom,  # Pass S3 URL directly
+        }
+
+        if boundary:
+            job_kwargs["boundary"] = boundary  # Pass S3 URL directly
+
+        if date_range:
+            job_kwargs["date_range"] = date_range
+
+        job_kwargs_list.append(job_kwargs)
+
+    return job_kwargs_list
 
 
 @click.command()
@@ -345,7 +547,12 @@ def main(
 
     # Validate redo tag if specified
     if redo_tag:
-        validate_redo_tag(username, algo_id, algo_version, redo_tag, tag, force_redo)
+        validate_redo_tag(username,
+                          algo_id,
+                          algo_version,
+                          redo_tag,
+                          tag,
+                          force_redo)
 
     # Read and log full configuration
     config_path = s3_url_to_local_path(config)
@@ -359,139 +566,41 @@ def main(
 
     log_and_print(f"Configuration:\n{full_config}")
 
-    # Get collection IDs using the lookup function
-    l1b_id = get_collection_id("l1b")
-    l2a_id = get_collection_id("l2a")
-    l4a_id = get_collection_id("l4a")
+    # Query the CMR for granules
+    product_granules: Dict[str, List[Granule]] = {}
+    for product in ["l1b", "l2a", "l4a"]:
+        granules = query_granules(product,
+                                  date_range=date_range,
+                                  boundary=boundary)
+        product_granules[product] = granules
 
-    # Set up search parameters for CMR granule query
-    host = "cmr.earthdata.nasa.gov"  # Define host here
-    max_results = 10000
-    search_kwargs = {
-        "concept_id": [l1b_id, l2a_id, l4a_id],
-        "cmr_host": host,
-        "limit": max_results,
-    }
-
-    if date_range:
-        search_kwargs["temporal"] = date_range
-
-    if boundary:
-        # Get bounding box of boundary to restrict granule search
-        boundary_path = s3_url_to_local_path(boundary)
-        boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path,
-                                                   driver="GPKG")
-        boundary_bbox: tuple = boundary_gdf.total_bounds
-        boundary_bbox_str: str = ",".join(map(str, boundary_bbox))
-        search_kwargs["bounding_box"] = boundary_bbox_str
-
-    # Query CMR for granules separately per product to handle response limits
-    log_and_print("Searching for granules.")
-    click.echo("(This may take a few minutes.)")
-
-    # Search each product collection separately and store in dict
-    product_granules = {
-        "l1b": [],
-        "l2a": [],
-        "l4a": []
-    }
-
-    for concept_id, product_key in zip(
-        [l1b_id, l2a_id, l4a_id],
-        ["l1b", "l2a", "l4a"]
-    ):
-        product_search_kwargs = search_kwargs.copy()
-        product_search_kwargs["concept_id"] = concept_id
-        log_and_print("Searching for "
-                      f"{product_key} granules.")
-        product_granules[product_key] = (
-            maap.searchGranule(**product_search_kwargs)
-        )
-        log_and_print(f"Found {len(product_granules[product_key])} "
-                      f"{product_key} granules.")
-
-    # Hash each product's granules separately
-    hashed_granules = {
-        product_key: hash_granules(gran_list)
-        for product_key, gran_list in product_granules.items()
-    }
-
-    # Find subset of keys that occur in all 3 products
-    common_keys = (
-        set(hashed_granules["l1b"])
-        .intersection(hashed_granules["l2a"])
-        .intersection(hashed_granules["l4a"])
+    matched_granules: List[Dict[str, Granule]] = (
+        match_granules(product_granules)
     )
-
-    # Build matched granules list
-    matched_granules: List[Dict[str, Granule]] = []
-    for key in common_keys:
-        matched_granules.append({
-            "l1b": hashed_granules["l1b"][key],
-            "l2a": hashed_granules["l2a"][key],
-            "l4a": hashed_granules["l4a"][key]
-        })
-
-    # Validate that we found matches
-    if not matched_granules:
-        raise ValueError("No matching granules found"
-                         "across all three products")
-
-    log_and_print(f"Found {len(matched_granules)} matching "
-                  "sets of granules.")
 
     # Filter out already-processed granules if redo tag is specified
     if redo_tag:
-        exclude_keys = get_existing_keys(username,
-                                         algo_id,
-                                         algo_version,
-                                         redo_tag)
+        matched_granules = exclude_processed_granules(
+            matched_granules,
+            algo_id,
+            algo_version,
+            username,
+            redo_tag
+        )
 
-        if exclude_keys:
-            pre_count = len(matched_granules)
-            exclude_set = set(exclude_keys)
-            matched_granules = [
-                matched
-                for matched in matched_granules
-                if extract_key_from_granule(matched["l1b"]) not in exclude_set
-            ]
-            excluded_count = pre_count - len(matched_granules)
-            log_and_print(f"Excluded {excluded_count} granules "
-                          "with existing outputs")
-        else:
-            log_and_print("No existing outputs found for redo tag"
-                          " - processing all granules")
-
-    # Prepare job submission parameters for each triplet of granules
-    if job_limit:
-        n_jobs = min(len(matched_granules), job_limit)
-    else:
-        n_jobs = len(matched_granules)
-    log_and_print(f"Submitting {n_jobs} " f"jobs.")
-
-    job_kwargs_list = []
-    for matched in matched_granules:
-        job_kwargs = {
-            "identifier": tag,
-            "algo_id": algo_id,
-            "version": algo_version,
-            "username": username,
-            "queue": "maap-dps-worker-16gb",
-            "L1B": extract_s3_url_from_granule(matched["l1b"]),
-            "L2A": extract_s3_url_from_granule(matched["l2a"]),
-            "L4A": extract_s3_url_from_granule(matched["l4a"]),
-            "config": config,  # Pass S3 URL directly
-            "hse": hse,  # Pass S3 URL directly
-            "k_allom": k_allom,  # Pass S3 URL directly
-        }
-
-        if boundary:
-            job_kwargs["boundary"] = boundary  # Pass S3 URL directly
-
-        if date_range:
-            job_kwargs["date_range"] = date_range
-
-        job_kwargs_list.append(job_kwargs)
+    job_kwargs_list = prepare_job_kwargs(
+        matched_granules,
+        algo_id,
+        algo_version,
+        username,
+        tag,
+        config,
+        hse,
+        k_allom,
+        boundary=boundary,
+        date_range=date_range,
+        job_limit=job_limit
+    )
 
     # Submit jobs in batches
     jobs = []
