@@ -41,8 +41,14 @@ import click
 import geopandas as gpd
 from tqdm import tqdm
 from geopandas import GeoDataFrame
-from maap.maap import MAAP
 from maap.Result import Granule
+
+from dataclasses import dataclass
+
+from maap import MAAP
+
+maap = MAAP(maap_host="api.maap-project.org")
+
 
 @dataclass
 class RunConfig:
@@ -55,13 +61,11 @@ class RunConfig:
     hse: str
     k_allom: str
     boundary: str = None
-    date_range: str = None  
+    date_range: str = None
     job_limit: int = None
     check_interval: int = 120
     redo_tag: str = None
     force_redo: bool = False
-
-maap = MAAP(maap_host="api.maap-project.org")
 
 
 # Logging utilities
@@ -116,7 +120,7 @@ def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
 
 
-def get_existing_keys(username: str, algo_id: str,
+def get_existing_keys(username  : str, algo_id: str,
                       version: str, redo_tag: str) -> Set[str]:
     """Get set of processed output keys from previous run
 
@@ -226,7 +230,8 @@ def validate_redo_tag(config: RunConfig) -> None:
 
     # Verify S3 path exists
     s3 = boto3.client('s3')
-    prefix = f"{config.username}/dps_output/{config.algo_id}/{config.algo_version}/{config.redo_tag}/"
+    prefix = (f"{config.username}/dps_output/{config.algo_id}/"
+              f"{config.algo_version}/{config.redo_tag}/")
     result = s3.list_objects_v2(
         Bucket="maap-ops-workspace",
         Prefix=prefix,
