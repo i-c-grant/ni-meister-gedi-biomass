@@ -31,7 +31,6 @@ Usage:
 import datetime
 import logging
 import os
-import shutil
 import time
 import warnings
 from pathlib import Path
@@ -40,7 +39,6 @@ from typing import Dict, List, Set
 import boto3
 import click
 import geopandas as gpd
-import pandas as pd
 from tqdm import tqdm
 from geopandas import GeoDataFrame
 from maap.maap import MAAP
