@@ -44,6 +44,23 @@ from geopandas import GeoDataFrame
 from maap.maap import MAAP
 from maap.Result import Granule
 
+@dataclass
+class RunConfig:
+    """Container for all runtime configuration parameters"""
+    username: str
+    tag: str
+    algo_id: str
+    algo_version: str
+    config: str
+    hse: str
+    k_allom: str
+    boundary: str = None
+    date_range: str = None  
+    job_limit: int = None
+    check_interval: int = 120
+    redo_tag: str = None
+    force_redo: bool = False
+
 maap = MAAP(maap_host="api.maap-project.org")
 
 
@@ -199,22 +216,17 @@ def update_job_states(
 
 
 # Processing utilities
-def validate_redo_tag(username: str,
-                      algo_id: str,
-                      algo_version: str,
-                      redo_tag: str,
-                      current_tag: str,
-                      force_redo: bool) -> None:
+def validate_redo_tag(config: RunConfig) -> None:
     """Validate redo tag parameters and check for existing outputs"""
-    if not force_redo and redo_tag == current_tag:
+    if not config.force_redo and config.redo_tag == config.tag:
         raise ValueError(
-            f"Cannot redo with same tag '{current_tag}' "
+            f"Cannot redo with same tag '{config.tag}' "
             "- use --force-redo to override"
         )
 
     # Verify S3 path exists
     s3 = boto3.client('s3')
-    prefix = f"{username}/dps_output/{algo_id}/{algo_version}/{redo_tag}/"
+    prefix = f"{config.username}/dps_output/{config.algo_id}/{config.algo_version}/{config.redo_tag}/"
     result = s3.list_objects_v2(
         Bucket="maap-ops-workspace",
         Prefix=prefix,
@@ -526,6 +538,22 @@ def main(
     force_redo: bool,
     exclude_path: str,
 ):
+    # Create configuration object
+    config = RunConfig(
+        username=username,
+        tag=tag,
+        algo_id=algo_id,
+        algo_version=algo_version,
+        config=config,
+        hse=hse,
+        k_allom=k_allom,
+        boundary=boundary,
+        date_range=date_range,
+        job_limit=job_limit,
+        check_interval=check_interval,
+        redo_tag=redo_tag,
+        force_redo=force_redo
+    )
 
     start_time = datetime.datetime.now()
 
