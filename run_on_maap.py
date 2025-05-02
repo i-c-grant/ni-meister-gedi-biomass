@@ -202,6 +202,8 @@ def update_job_states(
     default=120,
     help="Time interval (in seconds) between job status checks.",
 )
+@click.option("--redo", "-r", type=str, help="Tag of previous run to exclude")
+@click.option("--force-redo", is_flag=True, help="Allow redo with same tag")
 @click.option("--exclude_path", "-e", type=str)
 def main(
     username: str,
