@@ -200,6 +200,26 @@ def update_job_states(
     return n_updated_to_final
 
 
+def validate_redo_tag(username: str, algo_id: str, algo_version: str, 
+                     redo_tag: str, current_tag: str, force_redo: bool) -> None:
+    """Validate redo tag parameters and check for existing outputs"""
+    if not force_redo and redo_tag == current_tag:
+        raise ValueError(
+            f"Cannot redo with same tag '{current_tag}' - use --force-redo to override"
+        )
+
+    # Verify S3 path exists
+    s3 = boto3.client('s3')
+    prefix = f"{username}/dps_output/{algo_id}/{algo_version}/{redo_tag}/"
+    result = s3.list_objects_v2(
+        Bucket="maap-ops-workspace",
+        Prefix=prefix,
+        MaxKeys=1  # Just check existence
+    )
+    if not result.get('KeyCount'):
+        raise ValueError(f"No output directory found for redo tag '{redo_tag}'")
+
+
 def get_collection_id(product: str) -> str:
     """Get collection ID for a GEDI product (l1b/l2a/l4a)"""
     host = "cmr.earthdata.nasa.gov"
@@ -325,23 +345,7 @@ def main(
 
     # Validate redo tag if specified
     if redo_tag:
-        if not force_redo and redo_tag == tag:
-            raise ValueError(
-                f"Cannot redo with same tag '{tag}'"
-                "- use --force-redo to override"
-            )
-
-        # Verify S3 path exists
-        s3 = boto3.client('s3')
-        prefix = f"{username}/dps_output/{algo_id}/{algo_version}/{redo_tag}/"
-        result = s3.list_objects_v2(
-            Bucket="maap-ops-workspace",
-            Prefix=prefix,
-            MaxKeys=1  # Just check existence
-        )
-        if not result.get('KeyCount'):
-            raise ValueError("No output directory found"
-                             f"for redo tag '{redo_tag}'")
+        validate_redo_tag(username, algo_id, algo_version, redo_tag, tag, force_redo)
 
     # Read and log full configuration
     config_path = s3_url_to_local_path(config)
