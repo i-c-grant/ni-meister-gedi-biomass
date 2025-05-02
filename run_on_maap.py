@@ -21,7 +21,7 @@ It provides progress monitoring and logging of:
 To cancel processing early, press Ctrl-C twice (first time asks for confirmation).
 
 Usage:
-    python run_on_maap.py --username <maap_username> --tag <job_tag> 
+    python run_on_maap.py --username <maap_username> --tag <job_tag>
         --config <config_path> --hse <hse_path> --k_allom <k_allom_path>
         --algo_id <algorithm_id> --algo_version <version>
         [--boundary <boundary_path>] [--date_range <date_range>]
@@ -176,47 +176,6 @@ def s3_url_to_local_path(s3_url: str) -> str:
     return f"/projects/{bucket}/{path}"
 
 
-# Job monitoring utilities
-def job_status_for(job_id: str) -> str:
-    return maap.getJobStatus(job_id)
-
-
-def job_result_for(job_id: str) -> str:
-    return maap.getJobResult(job_id)[0]
-
-
-def to_job_output_dir(job_result_url: str, username: str) -> str:
-    return (f"/projects/my-private-bucket/"
-            f"{job_result_url.split(f'/{username}/')[1]}")
-
-
-def update_job_states(
-    job_states: Dict[str, str],
-    final_states: List[str],
-    batch_size: int,
-    delay: int
-) -> Dict[str, str]:
-    """Update the job states dictionary in place.
-
-    Updating occurs in batches, with a delay in seconds between batches.
-
-    Return the number of jobs updated to final states.
-    """
-    batch_count = 0
-    n_updated_to_final = 0
-    for job_id, state in job_states.items():
-        if state not in final_states:
-            new_state: str = job_status_for(job_id)
-            job_states[job_id] = new_state
-            if new_state in final_states:
-                n_updated_to_final += 1
-            batch_count += 1
-        # Sleep after each batch to avoid overwhelming the API
-        if batch_count == batch_size:
-            time.sleep(delay)
-            batch_count = 0
-
-    return n_updated_to_final
 
 
 # Processing utilities
@@ -633,66 +592,9 @@ def main(
     click.echo("Waiting for jobs to start...")
     time.sleep(10)
 
-    # Initialize job states
-    final_states = ["Succeeded", "Failed", "Deleted"]
-
-    job_states = {job_id: "" for job_id in job_ids}
-    update_job_states(job_states, final_states, batch_size=50, delay=10)
-
-    known_completed = len(
-        [state for state in job_states.values() if state in final_states]
-    )
-
-    while True:
-        try:
-            with tqdm(total=len(job_ids), desc="Jobs Completed", unit="job") as pbar:
-                while any(state not in final_states for state in job_states.values()):
-
-                    # Update the job states
-                    n_new_completed: int = update_job_states(
-                        job_states, final_states, batch_size=50, delay=10
-                    )
-
-                    # Update the progress bar
-                    pbar.update(n_new_completed)
-                    last_updated = datetime.datetime.now()
-                    known_completed += n_new_completed
-
-                    status_counts = {
-                        status: list(job_states.values()).count(status)
-                        for status in final_states + ["Accepted", "Running"]
-                    }
-                    status_counts["Other"] = len(job_states) - sum(
-                        status_counts.values()
-                    )
-                    status_counts["Last updated"] = last_updated.strftime("%H:%M:%S")
-
-                    pbar.set_postfix(status_counts, refresh=True)
-
-                    if known_completed == len(job_ids):
-                        break
-
-                    time.sleep(check_interval)
-
-        except KeyboardInterrupt:
-            print("Are you sure you want to cancel the process?")
-            print("Press Ctrl+C again to confirm, or wait to continue.")
-            try:
-                time.sleep(3)
-                print("Continuing...")
-            except KeyboardInterrupt:
-                print("Model run aborted.")
-                pending_jobs = [
-                    job_id
-                    for job_id, state in job_states.items()
-                    if state not in final_states
-                ]
-                click.echo(f"Cancelling {len(pending_jobs)} pending jobs.")
-                for job_id in pending_jobs:
-                    maap.cancelJob(job_id)
-                break
-        else:
-            break
+    # Initialize job monitoring
+    job_manager = JobManager(job_ids, check_interval=config.check_interval)
+    job_manager.monitor()
 
     # Log the succeeded and failed job IDs
     succeeded_job_ids = [
