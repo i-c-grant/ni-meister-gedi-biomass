@@ -73,14 +73,6 @@ def hash_granules(granules: List[Granule]) -> Dict[str, Granule]:
     return hashed
 
 
-def hash_granules_within_product(
-        granules: List[Granule],
-        product_name: str) -> Dict[str, Granule]:
-    """Helper to filter and hash granules with a given product name"""
-    return hash_granules([
-        g for g in granules
-        if g["Granule"]["Collection"]["ShortName"] == product_name
-    ])
 
 
 def extract_s3_url_from_granule(granule: Granule) -> str:
@@ -387,23 +379,29 @@ def main(
         boundary_bbox_str: str = ",".join(map(str, boundary_bbox))
         search_kwargs["bounding_box"] = boundary_bbox_str
 
-    # Query CMR for granules
+    # Query CMR for granules separately per product to handle response limits
     log_and_print("Searching for granules.")
     click.echo("(This may take a few minutes.)")
 
-    granules: List[Granule] = maap.searchGranule(**search_kwargs)
+    # Search each product collection separately and store in dict
+    product_granules = {
+        "l1b": [],
+        "l2a": [],
+        "l4a": []
+    }
+    
+    for concept_id, product_key in zip(
+        [l1b_id, l2a_id, l4a_id],
+        ["l1b", "l2a", "l4a"]
+    ):
+        product_search_kwargs = search_kwargs.copy()
+        product_search_kwargs["concept_id"] = concept_id
+        product_granules[product_key] = maap.searchGranule(**product_search_kwargs)
 
-    log_and_print(f"Found {len(granules)} granules.")
-
-    # Match returned granules
-    # Map granules within each product to their unique keys
+    # Hash each product's granules separately
     hashed_granules = {
-        key: hash_granules_within_product(granules, product_name)
-        for key, product_name in [
-            ("l1b", "GEDI01_B"),
-            ("l2a", "GEDI02_A"),
-            ("l4a", "GEDI_L4A_AGB_Density_V2_1_2056")
-        ]
+        product_key: hash_granules(gran_list)
+        for product_key, gran_list in product_granules.items()
     }
 
     # Find subset of keys that occur in all 3 products
