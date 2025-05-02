@@ -20,13 +20,14 @@ class Beam:
         The file containing the beam data.
 
     beam: str
-        The name of the beam.
+    The name of the beam.
 
     cache: bool
         Whether to cache the beam data in memory.
 
     product: Optional[str]
-        The product type ('L1B', 'L2A', or 'L4A'). If None, it will be inferred from the file structure.
+        The product type ('L1B', 'L2A', or 'L4A').
+        If None, it will be inferred from the file structure.
     """
 
     file: h5py.File

@@ -46,6 +46,7 @@ from maap.Result import Granule
 
 maap = MAAP(maap_host="api.maap-project.org")
 
+
 # Logging utilities
 def log_and_print(message: str):
     logging.info(message)
@@ -65,35 +66,44 @@ def extract_s3_url_from_granule(granule: Granule) -> str:
     return s3_url
 
 
-def granules_match(l1b: Granule, l2a: Granule):
-    l1b_name = l1b["Granule"]["GranuleUR"]
-    l2a_name = l2a["Granule"]["GranuleUR"]
-    l1b_base = l1b_name.split("_")[2:5]
-    l2a_base = l2a_name.split("_")[2:5]
-    return l1b_base == l2a_base
+def granules_match(g1: Granule, g2: Granule) -> bool:
+    urs = [g["Granule"]["GranuleUR"] for g in [g1, g2]]
+    bases = []
+    for ur in urs:
+        # Truncate string to begin with first instance of "GEDI"
+        if "GEDI" in ur:
+            # Start UR from last instance of "GEDI", since some URs are prefixed
+            # by other identifiers (known isuse for L4A).
+            ur = ur[ur.rfind("GEDI"):]
+            base = ur.split("_")[2:5]
+
+            # Parsing check: verify that first element of parsed base is a year
+            try:
+                year = int(base[0][0:4])
+            except ValueError:
+                raise ValueError(f"Granule parsing error: {base[0][0:4]}"
+                                 "in {ur} should be a year.")
+            if not 2015 <= year <= 2035:
+                raise ValueError(f"Invalid year {year} in granule name: {ur}")
+            bases.append(base)
+
+        else:
+            raise ValueError(f"Granule name {ur} does not contain 'GEDI'.")
+
+    # Compare bases
+    return bases[0] == bases[1]
 
 
 def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
 
 
-def l4a_matches(l1b: Granule, l4a: Granule):
-    l1b_name = l1b["Granule"]["GranuleUR"]
-    l1b_base = l1b_name.split("_")[2:5]
-
-    l4a_name = l4a["Granule"]["GranuleUR"]
-    # L4A granule names have a product descriptor at the beginning,
-    # so we split it off before comparing
-    l4a_base = l4a_name.split(".")[1].split("_")[2:5]
-    return l1b_base == l4a_base
-
-
 def get_existing_outputs(username: str, algo_id: str, 
-                        version: str, redo_tag: str) -> Set[str]:
+                         version: str, redo_tag: str) -> Set[str]:
     """Get set of processed output keys from previous run"""
     s3 = boto3.client('s3')
     existing = set()
-    
+
     paginator = s3.get_paginator('list_objects_v2')
     for page in paginator.paginate(
         Bucket="maap-ops-workspace",
@@ -105,7 +115,7 @@ def get_existing_outputs(username: str, algo_id: str,
                 filename = Path(obj['Key']).name
                 key = filename.split(".")[0].strip()
                 existing.add(key)
-                
+
     return existing
 
 def s3_url_to_local_path(s3_url: str) -> str:
@@ -292,15 +302,23 @@ def main(
     host = "cmr.earthdata.nasa.gov"
 
     l1b_id = maap.searchCollection(
-        short_name="GEDI01_B", version="002", cmr_host=host, cloud_hosted="true"
+        short_name="GEDI01_B",
+        version="002",
+        cmr_host=host,
+        cloud_hosted="true"
     )[0]["concept-id"]
 
     l2a_id = maap.searchCollection(
-        short_name="GEDI02_A", version="002", cmr_host=host, cloud_hosted="true"
+        short_name="GEDI02_A",
+        version="002",
+        cmr_host=host,
+        cloud_hosted="true"
     )[0]["concept-id"]
 
     l4a_id = maap.searchCollection(
-        short_name="GEDI_L4A_AGB_Density_V2_1_2056", cmr_host=host, cloud_hosted="true"
+        short_name="GEDI_L4A_AGB_Density_V2_1_2056",
+        cmr_host=host,
+        cloud_hosted="true"
     )[0]["concept-id"]
 
     # Set up search parameters
@@ -330,55 +348,62 @@ def main(
 
     log_and_print(f"Found {len(granules)} granules.")
 
-    # Match corresponding L1B and L2A granules
-    l1b_granules = [
-        granule
-        for granule in granules
-        if granule["Granule"]["Collection"]["ShortName"] == "GEDI01_B"
-    ]
+    # Hash granules by product type using base key
+    def extract_key_from_granule(granule: Granule) -> tuple:
+        """Extract matching base key tuple from granule UR"""
+        ur = granule["Granule"]["GranuleUR"]
+        ur = ur[ur.rfind("GEDI"):]  # Get meaningful part
+        return tuple(ur.split("_")[2:5])  # Convert to hashable tuple
 
-    l2a_granules = [
-        granule
-        for granule in granules
-        if granule["Granule"]["Collection"]["ShortName"] == "GEDI02_A"
-    ]
+    def hash_granules(granules: List[Granule]) -> Dict[tuple, Granule]:
+        """Create {base_key: granule} mapping with duplicate checking"""
+        hashed = {}
+        for granule in granules:
+            key = extract_key_from_granule(granule)
+            if key in hashed:
+                raise ValueError(f"Duplicate base key {key} found in granules")
+            hashed[key] = granule
+        return hashed
 
-    l4a_granules = [
-        granule
-        for granule in granules
-        if granule["Granule"]["Collection"]["ShortName"]
-        == "GEDI_L4A_AGB_Density_V2_1_2056"
-    ]
+    # Separate and hash granules by product type
+    def hash_granules_within_product(
+            granules: List[Granule],
+            product_name: str) -> Dict[tuple, Granule]:
+        """Helper to filter and hash granules with a given product name"""
+        return hash_granules([
+            g for g in granules
+            if g["Granule"]["Collection"]["ShortName"] == product_name
+        ])
 
+    # Map granules within each product to their unique keys
+    hashed_granules = {
+        key: hash_granules_within_product(granules, product_name)
+        for key, product_name in [
+            ("l1b", "GEDI01_B"),
+            ("l2a", "GEDI02_A"),
+            ("l4a", "GEDI_L4A_AGB_Density_V2_1_2056")
+        ]
+    }
+
+    # Find subset of keys that occur in all 3 products
+    common_keys = (
+        set(hashed_granules["l1b"])
+        .intersection(hashed_granules["l2a"])
+        .intersection(hashed_granules["l4a"])
+    )
+
+    # Build matched granules list
     matched_granules: List[Dict[str, Granule]] = []
+    for key in common_keys:
+        matched_granules.append({
+            "l1b": hashed_granules["l1b"][key],
+            "l2a": hashed_granules["l2a"][key],
+            "l4a": hashed_granules["l4a"][key]
+        })
 
-    for l1b_granule in l1b_granules:
-        for l2a_granule in l2a_granules:
-            if granules_match(l1b_granule, l2a_granule):
-                l1b_id = l1b_granule["Granule"]["GranuleUR"]
-                l2a_id = l2a_granule["Granule"]["GranuleUR"]
-
-                # Find matching L4A granules
-                matching_l4a = [
-                    l4a_granule
-                    for l4a_granule in l4a_granules
-                    if l4a_matches(l1b_granule, l4a_granule)
-                ]
-
-                if len(matching_l4a) == 0:
-                    log_and_print(
-                        f"Warning: No matching L4A granule " f"found for L1B: {l1b_id}"
-                    )
-                elif len(matching_l4a) > 1:
-                    raise ValueError(
-                        f"Multiple matching L4A granules found " f"for L1B: {l1b_id}"
-                    )
-                else:
-                    l4a_granule = matching_l4a[0]
-                    matched_granules.append(
-                        {"l1b": l1b_granule, "l2a": l2a_granule, "l4a": l4a_granule}
-                    )
-                    break
+    # Validate we found matches
+    if not matched_granules:
+        raise ValueError("No matching granules found across all three products")
 
     log_and_print(f"Found {len(matched_granules)} matching " f"sets of granules.")
 
