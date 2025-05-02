@@ -361,6 +361,7 @@ def main(
     l4a_id = get_collection_id("l4a")
 
     # Set up search parameters for CMR granule query
+    host = "cmr.earthdata.nasa.gov"  # Define host here
     max_results = 10000
     search_kwargs = {
         "concept_id": [l1b_id, l2a_id, l4a_id],
