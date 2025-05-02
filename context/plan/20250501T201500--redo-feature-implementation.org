@@ -35,9 +35,11 @@ def get_key_from_output(filename: str) -> str:
 #+end_src
 
 ** 3. S3 Output Querying
+Note: the output files are named according to date of acquisition, time of acquisition, and sub-orbit granule number, as described [[https://lpdaac.usgs.gov/documents/590/GEDIL01_User_Guide_V1.pdf][in the L1B guide]].
+
 #+begin_src python
 def get_existing_outputs(username: str, algo_id: str, 
-                        version: str, redo_tag: str) -> Set[str]:
+                         version: str, redo_tag: str) -> Set[str]:
     """Get set of processed output keys from previous run"""
     s3 = boto3.client('s3')
     existing = set()
