@@ -39,7 +39,6 @@ from typing import Dict, List, Set
 import boto3
 import click
 import geopandas as gpd
-from tqdm import tqdm
 from geopandas import GeoDataFrame
 from maap.Result import Granule
 
