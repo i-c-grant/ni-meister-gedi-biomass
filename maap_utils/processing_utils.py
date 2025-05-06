@@ -1,11 +1,18 @@
-from pathlib import Path
-from typing import Set
 import logging
-import click
-from maap import MAAP
+from pathlib import Path
+from typing import Dict, List, Set
+
+import boto3
+import geopandas as gpd
+from geopandas import GeoDataFrame
+from maap.maap import MAAP
+from maap.Result import Granule
+
+from .granule_utils import extract_s3_url_from_granule
 from .RunConfig import RunConfig
 
 maap = MAAP(maap_host="api.maap-project.org")
+
 
 def get_existing_keys(config: RunConfig) -> Set[str]:
     """Get set of processed output keys from previous run
@@ -83,26 +90,7 @@ def validate_redo_tag(config: RunConfig) -> None:
     )
     if not result.get('KeyCount'):
         raise ValueError("No output directory found for "
-                         f"redo tag '{redo_tag}'")
-
-
-def get_collection_id(product: str) -> str:
-    """Get collection ID for a GEDI product (l1b/l2a/l4a)"""
-    host = "cmr.earthdata.nasa.gov"
-    product_map = {
-        "l1b": ("GEDI01_B", "002"),
-        "l2a": ("GEDI02_A", "002"),
-        "l4a": ("GEDI_L4A_AGB_Density_V2_1_2056", None)
-    }
-    short_name, version = product_map[product]
-    params = {
-        "short_name": short_name,
-        "cmr_host": host,
-        "cloud_hosted": "true"
-    }
-    if version:
-        params["version"] = version
-    return maap.searchCollection(**params)[0]["concept-id"]
+                         f"redo tag '{config.redo_tag}'")
 
 
 def get_bounding_box(boundary: str) -> tuple:
@@ -133,7 +121,7 @@ def prepare_job_kwargs(
         n_jobs = min(len(matched_granules), config.job_limit)
     else:
         n_jobs = len(matched_granules)
-    log_and_print(f"Submitting {n_jobs} " f"jobs.")
+    logging.info(f"Submitting {n_jobs} " f"jobs.")
 
     job_kwargs_list = []
     for matched in matched_granules:

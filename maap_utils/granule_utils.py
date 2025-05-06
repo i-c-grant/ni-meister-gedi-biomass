@@ -43,6 +43,25 @@ def extract_s3_url_from_granule(granule: Granule) -> str:
     return s3_url
 
 
+def get_collection_id(product: str) -> str:
+    """Get collection ID for a GEDI product (l1b/l2a/l4a)"""
+    host = "cmr.earthdata.nasa.gov"
+    product_map = {
+        "l1b": ("GEDI01_B", "002"),
+        "l2a": ("GEDI02_A", "002"),
+        "l4a": ("GEDI_L4A_AGB_Density_V2_1_2056", None)
+    }
+    short_name, version = product_map[product]
+    params = {
+        "short_name": short_name,
+        "cmr_host": host,
+        "cloud_hosted": "true"
+    }
+    if version:
+        params["version"] = version
+    return maap.searchCollection(**params)[0]["concept-id"]
+
+
 def granules_match(g1: Granule, g2: Granule) -> bool:
     """Check if two granules match using their extracted keys"""
     try:
@@ -55,6 +74,7 @@ def granules_match(g1: Granule, g2: Granule) -> bool:
 
 def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
+
 
 def query_granules(product: str,
                    date_range: str = None,
@@ -85,48 +105,18 @@ def query_granules(product: str,
         search_kwargs["bounding_box"] = boundary_bbox_str
 
     # Query CMR for granules separately per product to handle response limits
-    log_and_print("Searching for granules.")
-    click.echo("(This may take a few minutes.)")
+    logging.info("Searching for granules.")
+    logging.info("(This may take a few minutes.)")
 
     granules = maap.searchGranule(**search_kwargs)
 
-    log_and_print(f"Found {len(granules)} {product} granules.")
+    logging.info(f"Found {len(granules)} {product} granules.")
 
     return granules
 
-# Hash each product's granules separately
-    hashed_granules = {
-        product_key: hash_granules(gran_list)
-        for product_key, gran_list in product_granules.items()
-    }
-
-    # Find subset of keys that occur in all 3 products
-    common_keys = (
-        set(hashed_granules["l1b"])
-        .intersection(hashed_granules["l2a"])
-        .intersection(hashed_granules["l4a"])
-    )
-
-    # Build matched granules list
-    matched_granules: List[Dict[str, Granule]] = []
-    for key in common_keys:
-        matched_granules.append({
-            "l1b": hashed_granules["l1b"][key],
-            "l2a": hashed_granules["l2a"][key],
-            "l4a": hashed_granules["l4a"][key]
-        })
-
-    # Validate that we found matches
-    if not matched_granules:
-        raise ValueError("No matching granules found"
-                         "across all three products")
-
-    log_and_print(f"Found {len(matched_granules)} matching "
-                  "sets of granules.")
-
 
 def match_granules(
-        product_granules: Dict[str: List[Granule]]
+        product_granules: Dict[str, List[Granule]]
 ) -> List[Dict[str, Granule]]:
     # Hash each product's granules separately
     hashed_granules = {
@@ -155,10 +145,11 @@ def match_granules(
         raise ValueError("No matching granules found"
                          "across all three products")
 
-    log_and_print(f"Found {len(matched_granules)} matching "
-                  "sets of granules.")
+    logging.info(f"Found {len(matched_granules)} matching "
+                 "sets of granules.")
 
     return matched_granules
+
 
 def exclude_redo_granules(
         matched_granules: List[Dict[str, Granule]],
