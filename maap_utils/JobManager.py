@@ -138,3 +138,23 @@ class JobManager:
             for job in pending:
                 job.cancel()
             print(f"Cancelled {len(pending)} jobs")
+
+    def report(self) -> None:
+        """Print final job statistics report"""
+        duration = datetime.datetime.now() - self.start_time
+        counts = self._status_counts()
+        total_jobs = len(self.jobs)
+        success_pct = (counts["Succeeded"] / total_jobs * 100) if total_jobs else 0
+        
+        print(f"\n{' Job Summary '.center(40, '=')}")
+        print(f"Total runtime:    {duration}")
+        print(f"Jobs submitted:  {total_jobs}")
+        print(f"Success rate:     {success_pct:.1f}%")
+        print("\nStatus counts:")
+        for state, count in counts.items():
+            print(f"  {state}: {count}")
+        
+        if counts["Failed"] > 0:
+            failed_ids = [job.job_id for job in self.jobs 
+                         if self.states[job.job_id] == "Failed"]
+            print(f"\nFailed job IDs:\n  {', '.join(failed_ids)}")
