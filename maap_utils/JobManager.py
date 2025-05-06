@@ -13,12 +13,44 @@ class JobManager:
     """Manages tracking and monitoring of submitted jobs"""
     FINAL_STATES = ["Succeeded", "Failed", "Deleted"]
 
-    def __init__(self, job_ids: List[str], check_interval: int = 120):
-        self.jobs = [Job(job_id) for job_id in job_ids]
+    def __init__(self, config: RunConfig, job_kwargs_list: List[Dict], check_interval: int = 120):
+        self.config = config
+        self.job_kwargs_list = job_kwargs_list
         self.check_interval = check_interval
-        self.states = {job.job_id: "" for job in self.jobs}
+        self.jobs = []
+        self.states = {}
         self.progress = 0
         self.start_time = datetime.datetime.now()
+
+    def submit(self, output_dir: Path) -> None:
+        """Submit jobs in batches with error handling and delays"""
+        jobs = []
+        job_batch_counter = 0
+        job_batch_size = 50
+        job_submit_delay = 2
+        
+        for job_kwargs in self.job_kwargs_list[:self.config.job_limit]:
+            try:
+                job = maap.submitJob(**job_kwargs)
+                jobs.append(job)
+                job_batch_counter += 1
+            except Exception as e:
+                logging.error(f"Error submitting job: {e}")
+                continue
+
+            if job_batch_counter == job_batch_size:
+                time.sleep(job_submit_delay)
+                job_batch_counter = 0
+
+        self.jobs = [Job(job.id) for job in jobs]
+        self.states = {job.job_id: "" for job in self.jobs}
+
+        # Write job IDs to file
+        job_ids_file = output_dir / "job_ids.txt"
+        with open(job_ids_file, "w") as f:
+            for job in self.jobs:
+                f.write(f"{job.job_id}\n")
+        logging.info(f"Submitted job IDs written to {job_ids_file}")
 
     def _update_states(self,
                        batch_size: int = 50,

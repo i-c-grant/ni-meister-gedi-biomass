@@ -578,41 +578,15 @@ def main(
 
     job_kwargs_list = prepare_job_kwargs(matched_granules, config)
 
-    # Submit jobs in batches
-    jobs = []
-    job_batch_counter = 0
-    job_batch_size = 50
-    job_submit_delay = 2
-    for job_kwargs in job_kwargs_list[:job_limit]:
-        try:
-            job = maap.submitJob(**job_kwargs)
-            jobs.append(job)
-            job_batch_counter += 1
-        except Exception as e:
-            log_and_print(f"Error submitting job: {e}")
-            continue
-
-        if job_batch_counter == job_batch_size:
-            time.sleep(job_submit_delay)
-            job_batch_counter = 0
-
-    print(f"Submitted {len(jobs)} jobs.")
-
-    job_ids = [job.id for job in jobs]
-
-    # Write job IDs to a file in case processing is interrupted
-    job_ids_file = output_dir / "job_ids.txt"
-    with open(job_ids_file, "w") as f:
-        for job_id in job_ids:
-            f.write(f"{job_id}\n")
-    log_and_print(f"Submitted job IDs written to {job_ids_file}")
+    # Initialize and submit jobs
+    job_manager = JobManager(config, job_kwargs_list, check_interval=config.check_interval)
+    job_manager.submit(output_dir)
 
     # Give the jobs time to start
     click.echo("Waiting for jobs to start...")
     time.sleep(10)
 
-    # Initialize job monitoring
-    job_manager = JobManager(job_ids, check_interval=config.check_interval)
+    # Monitor job progress
     job_manager.monitor()
 
     # Log the succeeded and failed job IDs
