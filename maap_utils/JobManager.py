@@ -25,7 +25,9 @@ class JobManager:
         self.job_kwargs_list = job_kwargs_list
         self.check_interval = check_interval
         self.jobs = []
-        self.states = {}
+        self.job_states: Dict[str, str] = {}
+        self.last_checked: Dict[str, datetime.datetime] = {}
+        self.attempts: Dict[str, int] = {}  # num. of job status checks
         self.progress = 0
         self.start_time = datetime.datetime.now()
 
@@ -60,7 +62,9 @@ class JobManager:
                 job_batch_counter = 0
 
         self.jobs = jobs
-        self.states = {job.job_id: "" for job in self.jobs}
+        self.job_states = {job.job_id: "Submitted" for job in self.jobs}
+        self.last_checked = {job.job_id: datetime.datetime.min for job in self.jobs}
+        self.attempts = {job.job_id: 0 for job in self.jobs}
 
         # Write job IDs to file
         job_ids_file = output_dir / "job_ids.txt"
@@ -72,7 +76,7 @@ class JobManager:
         # Wait 10 seconds after submitting jobs, with tqdm bar
         for i in tqdm(range(10), desc="Waiting for jobs to start"):
             time.sleep(1)
-
+            
     def _update_states(self,
                        batch_size: int = 50,
                        delay: int = 10) -> int:
@@ -82,10 +86,13 @@ class JobManager:
 
         for job in self.jobs:
             job_id = job.job_id
-            if self.states[job_id] not in self.FINAL_STATES:
+            if self.job_states[job_id] not in self.FINAL_STATES:
                 new_state = job.get_status()
-                if new_state != self.states[job_id]:
-                    self.states[job_id] = new_state
+                if new_state != self.job_states[job_id]:
+                    self.job_states[job_id] = new_state
+                    self.attempts[job_id] += 1
+                    self.last_checked[job_id] = datetime.datetime.now()
+
                     if new_state in self.FINAL_STATES:
                         updated += 1
                     batch_count += 1
@@ -99,7 +106,7 @@ class JobManager:
     def _status_counts(self) -> Dict[str, int]:
         """Get current counts of each job state"""
         counts = {state: 0 for state in self.FINAL_STATES + ["Other"]}
-        for state in self.states.values():
+        for state in self.job_states.values():
             if state in counts:
                 counts[state] += 1
             else:
@@ -138,7 +145,7 @@ class JobManager:
         except KeyboardInterrupt:
             print("\nCancelling pending jobs...")
             pending = [job for job in self.jobs
-                       if self.states[job.job_id] not in self.FINAL_STATES]
+                       if self.job_states[job.job_id] not in self.FINAL_STATES]
             for job in pending:
                 job.cancel()
             print(f"Cancelled {len(pending)} jobs")
@@ -163,5 +170,5 @@ class JobManager:
 
         if counts["Failed"] > 0:
             failed_ids = [job.job_id for job in self.jobs
-                          if self.states[job.job_id] == "Failed"]
+                          if self.job_states[job.job_id] == "Failed"]
             print(f"\nFailed job IDs:\n  {', '.join(failed_ids)}")
