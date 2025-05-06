@@ -16,6 +16,7 @@ maap = MAAP(maap_host="api.maap-project.org")
 class JobManager:
     """Manages tracking and monitoring of submitted jobs"""
     FINAL_STATES = ["Succeeded", "Failed", "Deleted"]
+    PROGRESS_STATES = ["Accepted", "Running", "Offline"]
 
     def __init__(self,
                  config: RunConfig,
@@ -105,7 +106,7 @@ class JobManager:
 
     def _status_counts(self) -> Dict[str, int]:
         """Get current counts of each job state"""
-        counts = {state: 0 for state in self.FINAL_STATES + ["Other"]}
+        counts = {state: 0 for state in self.FINAL_STATES + self.PROGRESS_STATES + ["Other"]}
         for state in self.job_states.values():
             if state in counts:
                 counts[state] += 1
