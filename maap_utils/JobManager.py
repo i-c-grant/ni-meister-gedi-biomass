@@ -124,7 +124,7 @@ class JobManager:
 
         cycle_count = 0
         try:
-            with tqdm(total=len(self.jobs), desc="Jobs Completed") as pbar:
+            with tqdm(total=len(self.jobs), desc="Job Status") as pbar:
                 while self.progress < len(self.jobs):
                     updated = self._update_states(batch_size=INNER_BATCH, delay=0)
                     self.progress += updated
