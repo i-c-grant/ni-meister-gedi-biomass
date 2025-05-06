@@ -136,13 +136,17 @@ def granules_match(g1: Granule, g2: Granule) -> bool:
 def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
 
-def query_granules(product: str, date_range: str = None, boundary: str = None) -> Dict[str, List[Granule]]:
+def query_granules(product: str,
+                   date_range: str = None,
+                   boundary: str = None,
+                   limit: int = None) -> Dict[str, List[Granule]]:
     """Query granules from CMR and filter by date range and boundary"""
     collection_id = get_collection_id(product)
+    response_limit = min(limit, 10000) if limit else 10000
     search_kwargs = {
         "concept_id": collection_id,
-        "cmr_host": "cmr.earthdata.nasa.gov",
-        "limit": 10000,
+        "cmr_host": "cmr.earthdata.nasa.gov", 
+        "limit": response_limit,
     }
     if date_range:
         search_kwargs["temporal"] = date_range

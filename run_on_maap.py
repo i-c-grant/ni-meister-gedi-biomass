@@ -206,7 +206,8 @@ def main(
     for product in ["l1b", "l2a", "l4a"]:
         granules = query_granules(product,
                                   date_range=date_range,
-                                  boundary=boundary)
+                                  boundary=boundary,
+                                  limit=run_config.job_limit)
         product_granules[product] = granules
 
     matched_granules: List[Dict[str, Granule]] = (
