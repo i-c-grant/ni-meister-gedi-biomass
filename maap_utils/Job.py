@@ -7,10 +7,16 @@ maap = MAAP(maap_host="api.maap-project.org")
 class Job:
     """Represents an individual processing job"""
 
-    def __init__(self, job_id: str):
-        self.job_id = job_id
+    def __init__(self, job_kwargs: Dict):
+        self.job_kwargs = job_kwargs
+        self.job_id: Optional[str] = None
         self._status: Optional[str] = None
         self._result_url: Optional[str] = None
+
+    def submit(self) -> None:
+        """Submit this job to MAAP"""
+        job = maap.submitJob(**self.job_kwargs)
+        self.job_id = job.id
 
     def get_status(self) -> str:
         """Get current job status from MAAP API"""

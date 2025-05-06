@@ -38,7 +38,8 @@ class JobManager:
 
         for job_kwargs in self.job_kwargs_list[:self.config.job_limit]:
             try:
-                job = maap.submitJob(**job_kwargs)
+                job = Job(job_kwargs)
+                job.submit()
                 jobs.append(job)
                 job_batch_counter += 1
             except Exception as e:
@@ -49,7 +50,7 @@ class JobManager:
                 time.sleep(job_submit_delay)
                 job_batch_counter = 0
 
-        self.jobs = [Job(job.id) for job in jobs]
+        self.jobs = jobs
         self.states = {job.job_id: "" for job in self.jobs}
 
         # Write job IDs to file
