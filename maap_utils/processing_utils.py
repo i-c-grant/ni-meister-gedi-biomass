@@ -22,7 +22,7 @@ def get_existing_keys(config: RunConfig) -> Set[str]:
     for page in paginator.paginate(
         Bucket="maap-ops-workspace",
         Prefix=(f"{config.username}/dps_output/{config.algo_id}/"
-                "{config.algo_version}/{config.redo_tag}/")
+                f"{config.algo_version}/{config.redo_tag}/")
     ):
         for obj in page.get('Contents', []):
             if obj['Key'].endswith('.gpkg.bz2'):
