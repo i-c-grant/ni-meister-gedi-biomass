@@ -40,11 +40,12 @@ from maap.maap import MAAP
 from maap.Result import Granule
 
 from maap_utils import JobManager, RunConfig
-from maap_utils.granule_utils import (exclude_redo_granules,
-                                      match_granules, query_granules)
-from maap_utils.processing_utils import (prepare_job_kwargs,
-                                         s3_url_to_local_path,
-                                         validate_redo_tag)
+from maap_utils.utils import (exclude_redo_granules,
+                              match_granules,
+                              query_granules,
+                              prepare_job_kwargs,
+                              s3_url_to_local_path,
+                              validate_redo_tag)
 
 maap = MAAP(maap_host="api.maap-project.org")
 
