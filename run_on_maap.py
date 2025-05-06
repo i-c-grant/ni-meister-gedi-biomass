@@ -58,11 +58,6 @@ from maap_utils.processing_utils import (
 maap = MAAP(maap_host="api.maap-project.org")
 
 
-# Logging utilities
-def log_and_print(message: str):
-    logging.info(message)
-    click.echo(message)
-
 
 # CLI tool for running processing jobs on MAAP
 @click.command()
@@ -173,17 +168,31 @@ def main(
     output_dir = Path(f"run_output_" f"{start_time.strftime('%Y%m%d_%H%M%S')}")
     os.makedirs(output_dir, exist_ok=False)
 
-    # Set up log
-    logging.basicConfig(
-        filename=output_dir / "run.log",
-        level=logging.INFO,
-        format="%(asctime)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    # Set up logging with both file and console handlers
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
 
-    log_and_print(f"Starting new model run at MAAP at {start_time}.")
-    log_and_print(f"Boundary: {boundary}")
-    log_and_print(f"Date Range: {date_range}")
+    # File handler with timestamps
+    file_handler = logging.FileHandler(
+        filename=output_dir / "run.log",
+        mode="w"
+    )
+    file_handler.setFormatter(logging.Formatter(
+        "%(asctime)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S"
+    ))
+
+    # Console handler without timestamps
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter("%(message)s"))
+
+    # Add both handlers
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    logging.info(f"Starting new model run at MAAP at {start_time}.")
+    logging.info(f"Boundary: {boundary}")
+    logging.info(f"Date Range: {date_range}")
 
     # Validate redo tag if specified
     if redo_tag:
@@ -195,11 +204,11 @@ def main(
         with open(model_config_path, "r") as config_file:
             full_model_config = config_file.read()
     except Exception as e:
-        log_and_print("Error reading config file"
+        logging.error("Error reading config file"
                       f"from {model_config_path}: {str(e)}")
         raise
 
-    log_and_print(f"Configuration:\n{full_model_config}")
+    logging.info(f"Configuration:\n{full_model_config}")
 
     # Query the CMR for granules
     product_granules: Dict[str, List[Granule]] = {}
@@ -234,7 +243,7 @@ def main(
     job_manager.monitor()
     end_time = datetime.datetime.now()
 
-    log_and_print(f"Model run completed at {end_time}.")
+    logging.info(f"Model run completed at {end_time}.")
 
 
 if __name__ == "__main__":
