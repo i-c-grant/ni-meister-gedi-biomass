@@ -3,7 +3,11 @@ from maap import MAAP
 import datetime
 import time
 from tqdm import tqdm
-from typing import Dict, List
+from pathlib import Path
+import logging
+
+from .RunConfig import RunConfig
+from .Job import Job
 
 maap = MAAP(maap_host="api.maap-project.org")
 
@@ -13,7 +17,10 @@ class JobManager:
     """Manages tracking and monitoring of submitted jobs"""
     FINAL_STATES = ["Succeeded", "Failed", "Deleted"]
 
-    def __init__(self, config: RunConfig, job_kwargs_list: List[Dict], check_interval: int = 120):
+    def __init__(self,
+                 config: RunConfig,
+                 job_kwargs_list: List[Dict],
+                 check_interval: int = 120):
         self.config = config
         self.job_kwargs_list = job_kwargs_list
         self.check_interval = check_interval
@@ -28,7 +35,7 @@ class JobManager:
         job_batch_counter = 0
         job_batch_size = 50
         job_submit_delay = 2
-        
+
         for job_kwargs in self.job_kwargs_list[:self.config.job_limit]:
             try:
                 job = maap.submitJob(**job_kwargs)
