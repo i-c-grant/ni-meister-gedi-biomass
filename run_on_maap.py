@@ -33,27 +33,18 @@ import logging
 import os
 import time
 from pathlib import Path
-
 from typing import Dict, List
 
 import click
+from maap import MAAP
 from maap.Result import Granule
 
-from maap_utils import RunConfig, JobManager
-
-from maap import MAAP
-
-from maap_utils.granule_utils import (
-    query_granules,
-    match_granules,
-    exclude_processed_granules
-)
-
-from maap_utils.processing_utils import (
-    validate_redo_tag,
-    prepare_job_kwargs,
-    s3_url_to_local_path
-)
+from maap_utils import JobManager, RunConfig
+from maap_utils.granule_utils import (exclude_redo_granules,
+                                      match_granules, query_granules)
+from maap_utils.processing_utils import (prepare_job_kwargs,
+                                         s3_url_to_local_path,
+                                         validate_redo_tag)
 
 maap = MAAP(maap_host="api.maap-project.org")
 
@@ -141,7 +132,6 @@ def main(
     algo_version: str,
     redo_tag: str,
     force_redo: bool,
-    exclude_path: str,
 ):
     # Create configuration object
     config = RunConfig(
