@@ -32,19 +32,28 @@ import datetime
 import logging
 import os
 import time
-import warnings
 from pathlib import Path
-from typing import Dict, List, Set
 
-import boto3
+from typing import Dict, List
+
 import click
-import geopandas as gpd
-from geopandas import GeoDataFrame
 from maap.Result import Granule
 
 from maap_utils import RunConfig, JobManager
 
 from maap import MAAP
+
+from maap_utils.granule_utils import (
+    query_granules,
+    match_granules,
+    exclude_processed_granules
+)
+
+from maap_utils.processing_utils import (
+    validate_redo_tag,
+    prepare_job_kwargs,
+    s3_url_to_local_path
+)
 
 maap = MAAP(maap_host="api.maap-project.org")
 
@@ -55,334 +64,7 @@ def log_and_print(message: str):
     click.echo(message)
 
 
-# Granule and path utilities
-def extract_key_from_granule(granule: Granule) -> str:
-    """Extract matching base key string from granule UR"""
-    ur = granule["Granule"]["GranuleUR"]
-    ur = ur[ur.rfind("GEDI"):]  # Get meaningful part
-    parts = ur.split("_")[2:5]  # Get the key segments
-    return "_".join(parts)  # Join with underscores as string
-
-
-def hash_granules(granules: List[Granule]) -> Dict[str, Granule]:
-    """Create {base_key: granule} mapping with duplicate checking"""
-    hashed = {}
-    for granule in granules:
-        key = extract_key_from_granule(granule)
-        if key in hashed:
-            raise ValueError(f"Duplicate base key {key} found in granules")
-        hashed[key] = granule
-    return hashed
-
-
-def extract_s3_url_from_granule(granule: Granule) -> str:
-    urls = granule["Granule"]["OnlineAccessURLs"]["OnlineAccessURL"]
-    s3_urls = [url["URL"] for url in urls if url["URL"].startswith("s3")]
-
-    if len(s3_urls) > 1:
-        warnings.warn(f"Multiple S3 URLs found in granule: {s3_urls}")
-
-    s3_url = s3_urls[0]
-
-    return s3_url
-
-
-def granules_match(g1: Granule, g2: Granule) -> bool:
-    """Check if two granules match using their extracted keys"""
-    try:
-        key1 = extract_key_from_granule(g1)
-        key2 = extract_key_from_granule(g2)
-        return key1 == key2
-    except ValueError as e:
-        raise ValueError(f"Granule matching failed: {str(e)}")
-
-
-def stripped_granule_name(granule: Granule) -> str:
-    return granule["Granule"]["GranuleUR"].strip().split(".")[0]
-
-
-def get_existing_keys(config: RunConfig) -> Set[str]:
-    """Get set of processed output keys from previous run
-
-    Note: Assumes that the output GeoPackages are named consistent with the
-    keys specified in extract_key_from_granule and that the outputs are
-    compressed, i.e. <key>.gpkg.bz2 (this is the current behavior of
-    WaveformWriter).
-    """
-    s3 = boto3.client('s3')
-    existing = set()
-
-    paginator = s3.get_paginator('list_objects_v2')
-    for page in paginator.paginate(
-        Bucket="maap-ops-workspace",
-        Prefix=(f"{config.username}/dps_output/{config.algo_id}/"
-                "{config.algo_version}/{config.redo_tag}/")
-    ):
-        for obj in page.get('Contents', []):
-            if obj['Key'].endswith('.gpkg.bz2'):
-                # Extract just the filename without path or extensions
-                filename = Path(obj['Key']).name
-                key = filename.split(".")[0].strip()
-                existing.add(key)
-
-    return existing
-
-
-def s3_url_to_local_path(s3_url: str) -> str:
-    """
-    Converts MAAP S3 URLs to local filesystem paths.
-
-    Args:
-        s3_url: S3 URL starting with s3://maap-ops-workspace/
-
-    Returns:
-        Local filesystem path
-    """
-    if not s3_url.startswith("s3://maap-ops-workspace/"):
-        raise ValueError("URL must start with s3://maap-ops-workspace/")
-
-    # Remove the s3://maap-ops-workspace/ prefix
-    path = s3_url.replace("s3://maap-ops-workspace/", "")
-
-    # Extract username and determine bucket based on path structure
-    if path.startswith("shared/"):
-        _, username, *rest = path.split("/")
-        bucket = "my-public-bucket"
-        path = "/".join(rest)
-    else:
-        username, *rest = path.split("/")
-        bucket = "my-private-bucket"
-        path = "/".join(rest)
-
-    return f"/projects/{bucket}/{path}"
-
-
-# processing utilities
-def validate_redo_tag(config: RunConfig) -> None:
-    """Validate redo tag parameters and check for existing outputs"""
-    if not config.force_redo and config.redo_tag == config.tag:
-        raise ValueError(
-            f"Cannot redo with same tag '{config.tag}' "
-            "- use --force-redo to override"
-        )
-
-    # Verify S3 path exists
-    s3 = boto3.client('s3')
-    prefix = (f"{config.username}/dps_output/{config.algo_id}/"
-              f"{config.algo_version}/{config.redo_tag}/")
-    result = s3.list_objects_v2(
-        Bucket="maap-ops-workspace",
-        Prefix=prefix,
-        MaxKeys=1  # Just check existence
-    )
-    if not result.get('KeyCount'):
-        raise ValueError("No output directory found for "
-                         f"redo tag '{redo_tag}'")
-
-
-def get_collection_id(product: str) -> str:
-    """Get collection ID for a GEDI product (l1b/l2a/l4a)"""
-    host = "cmr.earthdata.nasa.gov"
-    product_map = {
-        "l1b": ("GEDI01_B", "002"),
-        "l2a": ("GEDI02_A", "002"),
-        "l4a": ("GEDI_L4A_AGB_Density_V2_1_2056", None)
-    }
-    short_name, version = product_map[product]
-    params = {
-        "short_name": short_name,
-        "cmr_host": host,
-        "cloud_hosted": "true"
-    }
-    if version:
-        params["version"] = version
-    return maap.searchCollection(**params)[0]["concept-id"]
-
-
-def get_bounding_box(boundary: str) -> tuple:
-    """
-    Get bounding box of a shapefile or GeoPackage.
-
-    Args:
-        boundary: s3 path to the boundary shapefile or GeoPackage.
-
-    Returns:
-        Bounding box as a tuple (minx, miny, maxx, maxy).
-    """
-    boundary_path = s3_url_to_local_path(boundary)
-    boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path,
-                                               driver="GPKG")
-    bbox: tuple = boundary_gdf.total_bounds
-    return bbox
-
-
-def query_granules(product: str,
-                   date_range: str = None,
-                   boundary: str = None) -> Dict[str, List[Granule]]:
-    """
-    Query granules from CMR and filter by date range and boundary
-    Returns: Dictionary of lists of granules for each product
-    """
-
-    # Get collection IDs using the lookup function
-    collection_id = get_collection_id(product)
-
-    # Set up search parameters for CMR granule query
-    host = "cmr.earthdata.nasa.gov"  # Define host here
-    max_results = 10000
-    search_kwargs = {
-        "concept_id": collection_id,
-        "cmr_host": host,
-        "limit": max_results,
-    }
-
-    if date_range:
-        search_kwargs["temporal"] = date_range
-
-    if boundary:
-        boundary_bbox: tuple = get_bounding_box(boundary)
-        boundary_bbox_str: str = ",".join(map(str, boundary_bbox))
-        search_kwargs["bounding_box"] = boundary_bbox_str
-
-    # Query CMR for granules separately per product to handle response limits
-    log_and_print("Searching for granules.")
-    click.echo("(This may take a few minutes.)")
-
-    granules = maap.searchGranule(**search_kwargs)
-
-    log_and_print(f"Found {len(granules)} {product} granules.")
-
-    return granules
-
-# Hash each product's granules separately
-    hashed_granules = {
-        product_key: hash_granules(gran_list)
-        for product_key, gran_list in product_granules.items()
-    }
-
-    # Find subset of keys that occur in all 3 products
-    common_keys = (
-        set(hashed_granules["l1b"])
-        .intersection(hashed_granules["l2a"])
-        .intersection(hashed_granules["l4a"])
-    )
-
-    # Build matched granules list
-    matched_granules: List[Dict[str, Granule]] = []
-    for key in common_keys:
-        matched_granules.append({
-            "l1b": hashed_granules["l1b"][key],
-            "l2a": hashed_granules["l2a"][key],
-            "l4a": hashed_granules["l4a"][key]
-        })
-
-    # Validate that we found matches
-    if not matched_granules:
-        raise ValueError("No matching granules found"
-                         "across all three products")
-
-    log_and_print(f"Found {len(matched_granules)} matching "
-                  "sets of granules.")
-
-
-def match_granules(
-        product_granules: Dict[str: List[Granule]]
-) -> List[Dict[str, Granule]]:
-    # Hash each product's granules separately
-    hashed_granules = {
-        product_key: hash_granules(gran_list)
-        for product_key, gran_list in product_granules.items()
-    }
-
-    # Find subset of keys that occur in all 3 products
-    common_keys = (
-        set(hashed_granules["l1b"])
-        .intersection(hashed_granules["l2a"])
-        .intersection(hashed_granules["l4a"])
-    )
-
-    # Build matched granules list
-    matched_granules: List[Dict[str, Granule]] = []
-    for key in common_keys:
-        matched_granules.append({
-            "l1b": hashed_granules["l1b"][key],
-            "l2a": hashed_granules["l2a"][key],
-            "l4a": hashed_granules["l4a"][key]
-        })
-
-    # Validate that we found matches
-    if not matched_granules:
-        raise ValueError("No matching granules found"
-                         "across all three products")
-
-    log_and_print(f"Found {len(matched_granules)} matching "
-                  "sets of granules.")
-
-    return matched_granules
-
-
-def exclude_processed_granules(
-        matched_granules: List[Dict[str, Granule]],
-        config: RunConfig
-):
-    exclude_keys = get_existing_keys(config)
-
-    if exclude_keys:
-        pre_count = len(matched_granules)
-        exclude_set = set(exclude_keys)
-        matched_granules = [
-            matched
-            for matched in matched_granules
-            if extract_key_from_granule(matched["l1b"]) not in exclude_set
-        ]
-        excluded_count = pre_count - len(matched_granules)
-        log_and_print(f"Excluded {excluded_count} granules "
-                      "with existing outputs")
-    else:
-        log_and_print("No existing outputs found for redo tag"
-                      " - processing all granules")
-
-
-def prepare_job_kwargs(
-        matched_granules: List[Dict[str, Granule]],
-        config: RunConfig
-):
-    """Prepare job submission parameters for each triplet of granules."""
-
-    job_kwargs_list = []
-    if config.job_limit:
-        n_jobs = min(len(matched_granules), config.job_limit)
-    else:
-        n_jobs = len(matched_granules)
-    log_and_print(f"Submitting {n_jobs} " f"jobs.")
-
-    job_kwargs_list = []
-    for matched in matched_granules:
-        job_kwargs = {
-            "identifier": config.tag,
-            "algo_id": config.algo_id,
-            "version": config.algo_version,
-            "username": config.username,
-            "queue": "maap-dps-worker-16gb",
-            "L1B": extract_s3_url_from_granule(matched["l1b"]),
-            "L2A": extract_s3_url_from_granule(matched["l2a"]),
-            "L4A": extract_s3_url_from_granule(matched["l4a"]),
-            "config": config.model_config,  # Pass S3 URL directly
-            "hse": config.hse,
-            "k_allom": config.k_allom
-        }
-
-        if config.boundary:
-            job_kwargs["boundary"] = config.boundary  # Pass S3 URL directly
-
-        if config.date_range:
-            job_kwargs["date_range"] = config.date_range
-
-        job_kwargs_list.append(job_kwargs)
-
-    return job_kwargs_list
-
-
+# CLI tool for running processing jobs on MAAP
 @click.command()
 @click.option("--username",
               "-u",
@@ -539,7 +221,9 @@ def main(
     job_kwargs_list = prepare_job_kwargs(matched_granules, config)
 
     # Initialize and submit jobs
-    job_manager = JobManager(config, job_kwargs_list, check_interval=config.check_interval)
+    job_manager = JobManager(config,
+                             job_kwargs_list,
+                             check_interval=config.check_interval)
     job_manager.submit(output_dir)
 
     # Give the jobs time to start
@@ -548,29 +232,6 @@ def main(
 
     # Monitor job progress
     job_manager.monitor()
-
-    # Log the succeeded and failed job IDs
-    succeeded_job_ids = [
-        job_id for job_id in job_ids if job_status_for(job_id) == "Succeeded"
-    ]
-
-    failed_job_ids = [
-        job_id for job_id in job_ids if job_status_for(job_id) == "Failed"
-    ]
-
-    other_job_ids = [
-        job_id
-        for job_id in job_ids
-        if job_status_for(job_id) not in ["Succeeded", "Failed"]
-    ]
-
-    logging.info(f"{len(succeeded_job_ids)} jobs succeeded.")
-    logging.info(f"Succeeded job IDs: {succeeded_job_ids}\n")
-    logging.info(f"{len(failed_job_ids)} jobs failed.")
-    logging.info(f"Failed job IDs: {failed_job_ids}\n")
-    logging.info(f"{len(other_job_ids)} jobs in other states.")
-    logging.info(f"Other job IDs: {other_job_ids}\n")
-
     end_time = datetime.datetime.now()
 
     log_and_print(f"Model run completed at {end_time}.")
