@@ -42,6 +42,8 @@ import geopandas as gpd
 from geopandas import GeoDataFrame
 from maap.Result import Granule
 
+from maap_utils import RunConfig, JobManager
+
 from maap import MAAP
 
 maap = MAAP(maap_host="api.maap-project.org")
