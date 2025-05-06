@@ -34,6 +34,7 @@ def get_existing_keys(config: RunConfig) -> Set[str]:
 
     return existing
 
+
 def validate_redo_tag(config: RunConfig) -> None:
     """Validate redo tag parameters and check for existing outputs"""
     if not config.force_redo and config.redo_tag == config.tag:
@@ -54,11 +55,13 @@ def validate_redo_tag(config: RunConfig) -> None:
         raise ValueError("No output directory found for "
                          f"redo tag '{config.redo_tag}'")
 
+
 def get_bounding_box(boundary: str) -> tuple:
     """Get bounding box of a shapefile or GeoPackage."""
     boundary_path = s3_url_to_local_path(boundary)
     boundary_gdf: GeoDataFrame = gpd.read_file(boundary_path, driver="GPKG")
     return boundary_gdf.total_bounds
+
 
 def prepare_job_kwargs(matched_granules: List[Dict[str, Granule]], config: RunConfig):
     """Prepare job submission parameters for each triplet of granules."""
@@ -87,6 +90,7 @@ def prepare_job_kwargs(matched_granules: List[Dict[str, Granule]], config: RunCo
         job_kwargs_list.append(job_kwargs)
     return job_kwargs_list
 
+
 # Granule utilities
 def extract_key_from_granule(granule: Granule) -> str:
     """Extract matching base key string from granule UR"""
@@ -94,6 +98,7 @@ def extract_key_from_granule(granule: Granule) -> str:
     ur = ur[ur.rfind("GEDI"):]  # Get meaningful part
     parts = ur.split("_")[2:5]  # Get the key segments
     return "_".join(parts)
+
 
 def hash_granules(granules: List[Granule]) -> Dict[str, Granule]:
     """Create {base_key: granule} mapping with duplicate checking"""
@@ -105,12 +110,14 @@ def hash_granules(granules: List[Granule]) -> Dict[str, Granule]:
         hashed[key] = granule
     return hashed
 
+
 def extract_s3_url_from_granule(granule: Granule) -> str:
     urls = granule["Granule"]["OnlineAccessURLs"]["OnlineAccessURL"]
     s3_urls = [url["URL"] for url in urls if url["URL"].startswith("s3")]
     if len(s3_urls) > 1:
         warnings.warn(f"Multiple S3 URLs found in granule: {s3_urls}")
     return s3_urls[0]
+
 
 def get_collection_id(product: str) -> str:
     """Get collection ID for a GEDI product (l1b/l2a/l4a)"""
@@ -126,6 +133,7 @@ def get_collection_id(product: str) -> str:
         params["version"] = version
     return maap.searchCollection(**params)[0]["concept-id"]
 
+
 def granules_match(g1: Granule, g2: Granule) -> bool:
     """Check if two granules match using their extracted keys"""
     try:
@@ -133,8 +141,10 @@ def granules_match(g1: Granule, g2: Granule) -> bool:
     except ValueError as e:
         raise ValueError(f"Granule matching failed: {str(e)}")
 
+
 def stripped_granule_name(granule: Granule) -> str:
     return granule["Granule"]["GranuleUR"].strip().split(".")[0]
+
 
 def query_granules(product: str,
                    date_range: str = None,
@@ -153,13 +163,16 @@ def query_granules(product: str,
     if boundary:
         boundary_bbox: tuple = get_bounding_box(boundary)
         search_kwargs["bounding_box"] = ",".join(map(str, boundary_bbox))
-    
+
     logging.info("Searching for granules...")
     granules = maap.searchGranule(**search_kwargs)
     logging.info(f"Found {len(granules)} {product} granules.")
     return granules
 
-def match_granules(product_granules: Dict[str, List[Granule]]) -> List[Dict[str, Granule]]:
+
+def match_granules(
+        product_granules: Dict[str, List[Granule]]
+) -> List[Dict[str, Granule]]:
     """Match granules across products"""
     hashed_granules = {
         product_key: hash_granules(gran_list)
@@ -176,13 +189,15 @@ def match_granules(product_granules: Dict[str, List[Granule]]) -> List[Dict[str,
         "l4a": hashed_granules["l4a"][key]
     } for key in common_keys]
 
-def exclude_redo_granules(matched_granules: List[Dict[str, Granule]], config: RunConfig):
+
+def exclude_redo_granules(matched_granules: List[Dict[str, Granule]],
+                          config: RunConfig):
     """Prune already processed granules"""
     exclude_keys = get_existing_keys(config)
     if not exclude_keys:
         logging.info("No existing outputs found - processing all granules")
         return matched_granules
-        
+
     pre_count = len(matched_granules)
     matched_granules = [
         matched for matched in matched_granules
@@ -191,7 +206,7 @@ def exclude_redo_granules(matched_granules: List[Dict[str, Granule]], config: Ru
     logging.info(f"Excluded {pre_count - len(matched_granules)} granules")
     return matched_granules
 
-# Shared utilities
+
 def s3_url_to_local_path(s3_url: str) -> str:
     """Convert MAAP S3 URLs to local filesystem paths"""
     if not s3_url.startswith("s3://maap-ops-workspace/"):
