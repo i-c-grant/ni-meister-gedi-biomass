@@ -42,29 +42,9 @@ import geopandas as gpd
 from geopandas import GeoDataFrame
 from maap.Result import Granule
 
-from dataclasses import dataclass
-
 from maap import MAAP
 
 maap = MAAP(maap_host="api.maap-project.org")
-
-
-@dataclass
-class RunConfig:
-    """Container for all runtime configuration parameters"""
-    username: str
-    tag: str
-    algo_id: str
-    algo_version: str
-    model_config: str
-    hse: str
-    k_allom: str
-    boundary: str = None
-    date_range: str = None
-    job_limit: int = None
-    check_interval: int = 120
-    redo_tag: str = None
-    force_redo: bool = False
 
 
 # Logging utilities
