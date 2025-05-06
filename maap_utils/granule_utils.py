@@ -146,3 +146,27 @@ def match_granules(
                   "sets of granules.")
 
     return matched_granules
+
+def exclude_redo_granules(
+        matched_granules: List[Dict[str, Granule]],
+        config: RunConfig
+):
+    """Prune the list of matched granules to exclude those that have
+    already been processed"""
+
+    exclude_keys = get_existing_keys(config)
+
+    if exclude_keys:
+        pre_count = len(matched_granules)
+        exclude_set = set(exclude_keys)
+        matched_granules = [
+            matched
+            for matched in matched_granules
+            if extract_key_from_granule(matched["l1b"]) not in exclude_set
+        ]
+        excluded_count = pre_count - len(matched_granules)
+        logging.info(f"Excluded {excluded_count} granules "
+                     "with existing outputs")
+    else:
+        logging.info("No existing outputs found for redo tag"
+                     " - processing all granules")
