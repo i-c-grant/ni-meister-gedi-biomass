@@ -20,8 +20,9 @@ class JobManager:
         self.progress = 0
         self.start_time = datetime.datetime.now()
 
-
-    def _update_states(self, batch_size: int = 50, delay: int = 10) -> int:
+    def _update_states(self,
+                       batch_size: int = 50,
+                       delay: int = 10) -> int:
         """Internal method to update job states in batches"""
         batch_count = 0
         updated = 0

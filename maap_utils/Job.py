@@ -22,7 +22,6 @@ class Job:
         self._result_url = maap.getJobResult(self.job_id)[0]
         return self._result_url
 
-
     def cancel(self) -> None:
         """Cancel this job"""
         maap.cancelJob(self.job_id)
