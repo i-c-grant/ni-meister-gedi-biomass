@@ -197,7 +197,7 @@ def main(
         validate_redo_tag(config)
 
     # Read and log full model configuration
-    model_config_path = s3_url_to_local_path(config)
+    model_config_path = s3_url_to_local_path(config.model_config)
     try:
         with open(model_config_path, "r") as config_file:
             full_model_config = config_file.read()
