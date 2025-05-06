@@ -36,7 +36,12 @@ class JobManager:
         job_batch_size = 50
         job_submit_delay = 2
 
-        for job_kwargs in self.job_kwargs_list[:self.config.job_limit]:
+        total_jobs = min(len(self.job_kwargs_list), self.config.job_limit) if self.config.job_limit else len(self.job_kwargs_list)
+        for job_kwargs in tqdm(
+            self.job_kwargs_list[:self.config.job_limit],
+            total=total_jobs,
+            desc="Submitting jobs"
+        ):
             try:
                 job = Job(job_kwargs)
                 job.submit()
