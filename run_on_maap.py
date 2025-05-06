@@ -128,26 +128,6 @@ def get_existing_keys(config: RunConfig) -> Set[str]:
     return existing
 
 
-def get_existing_outputs(username: str, algo_id: str, 
-                        version: str, redo_tag: str) -> Set[str]:
-    """Get set of processed output keys from previous run"""
-    s3 = boto3.client('s3')
-    existing = set()
-    
-    paginator = s3.get_paginator('list_objects_v2')
-    for page in paginator.paginate(
-        Bucket="maap-ops-workspace",
-        Prefix=f"{username}/dps_output/{algo_id}/{version}/{redo_tag}/"
-    ):
-        for obj in page.get('Contents', []):
-            if obj['Key'].endswith('.gpkg.bz2'):
-                # Extract just the filename without path or extensions
-                filename = Path(obj['Key']).name
-                key = filename.split(".")[0].strip()
-                existing.add(key)
-                
-    return existing
-
 def s3_url_to_local_path(s3_url: str) -> str:
     """
     Converts MAAP S3 URLs to local filesystem paths.
@@ -177,9 +157,7 @@ def s3_url_to_local_path(s3_url: str) -> str:
     return f"/projects/{bucket}/{path}"
 
 
-
-
-# Processing utilities
+# processing utilities
 def validate_redo_tag(config: RunConfig) -> None:
     """Validate redo tag parameters and check for existing outputs"""
     if not config.force_redo and config.redo_tag == config.tag:
