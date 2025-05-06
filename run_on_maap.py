@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import click
-from maap import MAAP
+from maap.maap import MAAP
 from maap.Result import Granule
 
 from maap_utils import JobManager, RunConfig

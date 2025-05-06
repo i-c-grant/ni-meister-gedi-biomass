@@ -1,5 +1,5 @@
 from typing import List, Dict
-from maap import MAAP
+from maap.maap import MAAP
 import datetime
 import time
 from tqdm import tqdm

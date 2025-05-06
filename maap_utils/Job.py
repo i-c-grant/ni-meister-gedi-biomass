@@ -1,4 +1,4 @@
-from maap import MAAP
+from maap.maap import MAAP
 from typing import Optional, Dict
 
 maap = MAAP(maap_host="api.maap-project.org")
