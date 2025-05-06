@@ -39,7 +39,9 @@ import click
 from maap.maap import MAAP
 from maap.Result import Granule
 
-from maap_utils import JobManager, RunConfig
+from maap_utils.RunConfig import RunConfig
+from maap_utils.JobManager import JobManager
+
 from maap_utils.utils import (exclude_redo_granules,
                               match_granules,
                               query_granules,
