@@ -9,14 +9,22 @@ class Job:
 
     def __init__(self, job_kwargs: Dict):
         self.job_kwargs = job_kwargs
-        self.job_id: Optional[str] = None
+        self._job_id: Optional[str] = None
+
+    @property
+    def job_id(self) -> Optional[str]:
+        """Get the job ID (read-only)"""
+        return self._job_id
+
+    def __repr__(self) -> str:
+        return f"Job(job_id={self._job_id})"
         self._status: Optional[str] = None
         self._result_url: Optional[str] = None
 
     def submit(self) -> None:
         """Submit this job to MAAP"""
         job = maap.submitJob(**self.job_kwargs)
-        self.job_id = job.id
+        self._job_id = job.id
 
     def get_status(self) -> str:
         """Get current job status from MAAP API"""
