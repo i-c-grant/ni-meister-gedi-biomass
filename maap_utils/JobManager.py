@@ -69,6 +69,10 @@ class JobManager:
                 f.write(f"{job.job_id}\n")
         logging.info(f"Submitted job IDs written to {job_ids_file}")
 
+        # Wait 10 seconds after submitting jobs, with tqdm bar
+        for i in tqdm(range(10), desc="Waiting for jobs to start"):
+            time.sleep(1)
+
     def _update_states(self,
                        batch_size: int = 50,
                        delay: int = 10) -> int:

@@ -227,10 +227,6 @@ def main(
                              check_interval=run_config.check_interval)
     job_manager.submit(output_dir)
 
-    # Give the jobs time to start
-    click.echo("Waiting for jobs to start...")
-    time.sleep(10)
-
     # Monitor job progress and show report
     job_manager.monitor()
     job_manager.report()
