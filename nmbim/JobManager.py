@@ -55,8 +55,8 @@ class JobManager:
     def monitor(self) -> None:
         """Monitor job progress with live updates and handle interrupts"""
         try:
-            with tqdm(total=len(self.job_ids), desc="Jobs Completed") as pbar:
-                while self.progress < len(self.job_ids):
+            with tqdm(total=len(self.jobs), desc="Jobs Completed") as pbar:
+                while self.progress < len(self.jobs):
                     updated = self._update_states()
                     self.progress += updated
 
