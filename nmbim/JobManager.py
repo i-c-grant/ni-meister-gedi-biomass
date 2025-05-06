@@ -14,30 +14,22 @@ class JobManager:
     FINAL_STATES = ["Succeeded", "Failed", "Deleted"]
 
     def __init__(self, job_ids: List[str], check_interval: int = 120):
-        self.job_ids = job_ids
+        self.jobs = [Job(job_id) for job_id in job_ids]
         self.check_interval = check_interval
-        self.states = {job_id: "" for job_id in job_ids}
+        self.states = {job.job_id: "" for job in self.jobs}
         self.progress = 0
         self.start_time = datetime.datetime.now()
 
-    def job_status(self, job_id: str) -> str:
-        return maap.getJobStatus(job_id)
-
-    def job_result(self, job_id: str) -> str:
-        return maap.getJobResult(job_id)[0]
-
-    def output_dir(self, job_result_url: str, username: str) -> str:
-        return (f"/projects/my-private-bucket/"
-                f"{job_result_url.split(f'/{username}/')[1]}")
 
     def _update_states(self, batch_size: int = 50, delay: int = 10) -> int:
         """Internal method to update job states in batches"""
         batch_count = 0
         updated = 0
 
-        for job_id in self.job_ids:
+        for job in self.jobs:
+            job_id = job.job_id
             if self.states[job_id] not in self.FINAL_STATES:
-                new_state = self.job_status(job_id)
+                new_state = job.get_status()
                 if new_state != self.states[job_id]:
                     self.states[job_id] = new_state
                     if new_state in self.FINAL_STATES:
@@ -91,8 +83,8 @@ class JobManager:
             self.monitor()
         except KeyboardInterrupt:
             print("\nCancelling pending jobs...")
-            pending = [jid for jid, s in self.states.items()
-                       if s not in self.FINAL_STATES]
-            for job_id in pending:
-                maap.cancelJob(job_id)
+            pending = [job for job in self.jobs 
+                      if self.states[job.job_id] not in self.FINAL_STATES]
+            for job in pending:
+                job.cancel()
             print(f"Cancelled {len(pending)} jobs")
