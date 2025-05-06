@@ -139,7 +139,7 @@ def main(
         tag=tag,
         algo_id=algo_id,
         algo_version=algo_version,
-        config=config,
+        model_config=config,
         hse=hse,
         k_allom=k_allom,
         boundary=boundary,
