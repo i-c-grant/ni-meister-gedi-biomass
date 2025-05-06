@@ -115,10 +115,17 @@ class JobManager:
 
     def monitor(self) -> None:
         """Monitor job progress with live updates and handle interrupts"""
+        # scheduling parameters
+        INNER_BATCH = 10
+        INNER_DELAY = 2
+        LONG_PAUSE_AFTER = 10
+        LONG_DELAY = 30
+
+        cycle_count = 0
         try:
             with tqdm(total=len(self.jobs), desc="Jobs Completed") as pbar:
                 while self.progress < len(self.jobs):
-                    updated = self._update_states()
+                    updated = self._update_states(batch_size=INNER_BATCH, delay=0)
                     self.progress += updated
 
                     pbar.update(updated)
@@ -128,7 +135,12 @@ class JobManager:
                                        self.start_time)
                     })
 
-                    time.sleep(self.check_interval)
+                    cycle_count += 1
+                    if cycle_count < LONG_PAUSE_AFTER:
+                        time.sleep(INNER_DELAY)
+                    else:
+                        time.sleep(LONG_DELAY)
+                        cycle_count = 0
 
         except KeyboardInterrupt:
             print("\nJob monitoring interrupted")
