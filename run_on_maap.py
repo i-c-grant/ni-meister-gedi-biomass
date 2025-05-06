@@ -58,7 +58,6 @@ from maap_utils.processing_utils import (
 maap = MAAP(maap_host="api.maap-project.org")
 
 
-
 # CLI tool for running processing jobs on MAAP
 @click.command()
 @click.option("--username",
@@ -194,7 +193,7 @@ def main(
     logging.info(f"Boundary: {boundary}")
     logging.info(f"Date Range: {date_range}")
 
-    # Validate redo tag if specified
+    # validate redo tag if specified
     if redo_tag:
         validate_redo_tag(config)
 
