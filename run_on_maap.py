@@ -134,7 +134,7 @@ def main(
     force_redo: bool,
 ):
     # Create configuration object
-    config = RunConfig(
+    run_config = RunConfig(
         username=username,
         tag=tag,
         algo_id=algo_id,
@@ -184,10 +184,10 @@ def main(
 
     # validate redo tag if specified
     if redo_tag:
-        validate_redo_tag(config)
+        validate_redo_tag(run_config)
 
     # Read and log full model configuration
-    model_config_path = s3_url_to_local_path(config.model_config)
+    model_config_path = s3_url_to_local_path(run_config.model_config)
     try:
         with open(model_config_path, "r") as config_file:
             full_model_config = config_file.read()
@@ -211,16 +211,16 @@ def main(
     )
 
     # Filter out already-processed granules if redo tag is specified
-    if config.redo_tag:
+    if run_config.redo_tag:
         matched_granules = exclude_redo_granules(matched_granules,
-                                                 config)
+                                                 run_config)
 
-    job_kwargs_list = prepare_job_kwargs(matched_granules, config)
+    job_kwargs_list = prepare_job_kwargs(matched_granules, run_config)
 
     # Initialize and submit jobs
-    job_manager = JobManager(config,
+    job_manager = JobManager(run_config,
                              job_kwargs_list,
-                             check_interval=config.check_interval)
+                             check_interval=run_config.check_interval)
     job_manager.submit(output_dir)
 
     # Give the jobs time to start
