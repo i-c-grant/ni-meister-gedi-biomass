@@ -134,7 +134,8 @@ class JobManager:
                     self._update_states(batch_size=INNER_BATCH, delay=0)
                     counts = self._status_counts()
                     # Update progress bar based on completed jobs
-                    completed = sum(counts[state] for state in self.FINAL_STATES)
+                    completed = sum(counts[state]
+                                    for state in self.FINAL_STATES)
                     pbar.n = completed
                     pbar.refresh()
                     pbar.set_postfix({
