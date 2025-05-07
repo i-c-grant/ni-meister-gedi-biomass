@@ -86,21 +86,23 @@ class JobManager:
         # Select up to batch_size jobs that were least recently checked
         pending = [job for job in self.jobs
                    if self.job_states[job.job_id] not in self.FINAL_STATES]
+
         # Sort by oldest last_checked timestamp
         pending.sort(key=lambda job: self.last_checked[job.job_id])
+
         # Randomly sample up to batch_size jobs from the least recently updated
-        selected = random.sample(pending[:batch_size], k=min(batch_size, len(pending)))
-        updated = 0
+        selected = random.sample(pending[:batch_size],
+                                 k=min(batch_size, len(pending)))
+        newly_complete = 0
         for job in selected:
             job_id = job.job_id
             new_state = job.get_status()
-            if new_state != self.job_states[job_id]:
-                self.job_states[job_id] = new_state
-                self.attempts[job_id] += 1
-                self.last_checked[job_id] = datetime.datetime.now()
-                if new_state in self.FINAL_STATES:
-                    updated += 1
-        return updated
+            self.job_states[job_id] = new_state
+            self.attempts[job_id] += 1
+            self.last_checked[job_id] = datetime.datetime.now()
+            if new_state in self.FINAL_STATES:
+                newly_complete += 1
+        return newly_complete
 
     def _status_counts(self) -> Dict[str, int]:
         """Get current counts of each job state"""
