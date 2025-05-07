@@ -45,10 +45,11 @@ class JobManager:
             if self.config.job_limit
             else len(self.job_kwargs_list))
 
+        tqdm.write("Submitting jobs")
         for job_kwargs in tqdm(
             self.job_kwargs_list[:self.config.job_limit],
             total=total_jobs,
-            desc="Submitting jobs"
+            desc=""
         ):
             try:
                 job = Job(job_kwargs)
@@ -76,7 +77,8 @@ class JobManager:
         logging.info(f"Submitted job IDs written to {job_ids_file}")
 
         # Wait 10 seconds after submitting jobs, with tqdm bar
-        for i in tqdm(range(10), desc="Waiting for jobs to start"):
+        tqdm.write("Waiting for jobs to start")
+        for i in tqdm(range(10), desc=""):
             time.sleep(1)
 
     def _update_states(self,
@@ -127,7 +129,8 @@ class JobManager:
 
         cycle_count = 0
         try:
-            with tqdm(total=len(self.jobs), desc="Job Status") as pbar:
+            tqdm.write("Job Status")
+            with tqdm(total=len(self.jobs), desc="") as pbar:
                 while not all(state in self.FINAL_STATES
                               for state in self.job_states.values()):
                     # Update job states once per batch
