@@ -125,7 +125,7 @@ class JobManager:
         INNER_BATCH = 10
         INNER_DELAY = 2
         LONG_PAUSE_AFTER = 10
-        LONG_DELAY = 30
+        LONG_DELAY = 10
 
         cycle_count = 0
         try:
@@ -143,7 +143,9 @@ class JobManager:
                     pbar.refresh()
                     # Round elapsed time to nearest second
                     elapsed = datetime.datetime.now() - self.start_time
-                    elapsed_rounded = datetime.timedelta(seconds=round(elapsed.total_seconds()))
+                    elapsed_rounded = datetime.timedelta(
+                        seconds=round(elapsed.total_seconds())
+                    )
                     pbar.set_postfix({
                         **counts,
                         "Elapsed": str(elapsed_rounded)
