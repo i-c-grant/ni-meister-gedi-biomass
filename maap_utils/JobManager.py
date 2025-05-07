@@ -77,7 +77,7 @@ class JobManager:
         # Wait 10 seconds after submitting jobs, with tqdm bar
         for i in tqdm(range(10), desc="Waiting for jobs to start"):
             time.sleep(1)
-            
+
     def _update_states(self,
                        batch_size: int = 50,
                        delay: int = 10) -> int:
@@ -106,7 +106,10 @@ class JobManager:
 
     def _status_counts(self) -> Dict[str, int]:
         """Get current counts of each job state"""
-        counts = {state: 0 for state in self.FINAL_STATES + self.PROGRESS_STATES + ["Other"]}
+        counts = {state: 0
+                  for state in (self.FINAL_STATES +
+                                self.PROGRESS_STATES +
+                                ["Other"])}
         for state in self.job_states.values():
             if state in counts:
                 counts[state] += 1
@@ -126,7 +129,8 @@ class JobManager:
         try:
             with tqdm(total=len(self.jobs), desc="Job Status") as pbar:
                 while self.progress < len(self.jobs):
-                    updated = self._update_states(batch_size=INNER_BATCH, delay=0)
+                    updated = self._update_states(batch_size=INNER_BATCH,
+                                                  delay=0)
                     self.progress += updated
 
                     pbar.update(updated)
