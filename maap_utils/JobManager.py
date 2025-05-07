@@ -138,10 +138,12 @@ class JobManager:
                                     for state in self.FINAL_STATES)
                     pbar.n = completed
                     pbar.refresh()
+                    # Round elapsed time to nearest second
+                    elapsed = datetime.datetime.now() - self.start_time
+                    elapsed_rounded = datetime.timedelta(seconds=round(elapsed.total_seconds()))
                     pbar.set_postfix({
                         **counts,
-                        "Elapsed": str(datetime.datetime.now() -
-                                       self.start_time)
+                        "Elapsed": str(elapsed_rounded)
                     })
 
                     cycle_count += 1
