@@ -130,13 +130,15 @@ class JobManager:
             with tqdm(total=len(self.jobs), desc="Job Status") as pbar:
                 while not all(state in self.FINAL_STATES
                               for state in self.job_states.values()):
-                    updated = self._update_states(batch_size=INNER_BATCH,
-                                                  delay=0)
-                    self.progress += updated
-
-                    pbar.update(updated)
+                    # Update job states once per batch
+                    self._update_states(batch_size=INNER_BATCH, delay=0)
+                    counts = self._status_counts()
+                    # Update progress bar based on completed jobs
+                    completed = sum(counts[state] for state in self.FINAL_STATES)
+                    pbar.n = completed
+                    pbar.refresh()
                     pbar.set_postfix({
-                        **self._status_counts(),
+                        **counts,
                         "Elapsed": str(datetime.datetime.now() -
                                        self.start_time)
                     })
