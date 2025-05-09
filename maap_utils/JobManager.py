@@ -123,7 +123,7 @@ class JobManager:
         """Monitor job progress with live updates and handle interrupts"""
         # scheduling parameters
         INNER_BATCH = 10
-        INNER_DELAY = 2
+        INNER_DELAY = 5
         LONG_PAUSE_AFTER = 10
         LONG_DELAY = 10
 
