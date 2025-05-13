@@ -1,9 +1,11 @@
 import logging
 import warnings
+import time
 from pathlib import Path
 from typing import Dict, List, Set, Tuple, Optional, Union
 
 import boto3
+import requests
 import geopandas as gpd
 from geopandas import GeoDataFrame
 from maap.maap import MAAP
@@ -131,7 +133,18 @@ def get_collection_id(product: str) -> str:
     params = {"short_name": short_name, "cmr_host": host, "cloud_hosted": "true"}
     if version:
         params["version"] = version
-    return maap.searchCollection(**params)[0]["concept-id"]
+
+    try:
+        results = maap.searchCollection(**params)
+        if not results:
+            raise ValueError(f"No collections found for {product} ({short_name} v{version})")
+        return results[0]["concept-id"]
+    except Exception as e:
+        logging.error(f"Failed to get collection ID for {product}: {str(e)}")
+        logging.error("Verify the product name and parameters are correct")
+        if "Could not parse XML response" in str(e):
+            logging.error("CMR returned invalid XML - service may be unavailable")
+        raise RuntimeError(f"Collection ID lookup failed for {product}") from e
 
 
 def granules_match(g1: Granule, g2: Granule) -> bool:
@@ -165,9 +178,35 @@ def query_granules(product: str,
         search_kwargs["bounding_box"] = ",".join(map(str, boundary_bbox))
 
     logging.info("Searching for granules...")
-    granules = maap.searchGranule(**search_kwargs)
-    logging.info(f"Found {len(granules)} {product} granules.")
-    return granules
+    
+    # Add retry logic with backoff and error handling
+    max_retries = 3
+    retry_delay = 10  # seconds
+    for attempt in range(max_retries):
+        try:
+            granules = maap.searchGranule(**search_kwargs)
+            # Check for HTTP errors in response
+            if hasattr(granules, 'response') and granules.response.status_code >= 400:
+                if granules.response.status_code == 429:
+                    logging.error("CMR rate limit exceeded - try again later")
+                    raise RuntimeError("CMR rate limit exceeded")
+                granules.response.raise_for_status()
+                
+            logging.info(f"Found {len(granules)} {product} granules.")
+            return granules
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logging.warning(f"CMR query failed (attempt {attempt+1}/{max_retries}): {str(e)}")
+                logging.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+                continue
+            logging.error("Failed to query CMR after multiple attempts")
+            logging.error("This could be due to:")
+            logging.error("- CMR service outage (check https://cmr.earthdata.nasa.gov/health)")
+            logging.error("- Rate limiting (try again later)")
+            logging.error("- Invalid query parameters")
+            raise RuntimeError(f"CMR query failed: {str(e)}") from e
 
 
 def match_granules(
