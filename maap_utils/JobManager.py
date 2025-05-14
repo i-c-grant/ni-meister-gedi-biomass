@@ -9,16 +9,13 @@ import random
 
 from .RunConfig import RunConfig
 from .Job import Job
+from .JobLedger import JobLedger
 
 maap = MAAP(maap_host="api.maap-project.org")
 
 
-# Job monitoring utilities
 class JobManager:
     """Manages tracking and monitoring of submitted jobs"""
-
-    FINAL_STATES = ["Succeeded", "Failed", "Deleted"]
-    PROGRESS_STATES = ["Accepted", "Running", "Offline"]
 
     def __init__(
         self,
@@ -32,16 +29,11 @@ class JobManager:
         self.check_interval = check_interval
         self.redo_enabled = redo_enabled
         self.original_job_kwargs = job_kwargs_list  # for potential resubmit
-        self.jobs = []
-        self.job_states: Dict[str, str] = {}
-        self.last_checked: Dict[str, datetime.datetime] = {}
-        self.attempts: Dict[str, int] = {}  # num. of job status checks
-        self.progress = 0
+        self.ledger = JobLedger()
         self.start_time = datetime.datetime.now()
 
     def submit(self, output_dir: Path) -> None:
         """Submit jobs in batches with error handling and delays"""
-        jobs = []
         job_batch_counter = 0
         job_batch_size = 50
         job_submit_delay = 2
@@ -61,7 +53,7 @@ class JobManager:
             try:
                 job = Job(job_kwargs)
                 job.submit()
-                jobs.append(job)
+                self.ledger.add_job(job)
                 job_batch_counter += 1
             except Exception as e:
                 logging.error(f"Error submitting job: {e}")
@@ -71,19 +63,12 @@ class JobManager:
                 time.sleep(job_submit_delay)
                 job_batch_counter = 0
 
-        self.jobs = jobs
-        self.job_states = {job.job_id: "Submitted" for job in self.jobs}
-        self.last_checked = {
-            job.job_id: datetime.datetime.min for job in self.jobs
-        }
-        self.attempts = {job.job_id: 0 for job in self.jobs}
-
         # Store output_dir and write job IDs
         self.output_dir = output_dir
         job_ids_file = self.output_dir / "job_ids.txt"
         with open(job_ids_file, "w") as f:
-            for job in self.jobs:
-                f.write(f"{job.job_id}\n")
+            for job_id in self.ledger.get_job_ids():
+                f.write(f"{job_id}\n")
         logging.info(f"Submitted job IDs written to {job_ids_file}")
 
         # Wait 10 seconds after submitting jobs, with tqdm bar
@@ -91,14 +76,10 @@ class JobManager:
         for i in tqdm(range(10), desc=""):
             time.sleep(1)
 
-    def _update_states(self, batch_size: int = 50, delay: int = 10) -> int:
+    def _update_states(self, batch_size: int = 50, delay: int = 10):
         """Internal method to update job states in batches"""
         # Select up to batch_size jobs that were least recently checked
-        pending = [
-            job
-            for job in self.jobs
-            if self.job_states[job.job_id] not in self.FINAL_STATES
-        ]
+        pending = self.ledger.get_pending_jobs()
 
         # Sort by oldest last_checked timestamp
         pending.sort(key=lambda job: self.last_checked[job.job_id])
@@ -107,29 +88,10 @@ class JobManager:
         selected = random.sample(
             pending[:batch_size], k=min(batch_size, len(pending))
         )
-        newly_complete = 0
-        for job in selected:
-            job_id = job.job_id
-            new_state = job.get_status()
-            self.job_states[job_id] = new_state
-            self.attempts[job_id] += 1
-            self.last_checked[job_id] = datetime.datetime.now()
-            if new_state in self.FINAL_STATES:
-                newly_complete += 1
-        return newly_complete
 
-    def _status_counts(self) -> Dict[str, int]:
-        """Get current counts of each job state"""
-        counts = {
-            state: 0
-            for state in (self.FINAL_STATES + self.PROGRESS_STATES + ["Other"])
-        }
-        for state in self.job_states.values():
-            if state in counts:
-                counts[state] += 1
-            else:
-                counts["Other"] += 1
-        return counts
+        for job in selected:
+            new_state = job.get_status()
+            self.ledger.update_status(job.job_id, new_state)
 
     def monitor(self) -> bool:
         """Monitor jobs and return True if all completed successfully"""
@@ -144,17 +106,12 @@ class JobManager:
         try:
             tqdm.write("Job Status")
             with tqdm(total=len(self.jobs), desc="") as pbar:
-                while not all(
-                    state in self.FINAL_STATES
-                    for state in self.job_states.values()
-                ):
+                while not self.ledger.all_final():
                     # Update job states once per batch
                     self._update_states(batch_size=INNER_BATCH, delay=0)
-                    counts = self._status_counts()
+                    counts = self.ledger.get_status_counts()
                     # Update progress bar based on completed jobs
-                    completed = sum(
-                        counts[state] for state in self.FINAL_STATES
-                    )
+                    completed = len(self.ledger.get_finished_jobs())
                     pbar.n = completed
                     pbar.refresh()
                     # Round elapsed time to nearest second
@@ -178,40 +135,30 @@ class JobManager:
             self._handle_interrupt()
 
         # Return whether all jobs completed successfully
-        all_succeeded = all(
-            state == "Succeeded" for state in self.job_states.values()
-        )
-
+        all_succeeded = self.ledger.all_succeeded()
         if not all_succeeded and self.redo_enabled and self.prompt_for_redo():
-            self.resubmit_failed_jobs()
+            self.resubmit_jobs()
             self.monitor()
 
         return all_succeeded
 
-    def resubmit_failed_jobs(self) -> None:
-        """Resubmit failed jobs to retry within this session"""
-        # Get IDs of failed jobs
-        failed_ids = [
-            job.job_id
-            for job in self.jobs
-            if self.job_states[job.job_id] != "Succeeded"
+    def resubmit_jobs(self) -> None:
+        """Resubmit unsuccessful jobs to retry within this session"""
+
+        # Get IDs of jobs that finished unsuccessfully
+        bad_jobs = [
+            job
+            for job in self.ledger.get_finished_jobs()
+            if job not in self.ledger.get_jobs_in_state("Succeeded")
         ]
 
-        # Create new Job objects for failed jobs
-        new_jobs = [Job(job.kwargs)
-                    for job in self.jobs
-                    if job.job_id in failed_ids]
+        # Create new Job objects for failed jobs using original kwargs
+        new_jobs = [Job(job.kwargs) for job in bad_jobs]
 
-        # Remove old jobs from job list
-        self.jobs = [
-            job for job in self.jobs if job.job_id not in failed_ids
-        ]
-
-        # Remove old jobs from tracking dictionaries
-        for job_id in failed_ids:
-            self.job_states.pop(job_id, None)
-            self.last_checked.pop(job_id, None)
-            self.attempts.pop(job_id, None)
+        # Clear ledger tracking for failed jobs
+        # Note: no cancellation necessary since they are already finished
+        for job in bad_jobs:
+            self.ledger.remove_job(job.job_id)
 
         # Submit new jobs
         logging.info(f"Resubmitting {len(new_jobs)} failed jobs")
@@ -221,10 +168,7 @@ class JobManager:
                 # Append resubmitted job ID to file
                 with open(self.output_dir / "job_ids.txt", "a") as f:
                     f.write(f"{job.job_id}\n")
-                self.jobs.append(job)
-                self.job_states[job.job_id] = "Submitted"
-                self.last_checked[job.job_id] = datetime.datetime.now()
-                self.attempts[job.job_id] = 0
+                self.ledger.add_job(job)
             except Exception as e:
                 logging.error(f"Error resubmitting job: {e}")
                 continue
@@ -242,7 +186,7 @@ class JobManager:
         except KeyboardInterrupt:
             if self.redo_enabled and self.prompt_for_redo():
                 print("Resubmitting failed jobs...")
-                self.resubmit_failed_jobs()
+                self.resubmit_jobs()
                 self.monitor()
             else:
                 self.exit_gracefully()
@@ -267,11 +211,7 @@ class JobManager:
         """Cancel pending jobs, print a report, and exit"""
         print("\nExiting...")
         # Cancel all pending jobs
-        pending_jobs = [
-            job
-            for job in self.jobs
-            if self.job_states[job.job_id] not in self.FINAL_STATES
-        ]
+        pending_jobs = self.ledger.get_pending_jobs()
 
         for job in pending_jobs:
             try:
@@ -285,13 +225,12 @@ class JobManager:
     def report(self) -> Dict[str, int]:
         """Logging.Info final job statistics report"""
         duration = datetime.datetime.now() - self.start_time
-        counts = self._status_counts()
-        total_jobs = len(self.jobs)
+        counts = self.ledger.get_status_counts()
+        total_jobs = len(self.ledger.get_jobs())
         success_pct = (
             (counts["Succeeded"] / total_jobs * 100) if total_jobs else 0
         )
 
-        counts = self._status_counts()
         logging.info(f"\n{' Job Summary '.center(40, '=')}")
         logging.info(f"Total runtime:    {duration}")
         logging.info(f"Jobs submitted:  {total_jobs}")
@@ -301,11 +240,7 @@ class JobManager:
             logging.info(f"  {state}: {count}")
 
         if counts["Failed"] > 0:
-            failed_ids = [
-                job.job_id
-                for job in self.jobs
-                if self.job_states[job.job_id] == "Failed"
-            ]
+            failed_ids = [job.job_id for job in self.ledger.get_failed_jobs()]
             logging.info(f"\nFailed job IDs:\n  {', '.join(failed_ids)}")
 
         return counts
