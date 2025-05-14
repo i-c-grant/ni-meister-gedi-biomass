@@ -7,9 +7,14 @@ maap = MAAP(maap_host="api.maap-project.org")
 class Job:
     """Represents an individual processing job"""
 
-    def __init__(self, job_kwargs: Dict):
-        self.job_kwargs = job_kwargs
+    def __init__(self, kwargs: Dict):
+        self._kwargs = kwargs
         self._job_id: Optional[str] = None
+
+    @property
+    def kwargs(self) -> Dict:
+        """Get the job arguments (read-only)"""
+        return self._kwargs
 
     @property
     def job_id(self) -> Optional[str]:
@@ -23,7 +28,7 @@ class Job:
 
     def submit(self) -> None:
         """Submit this job to MAAP"""
-        job = maap.submitJob(**self.job_kwargs)
+        job = maap.submitJob(**self.kwargs)
         self._job_id = job.id
 
     def get_status(self) -> str:
