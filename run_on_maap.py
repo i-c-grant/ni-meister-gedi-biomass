@@ -127,6 +127,7 @@ def main(
     algo_version: str,
     redo_tag: str,
     force_redo: bool,
+    no_redo: bool,
 ):
     # Create configuration object
     run_config = RunConfig(
