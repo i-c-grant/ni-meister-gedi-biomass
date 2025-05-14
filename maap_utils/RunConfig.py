@@ -20,5 +20,5 @@ class RunConfig:
     date_range: str = None
     job_limit: int = None
     check_interval: int = 120
-    redo_tag: str = None
+    redo_of: str = None
     force_redo: bool = False

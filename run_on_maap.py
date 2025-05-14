@@ -106,7 +106,7 @@ maap = MAAP(maap_host="api.maap-project.org")
     default=120,
     help="Time interval (in seconds) between job status checks.",
 )
-@click.option("--redo_tag", "-r", type=str, help="Tag of previous run to exclude")
+@click.option("--redo-of", "-r", type=str, help="Tag of previous run to redo")
 @click.option("--force-redo", is_flag=True, help="Allow redo with same tag")
 @click.option(
     "--no-redo",
@@ -125,7 +125,7 @@ def main(
     k_allom: str,
     algo_id: str,
     algo_version: str,
-    redo_tag: str,
+    redo_of: str,
     force_redo: bool,
     no_redo: bool,
 ):
@@ -142,7 +142,7 @@ def main(
         date_range=date_range,
         job_limit=job_limit,
         check_interval=check_interval,
-        redo_tag=redo_tag,
+        redo_of=redo_of,
         force_redo=force_redo,
     )
 
@@ -177,7 +177,7 @@ def main(
     logging.info(f"Date Range: {date_range}")
 
     # validate redo tag if specified
-    if redo_tag:
+    if redo_of:
         validate_redo_tag(run_config)
 
     # Read and log full model configuration
@@ -206,7 +206,7 @@ def main(
     matched_granules: List[Dict[str, Granule]] = match_granules(product_granules)
 
     # Filter out already-processed granules if redo tag is specified
-    if run_config.redo_tag:
+    if run_config.redo_of:
         matched_granules = exclude_redo_granules(matched_granules, run_config)
 
     job_kwargs_list = prepare_job_kwargs(matched_granules, run_config)
