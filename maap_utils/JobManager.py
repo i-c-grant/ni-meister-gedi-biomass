@@ -207,6 +207,12 @@ class JobManager:
             job for job in self.jobs if job.job_id not in failed_ids
         ]
 
+        # Remove old jobs from tracking dictionaries
+        for job_id in failed_ids:
+            self.job_states.pop(job_id, None)
+            self.last_checked.pop(job_id, None)
+            self.attempts.pop(job_id, None)
+
         # Submit new jobs
         logging.info(f"Resubmitting {len(new_jobs)} failed jobs")
         for job in new_jobs:
@@ -236,7 +242,7 @@ class JobManager:
         except KeyboardInterrupt:
             if self.redo_enabled and self.prompt_for_redo():
                 print("Resubmitting failed jobs...")
-                self.resubmit_failed_jobs() 
+                self.resubmit_failed_jobs()
                 self.monitor()
             else:
                 self.exit_gracefully()
@@ -247,7 +253,7 @@ class JobManager:
             "\nResubmit failed jobs? [y/N] "
             "This will resubmit all jobs that do not have 'Succeeded' status "
             "and continue monitoring.\n"
-        ).strip().lower()
+        ).strip()
         if redo_answer == "y":
             redo = True
         elif redo_answer == "N":
