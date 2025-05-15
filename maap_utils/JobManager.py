@@ -234,8 +234,8 @@ class JobManager:
         unsuccessful_jobs = set(self.ledger.get_jobs()) - successful_jobs
 
         # Write ids, final state, and kwargs of unsuccessful jobs to log
-        logging.info(f"See full log in {self.output_dir} for details"
-                     "on unsuccessful jobs.")
+        logging.info(f"See unsuccessful_jobs.json in {self.output_dir}"
+                     "for details  on unsuccessful jobs.")
 
         for job in unsuccessful_jobs:
             logging.debug(f"\nFailed job ID: {job.job_id}")
