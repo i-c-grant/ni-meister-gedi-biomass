@@ -37,11 +37,18 @@ class JobLedger:
 
     def get_pending_jobs(self) -> List[Job]:
         """Get jobs not in final states"""
-        return [
+
+        # Get all unfinished jobs
+        pending = [
             job
             for job_id, job in self.jobs.items()
             if self.status[job_id] not in self.FINAL_STATES
         ]
+
+        # Sort by last checked time, most recently checked last
+        pending.sort(key=lambda x: self.last_checked[x.job_id])
+
+        return pending
 
     def get_finished_jobs(self) -> List[Job]:
         """Get only finished jobs"""
