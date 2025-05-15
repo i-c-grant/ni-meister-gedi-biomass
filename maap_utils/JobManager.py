@@ -230,8 +230,16 @@ class JobManager:
         for state, count in counts.items():
             logging.info(f"  {state}: {count}")
 
-        if counts["Failed"] > 0:
-            failed_ids = [job.job_id for job in self.ledger.get_failed_jobs()]
-            logging.info(f"\nFailed job IDs:\n  {', '.join(failed_ids)}")
+        successful_jobs = set(self.ledger.get_jobs_in_state("Succeeded"))
+        unsuccessful_jobs = set(self.ledger.get_jobs()) - successful_jobs
+
+        # Write ids, final state, and kwargs of unsuccessful jobs to log
+        logging.info(f"See full log in {self.output_dir} for details"
+                     "on unsuccessful jobs.")
+
+        for job in unsuccessful_jobs:
+            logging.debug(f"\nFailed job ID: {job.job_id}")
+            logging.debug(f"  Final state: {job.get_status()}")
+            logging.debug(f"  Job kwargs: {job.kwargs}")
 
         return counts
