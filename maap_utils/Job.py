@@ -44,3 +44,7 @@ class Job:
     def cancel(self) -> None:
         """Cancel this job"""
         maap.cancelJob(self.job_id)
+
+    def __hash__(self) -> int:
+        """Hash function for the job object"""
+        return hash(self.job_id) if self.job_id else 0
