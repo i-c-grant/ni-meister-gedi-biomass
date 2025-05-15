@@ -5,7 +5,6 @@ import time
 from tqdm import tqdm
 from pathlib import Path
 import logging
-import random
 
 from .RunConfig import RunConfig
 from .Job import Job
@@ -80,16 +79,7 @@ class JobManager:
         """Internal method to update job states in batches"""
         # Select up to batch_size jobs that were least recently checked
         pending = self.ledger.get_pending_jobs()
-
-        # Sort by oldest last_checked timestamp
-        pending.sort(key=lambda job: self.last_checked[job.job_id])
-
-        # Randomly sample up to batch_size jobs from the least recently updated
-        selected = random.sample(
-            pending[:batch_size], k=min(batch_size, len(pending))
-        )
-
-        for job in selected:
+        for job in pending[:batch_size]:
             new_state = job.get_status()
             self.ledger.update_status(job.job_id, new_state)
 
