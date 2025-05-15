@@ -151,7 +151,7 @@ class JobManager:
             self.ledger.remove_job(job.job_id)
 
         # Submit new jobs
-        logging.info(f"Resubmitting {len(new_jobs)} failed jobs")
+        logging.info(f"Resubmitting {len(new_jobs)} failed jobs...")
         for job in new_jobs:
             try:
                 job.submit()
@@ -171,12 +171,13 @@ class JobManager:
         )
         try:
             time.sleep(3)
-            print("Resuming monitoring...")
+            logging.info("Resuming monitoring...")
             self.monitor()
         except KeyboardInterrupt:
             if self.redo_enabled and self.prompt_for_redo():
-                print("Resubmitting failed jobs...")
+                logging.info("Resubmitting failed jobs...")
                 self.resubmit_jobs()
+                logging.info("Resuming monitoring...")
                 self.monitor()
             else:
                 self.exit_gracefully()
@@ -199,7 +200,7 @@ class JobManager:
 
     def exit_gracefully(self) -> None:
         """Cancel pending jobs, print a report, and exit"""
-        print("\nExiting...")
+        logging.info("\nExiting gracefully...")
         # Cancel all pending jobs
         pending_jobs = self.ledger.get_pending_jobs()
 
@@ -208,7 +209,7 @@ class JobManager:
                 job.cancel()
             except Exception as e:
                 logging.error(f"Error cancelling job: {e}")
-        print("All jobs cancelled.")
+        logging.info("All pending jobs cancelled.")
         self.report()
         exit(0)
 
