@@ -6,7 +6,7 @@ from .Job import Job
 class JobLedger:
     """Tracks all job state in a single coordinated structure"""
 
-    PENDING_STATES = ["Accepted", "Running", "Offline", "Submitted"]
+    PENDING_STATES = ["Submitted", "Accepted", "Running", "Offline"]
     FINAL_STATES = ["Succeeded", "Failed", "Deleted"]
 
     def __init__(self):
