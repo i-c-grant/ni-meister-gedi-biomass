@@ -50,14 +50,14 @@ def validate_redo_tag(config: RunConfig) -> None:
     s3 = boto3.client("s3")
     prefix = (
         f"{config.username}/dps_output/{config.algo_id}/"
-        f"{config.algo_version}/{config.redo_tag}/"
+        f"{config.algo_version}/{config.redo_of}/"
     )
     result = s3.list_objects_v2(
         Bucket="maap-ops-workspace", Prefix=prefix, MaxKeys=1
     )
     if not result.get("KeyCount"):
         raise ValueError(
-            "No output directory found for " f"redo tag '{config.redo_tag}'"
+            "No output directory found for " f"redo tag '{config.redo_of}'"
         )
 
 
