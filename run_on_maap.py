@@ -175,6 +175,9 @@ def main(
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
+    logging.info("\n")
+    logging.info("****************************************"
+                 "****************************************")
     logging.info(f"Starting new model run at MAAP at {start_time}.")
     logging.info(f"Boundary: {boundary}")
     logging.info(f"Date Range: {date_range}")
@@ -229,6 +232,8 @@ def main(
     end_time = datetime.datetime.now()
 
     logging.info(f"Model run completed at {end_time}.")
+    logging.info("****************************************"
+                 "****************************************")
 
 
 if __name__ == "__main__":
