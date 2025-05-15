@@ -186,8 +186,8 @@ class JobManager:
         """Prompt user for interactive resubmission of failed jobs"""
         redo_answer = input(
             "\nResubmit failed jobs? [y/N] "
-            "This will resubmit all jobs that do not have 'Succeeded' status "
-            "and continue monitoring.\n"
+            "This will resubmit all finished jobs that do not have 'Succeeded'"
+            " status and continue monitoring.\n"
         ).strip()
         if redo_answer == "y":
             redo = True

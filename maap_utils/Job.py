@@ -5,7 +5,7 @@ maap = MAAP(maap_host="api.maap-project.org")
 
 
 class Job:
-    """Represents an individual processing job"""
+    """Handles API interactions for a single job on MAAP"""
 
     def __init__(self, kwargs: Dict):
         self._kwargs = kwargs
