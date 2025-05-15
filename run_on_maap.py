@@ -31,6 +31,7 @@ Usage:
 import datetime
 import logging
 import os
+import shutil
 from pathlib import Path
 from typing import Dict, List
 
@@ -186,17 +187,13 @@ def main(
     if redo_of:
         validate_redo_tag(run_config)
 
-    # Read and log full model configuration
+    # Copy config file into output directory for safekeeping
     model_config_path = s3_url_to_local_path(run_config.model_config)
     try:
-        with open(model_config_path, "r") as config_file:
-            full_model_config = config_file.read()
+        shutil.copy(model_config_path, output_dir / Path(model_config_path).name)
     except Exception as e:
-        logging.error("Error reading config file"
-                      f"from {model_config_path}: {str(e)}")
+        logging.error(f"Error copying config file from {model_config_path}: {str(e)}")
         raise
-
-    logging.debug(f"Configuration:\n{full_model_config}")
 
     # Query the CMR for granules
     product_granules: Dict[str, List[Granule]] = {}
