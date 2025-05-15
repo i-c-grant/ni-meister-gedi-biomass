@@ -105,7 +105,7 @@ class JobManager:
         cycle_count = 0
         try:
             tqdm.write("Job Status")
-            with tqdm(total=len(self.jobs), desc="") as pbar:
+            with tqdm(total=len(self.ledger.get_jobs()), desc="") as pbar:
                 while not self.ledger.all_final():
                     # Update job states once per batch
                     self._update_states(batch_size=INNER_BATCH, delay=0)
