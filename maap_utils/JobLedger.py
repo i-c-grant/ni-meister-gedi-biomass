@@ -35,6 +35,10 @@ class JobLedger:
         self.last_checked[job_id] = datetime.now()
         self.attempts[job_id] += 1
 
+    def get_status(self, job_id: str) -> str:
+        """Get the status of a specific job"""
+        return self.status.get(job_id, "Unknown")
+
     def get_pending_jobs(self) -> List[Job]:
         """Get jobs not in final states"""
 
