@@ -193,7 +193,7 @@ def main(
                       f"from {model_config_path}: {str(e)}")
         raise
 
-    logging.info(f"Configuration:\n{full_model_config}")
+    logging.debug(f"Configuration:\n{full_model_config}")
 
     # Query the CMR for granules
     product_granules: Dict[str, List[Granule]] = {}
