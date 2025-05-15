@@ -27,7 +27,7 @@ def get_existing_keys(config: RunConfig) -> Set[str]:
         Bucket="maap-ops-workspace",
         Prefix=(
             f"{config.username}/dps_output/{config.algo_id}/"
-            f"{config.algo_version}/{config.redo_tag}/"
+            f"{config.algo_version}/{config.redo_of}/"
         ),
     ):
         for obj in page.get("Contents", []):
@@ -41,7 +41,7 @@ def get_existing_keys(config: RunConfig) -> Set[str]:
 
 def validate_redo_tag(config: RunConfig) -> None:
     """Validate redo tag parameters and check for existing outputs"""
-    if not config.force_redo and config.redo_tag == config.tag:
+    if not config.force_redo and config.redo_of == config.tag:
         raise ValueError(
             f"Cannot redo with same tag '{config.tag}' "
             "- use --force-redo to override"
