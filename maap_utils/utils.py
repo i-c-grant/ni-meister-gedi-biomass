@@ -147,21 +147,32 @@ def get_collection_id(product: str) -> str:
     if version:
         params["version"] = version
 
-    try:
-        results = maap.searchCollection(**params)
-        if not results:
-            raise ValueError(
-                f"No collections found for {product} ({short_name} v{version})"
-            )
-        return results[0]["concept-id"]
-    except Exception as e:
-        logging.error(f"Failed to get collection ID for {product}: {str(e)}")
-        logging.error("Verify the product name and parameters are correct")
-        if "Could not parse XML response" in str(e):
-            logging.error(
-                "CMR returned invalid XML - service may be unavailable"
-            )
-        raise RuntimeError(f"Collection ID lookup failed for {product}") from e
+    max_retries = 3
+    retry_delay = 10  # seconds
+    for attempt in range(max_retries):
+        try:
+            results = maap.searchCollection(**params)
+            if not results:
+                raise ValueError(
+                    f"No collections found for {product} ({short_name} v{version})"
+                )
+            return results[0]["concept-id"]
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logging.warning(
+                    f"Collection ID lookup failed (attempt {attempt+1}/{max_retries}): {str(e)}"
+                )
+                logging.info(f"Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+                continue
+            logging.error(f"Failed to get collection ID for {product}: {str(e)}")
+            logging.error("Verify the product name and parameters are correct")
+            if "Could not parse XML response" in str(e):
+                logging.error(
+                    "CMR returned invalid XML - service may be unavailable"
+                )
+            raise RuntimeError(f"Collection ID lookup failed for {product}") from e
 
 
 def granules_match(g1: Granule, g2: Granule) -> bool:
