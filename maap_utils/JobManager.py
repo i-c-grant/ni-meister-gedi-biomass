@@ -236,7 +236,9 @@ class JobManager:
 
         # Write unsuccessful jobs details to JSON in output directory
         unsuccessful_jobs_details = [
-            {"job_id": job.job_id, "state": job.get_status(), "kwargs": job.kwargs}
+            {"job_id": job.job_id,
+             "state": self.ledger.get_status(job.job_id),
+             "kwargs": job.kwargs}
             for job in unsuccessful_jobs
         ]
         json_file = self.output_dir / "unsuccessful_jobs.json"
