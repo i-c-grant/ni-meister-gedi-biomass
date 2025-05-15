@@ -5,6 +5,7 @@ import time
 from tqdm import tqdm
 from pathlib import Path
 import logging
+import json
 
 from .RunConfig import RunConfig
 from .Job import Job
@@ -233,13 +234,14 @@ class JobManager:
         successful_jobs = set(self.ledger.get_jobs_in_state("Succeeded"))
         unsuccessful_jobs = set(self.ledger.get_jobs()) - successful_jobs
 
-        # Write ids, final state, and kwargs of unsuccessful jobs to log
-        logging.info(f"See unsuccessful_jobs.json in {self.output_dir}"
-                     "for details  on unsuccessful jobs.")
-
-        for job in unsuccessful_jobs:
-            logging.debug(f"\nFailed job ID: {job.job_id}")
-            logging.debug(f"  Final state: {job.get_status()}")
-            logging.debug(f"  Job kwargs: {job.kwargs}")
+        # Write unsuccessful jobs details to JSON in output directory
+        unsuccessful_jobs_details = [
+            {"job_id": job.job_id, "state": job.get_status(), "kwargs": job.kwargs}
+            for job in unsuccessful_jobs
+        ]
+        json_file = self.output_dir / "unsuccessful_jobs.json"
+        with open(json_file, "w") as f:
+            json.dump(unsuccessful_jobs_details, f, indent=2)
+        logging.info(f"Wrote unsuccessful jobs details to {json_file}")
 
         return counts
