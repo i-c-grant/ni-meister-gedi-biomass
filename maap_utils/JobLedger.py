@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import Dict, List
 from .Job import Job
-from .JobManager import JobManager
 
 
 class JobLedger:
