@@ -155,12 +155,12 @@ def main(
 
     # Set up logging with both file and console handlers
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     # File handler with timestamps
     file_handler = logging.FileHandler(filename=output_dir / "run.log",
                                        mode="w")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.INFO)
 
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s - %(message)s",
