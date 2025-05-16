@@ -236,16 +236,17 @@ def main(
             except KeyboardInterrupt:
                 return "exit"
         else:
-            print(f"\nMonitoring suspended. Press 'r' to resubmit failed jobs, "
-                  f"press Ctrl-C to exit, or wait {timeout} seconds to resume.")
+            print(f"\nMonitoring suspended. Enter 'r' to resubmit, 'x' to exit, or wait {timeout} seconds to resume.")
             try:
                 # wait for user input with timeout
                 signal.signal(signal.SIGALRM, lambda s, f: (_ for _ in ()).throw(TimeoutError()))
                 signal.alarm(timeout)
-                answer = input().strip().lower()
+                answer = input("> ").strip().lower()
                 signal.alarm(0)
                 if answer == "r":
                     return "resubmit"
+                elif answer == "x":
+                    return "exit"
                 return "resume"
             except TimeoutError:
                 return "resume"
