@@ -158,7 +158,7 @@ class JobManager:
                 job.submit()
                 # Append resubmitted job ID to file
                 with open(self.output_dir / "job_ids.txt", "a") as f:
-                    f.write(f"{job.job_id}\n")
+                    f.write(f"Resubmitted: {job.job_id}\n")
                 self.ledger.add_job(job)
             except Exception as e:
                 logging.error(f"Error resubmitting job: {e}")
