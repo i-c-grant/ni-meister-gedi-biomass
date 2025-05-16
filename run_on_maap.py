@@ -259,8 +259,7 @@ def main(
             return "exit"
         else:
             answer = input(
-                "\nAll jobs finished with some failures. "
-                "Press 'r' to retry failures or any other key to exit: "
+                "\nAll jobs finished with some failures. Enter 'r' to retry failures, 'x' to exit.\n> "
             ).strip().lower()
             if answer == "r":
                 return "resubmit"
