@@ -6,6 +6,7 @@ from tqdm import tqdm
 from pathlib import Path
 import logging
 import json
+import sys
 
 from .RunConfig import RunConfig
 from .Job import Job
@@ -70,8 +71,13 @@ class JobManager:
 
         # Wait 10 seconds after submitting jobs, with tqdm bar
         tqdm.write("Waiting for jobs to start")
-        for i in tqdm(range(10), desc=""):
-            time.sleep(1)
+        try:
+            for i in tqdm(range(10), desc=""):
+                time.sleep(1)
+        except KeyboardInterrupt:
+            logging.info("Submission interrupted by user")
+            self.exit_gracefully()
+            sys.exit(1)
 
     def _update_states(self, batch_size: int = 50, delay: int = 10):
         """Internal method to update job states in batches"""
