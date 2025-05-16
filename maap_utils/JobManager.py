@@ -43,23 +43,28 @@ class JobManager:
         )
 
         tqdm.write("Submitting jobs")
-        for job_kwargs in tqdm(
-            self.job_kwargs_list[: self.config.job_limit],
-            total=total_jobs,
-            desc="",
-        ):
-            try:
-                job = Job(job_kwargs)
-                job.submit()
-                self.ledger.add_job(job)
-                job_batch_counter += 1
-            except Exception as e:
-                logging.error(f"Error submitting job: {e}")
-                continue
+        try:
+            for job_kwargs in tqdm(
+                self.job_kwargs_list[: self.config.job_limit],
+                total=total_jobs,
+                desc="",
+            ):
+                try:
+                    job = Job(job_kwargs)
+                    job.submit()
+                    self.ledger.add_job(job)
+                    job_batch_counter += 1
+                except Exception as e:
+                    logging.error(f"Error submitting job: {e}")
+                    continue
 
-            if job_batch_counter == job_batch_size:
-                time.sleep(job_submit_delay)
-                job_batch_counter = 0
+                if job_batch_counter == job_batch_size:
+                    time.sleep(job_submit_delay)
+                    job_batch_counter = 0
+        except KeyboardInterrupt:
+            logging.info("Submission interrupted by user")
+            self.exit_gracefully()
+            sys.exit(1)
 
         # Store output_dir and write job IDs
         self.output_dir = output_dir
