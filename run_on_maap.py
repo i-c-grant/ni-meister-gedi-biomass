@@ -35,6 +35,7 @@ import shutil
 from pathlib import Path
 from typing import Dict, List
 import time
+import signal
 
 import click
 from maap.maap import MAAP
@@ -238,10 +239,15 @@ def main(
             print(f"\nMonitoring suspended. Press 'r' to resubmit failed jobs, "
                   f"press Ctrl-C to exit, or wait {timeout} seconds to resume.")
             try:
+                # wait for user input with timeout
+                signal.signal(signal.SIGALRM, lambda s, f: (_ for _ in ()).throw(TimeoutError()))
+                signal.alarm(timeout)
                 answer = input().strip().lower()
+                signal.alarm(0)
                 if answer == "r":
                     return "resubmit"
-                time.sleep(timeout)
+                return "resume"
+            except TimeoutError:
                 return "resume"
             except KeyboardInterrupt:
                 return "exit"
