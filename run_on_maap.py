@@ -236,7 +236,8 @@ def main(
             except KeyboardInterrupt:
                 return "exit"
         else:
-            print(f"\nMonitoring suspended. Enter 'r' to resubmit, 'x' to exit, or wait {timeout} seconds to resume.")
+            print("\nMonitoring suspended. Enter 'r' to resubmit failed jobs, "
+                  f"'x' to exit, or wait {timeout} seconds to resume.")
             try:
                 # wait for user input with timeout
                 signal.signal(signal.SIGALRM, lambda s, f: (_ for _ in ()).throw(TimeoutError()))
