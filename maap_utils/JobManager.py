@@ -54,6 +54,8 @@ class JobManager:
                     job.submit()
                     self.ledger.add_job(job)
                     job_batch_counter += 1
+                except KeyboardInterrupt:
+                    raise
                 except Exception as e:
                     logging.error(f"Error submitting job: {e}")
                     continue

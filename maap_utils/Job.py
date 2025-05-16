@@ -31,6 +31,8 @@ class Job:
         """Call a MAAP function, catch and log exceptions."""
         try:
             return fn(*args, **kwargs)
+        except KeyboardInterrupt:
+            raise
         except Exception as e:
             logging.error(f"MAAP API error in {fn.__name__}: {e}")
             return None
