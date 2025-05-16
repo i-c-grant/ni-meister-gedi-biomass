@@ -34,6 +34,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Dict, List
+import time
 
 import click
 from maap.maap import MAAP
@@ -219,15 +220,78 @@ def main(
         run_config,
         job_kwargs_list,
         check_interval=run_config.check_interval,
-        redo_enabled=not no_redo,
     )
     job_manager.submit(output_dir)
 
     # Handle monitoring and potential resubmissions
-    job_manager.monitor()
-    job_manager.exit_gracefully()
-    end_time = datetime.datetime.now()
+    def prompt_after_interrupt() -> str:
+        """Prompt user after monitoring is interrupted by Ctrl-C."""
+        timeout = 10
+        if no_redo:
+            print(f"Monitoring suspended. Waiting {timeout} seconds to resume or press Ctrl-C to exit.")
+            try:
+                time.sleep(timeout)
+                return "resume"
+            except KeyboardInterrupt:
+                return "exit"
+        else:
+            print(f"\nMonitoring suspended. Press 'r' to resubmit failed jobs, "
+                  f"press Ctrl-C to exit, or wait {timeout} seconds to resume.")
+            try:
+                answer = input().strip().lower()
+                if answer == "r":
+                    return "resubmit"
+                time.sleep(timeout)
+                return "resume"
+            except KeyboardInterrupt:
+                return "exit"
 
+    def prompt_after_run() -> str:
+        """Prompt user after jobs finish with some failures."""
+        if no_redo:
+            return "exit"
+        else:
+            answer = input(
+                "\nAll jobs finished with some failures. "
+                "Press 'r' to retry failures or any other key to exit: "
+            ).strip().lower()
+            if answer == "r":
+                return "resubmit"
+            return "exit"
+
+    # Main monitoring loop
+    while True:
+        run_status = job_manager.monitor()
+
+        # monitoring exited because user intiated an interrupt via Ctrl-C
+        # and some jobs are still pending
+        if run_status == "interrupted":
+            next_step = prompt_after_interrupt()
+            if next_step == "resubmit":
+                job_manager.resubmit_unsuccessful_jobs()
+                continue
+            elif next_step == "exit":
+                break
+            else:
+                continue
+
+        # monitoring exited because all jobs were successful
+        elif run_status == "succeeded":
+            break
+
+        # monitoring exited because all jobs finished,
+        # but some were not successful
+        elif run_status == "partial":
+            next_step = prompt_after_run()
+            if next_step == "resubmit":
+                job_manager.resubmit_unsuccessful_jobs()
+                continue
+            else:
+                break
+
+    job_manager.exit_gracefully()
+
+    end_time = datetime.datetime.now()
     logging.info(f"Model run completed at {end_time}.")
     logging.info("****************************************"
                  "****************************************")
