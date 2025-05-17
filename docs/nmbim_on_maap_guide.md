@@ -15,7 +15,7 @@ Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spa
    - Must only include areas with valid HSE and k_allom values
    - Multiple polygons supported but must not overlap
 
-p3. Get or create a configuration file
+3. Get or create a configuration file
    - Option A: Use an existing config file (see config/config.yaml in the ni-meister-gedi-biomass repository for a default)
    - Option B: Create new config file:
      - Name as `config.yaml` or `config.yml`
@@ -33,16 +33,17 @@ p3. Get or create a configuration file
      git clone https://github.com/i-c-grant/ni-meister-gedi-biomass.git
      ```
 
-5. Upload files to MAAP workspace
+5. Upload files to your MAAP workspace bucket
    - Navigate my-private-bucket in the MAAP ADE graphical file browser
    - Upload hse.tif, k_allom.tif, boundary.gpkg, and config.yaml using the interface
 
 6. Run processing script
+   - Creates a local output directory (`run_output_<YYYYMMDD_HHMMSS>`) containing `run.log` and a copy of your config file
    ```bash
    # Navigate to the cloned repository
    cd ni-meister-gedi-biomass
-   
-   # Run the script
+
+   # Run the script with additional options
    python run_on_maap.py \
      --username {your_username} \
      --tag {unique_processing_id} \
@@ -50,7 +51,12 @@ p3. Get or create a configuration file
      --hse s3://maap-ops-workspace/{username}/my-private-bucket/hse.tif \
      --k_allom s3://maap-ops-workspace/{username}/my-private-bucket/k_allom.tif \
      --algo_id nmbim_biomass_index \
-     --algo_version main
+     --algo_version main \
+     --boundary s3://maap-ops-workspace/{username}/my-private-bucket/boundary.gpkg \
+     --date_range "2019-01-01,2020-12-31" \
+     --job_limit 100 \
+     --redo-of previous_tag \
+     --no-redo
    ```
 
 This script will figure out what GEDI files are necessary to cover the query and submit the necessary jobs to the MAAP DPS.
@@ -61,7 +67,7 @@ The script will display a progress bar showing:
      - Current status counts (Succeeded, Failed, Running)
      - Time of last status update (updates occur infrequently for very large job batches)
 
-Wait until all or most jobs are complete. If jobs are hung in 'Offline' status for a long time, you can safely cancel the run with Ctrl-C Ctrl-C. The completed jobs will still be available for download.
+Wait until all or most jobs are complete. Press Ctrl-C once to suspend monitoring (you can then choose to resume, resubmit failed jobs, or exit). Press Ctrl-C again at the prompt or select 'x' to cancel the run; any completed jobs will remain available for download.
 
 8. Get temporary MAAP credentials
 In order to download the outputs from the MAAP s3 bucket, it is necessary to obtain temporary credentials to access the bucket.
@@ -74,18 +80,40 @@ In order to download the outputs from the MAAP s3 bucket, it is necessary to obt
 
 9. Download and process results
 
-The temporary credentials can be used with AWS CLI tools locally to download the results:
+You can use the provided `download_from_workspace.py` script along with your temporary AWS credentials JSON file to download all compressed GeoPackages for your run:
+
+   ```bash
+   # Save temporary credentials to creds.json
+   python - <<'EOF'
+   from maap.maap import MAAP
+   maap = MAAP(maap_host='api.maap-project.org')
+   import json
+   creds = maap.aws.workspace_bucket_credentials()
+   print(json.dumps(creds, indent=2))
+   EOF > creds.json
+
+   # Download results for your run
+   python download_from_workspace.py \
+     --credentials creds.json \
+     --output-dir ./run_results \
+     --algorithm nmbim_biomass_index \
+     --version main \
+     --tag {unique_processing_id}
+
+   # Decompress downloaded GeoPackages
+   bunzip2 run_results/*.gpkg.bz2
+   ```
+
+Alternatively, you can still use AWS CLI directly:
 
    ```bash
    # List output files
    aws s3 ls s3://maap-ops-workspace/{username}/dps_output/nmbim_biomass_index/main/{unique_processing_id}/ --recursive | grep '.gpkg.bz2$'
-
    # Download compressed GeoPackages
-   aws s3 cp s3://maap-ops-workspace/{username}/{unique_processing_id}/ . \
+   aws s3 cp s3://maap-ops-workspace/{username}/dps_output/nmbim_biomass_index/main/{unique_processing_id}/ ./run_results \
      --recursive --exclude "*" --include "*.gpkg.bz2"
-
    # Decompress files
-   bunzip2 *.gpkg.bz2
+   bunzip2 run_results/*.gpkg.bz2
    ```
 
 ## Deployment Overview
@@ -154,12 +182,15 @@ The script requires several mandatory arguments:
 - algo_version: The algorithm version (typically "main")
 
 Optional arguments allow you to:
-- Restrict processing to a specific geographic boundary
-- Filter by date range
-- Limit the number of jobs submitted
-- Adjust the job status checking interval
+- Restrict processing to a specific geographic boundary (`--boundary`)
+- Filter by date range (`--date_range`)
+- Limit the number of jobs submitted (`--job_limit`)
+- Adjust the job status checking interval (`--check_interval`)
+- Reprocess a previous run (`--redo-of <tag>`)
+- Force reuse of same tag for redo (`--force-redo`)
+- Disable automatic resubmission of failed jobs (`--no-redo`)
 
-Note: all file arguments (config, hse, and k_allom) should be passed as s3 paths, not paths within the locally mounted MAAP filesystem. Passing local paths will result in a high load on the MAAP ADE cluster, as each transfer of a file argument to a worker will be routed through the MAAP ADE in order to resolve the local path into the s3 path. Accordingly, the configuration file and HSE and k_allom rasters should be stored in the `my-private-bucket` or `my-public-bucket` folders of your MAAP environment.
+Note: all file arguments (config, hse, k_allom, and boundary) should be passed as `s3://` paths, not paths within the locally mounted MAAP filesystem. Passing local paths will result in a high load on the MAAP ADE cluster, as each transfer of a file argument to a worker will be routed through the MAAP ADE in order to resolve the local path into the s3 path. Accordingly, the configuration file and rasters should be stored in your MAAP workspace (e.g., `my-private-bucket` or `my-public-bucket`).
 
 ### Job Management
 
