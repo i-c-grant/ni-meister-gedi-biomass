@@ -128,38 +128,64 @@ However, it may also be more efficient to do some processing tasks without first
 
 ## Detailed description of run_on_maap.py options
 
-### Boundary
+The script accepts these required arguments:
 
-The boundary input defines the geographic area of interest for processing. It must be provided as either a geopackage (.gpkg) or shapefile (.shp) in the EPSG:4326 coordinate system. The boundary should encompass only areas where both HSE and k_allom parameters have valid values. While multiple polygons are supported, they should not overlap.
+| Argument | Description |
+|----------|-------------|
+| `-u/--username` | MAAP username for job tracking |
+| `-t/--tag` | Unique identifier for the processing run |
+| `-c/--config` | Path to YAML config file with filters/pipeline |
+| `--hse` | Path to Height Scaling Exponent GeoTIFF |
+| `--k_allom` | Path to Allometric Coefficient GeoTIFF |
+| `-a/--algo_id` | MAAP algorithm ID to execute |
+| `-v/--algo_version` | Version of the algorithm to run |
 
-### Configuration
+Optional arguments:
 
-The algorithm accepts a configuration file that specifies the filters and processing pipeline to be run on the GEDI waveforms within the query window. This file is in YAML format and must be named config.yaml or config.yml.
+| Argument | Description |
+|----------|-------------|
+| `-b/--boundary` | GeoPackage/Shapefile boundary (EPSG:4326) |
+| `-d/--date_range` | CMR-formatted temporal filter |
+| `-j/--job_limit` | Maximum jobs to submit |
+| `-r/--redo-of` | Tag of previous run to redo |
+| `--force-redo` | Bypass same-tag validation checks |
+| `--no-resubmit` | Disable automatic failed job resubmission |
 
-The first section of the configuration file, `filters`, references spatial, temporal, and quality filters defined in filters.py. Each filter configuration within this section also specifies any filter-specific parameters.
+### Boundary Requirements
+- Must be in EPSG:4326 (WGS 84) coordinate system
+- Polygons should exactly match areas with valid HSE/k_allom values
+- Non-overlapping multipolygons supported
+- Recommended to generate from parameter rasters
 
-Note: Since the MAAP deployment of NMBIM algorithm accepts temporal and spatial queries as arguments through the MAAP job submission API, it is permitted to leave the parameters for temporal and spatial filters blank in the configuration file. The parameters supplied through the job submission API will be applied to the filters as necessary.
+### Configuration File
+- **Format**: YAML (.yaml/.yml)
+- **Structure**:
+  - `filters`: Dict of quality filters from filters.py
+  - `pipeline`: Ordered processing steps with:
+    - `alg_fun`: Processing function name
+    - `input_map`: Waveform data paths for inputs  
+    - `output_path`: Waveform path to store results
+- Temporal/spatial filters can be left blank when using CLI args
 
-The second section of the configuration file specifies the processing pipeline to be run on the GEDI waveforms. Each entry in this section specifies one step of the pipeline; these steps are applied sequentially to each waveform in the model run. The `alg_fun` value within each processing step indicates the name of the Python function to be applied for that step, `input_map` determines what data from each Waveform object is supplied as input to that function, and `output_path` gives the path within each Waveform object to which the outputs will be written.
+### Parameter Rasters (HSE/k_allom)
+- **Format**: GeoTIFF in EPSG:4326
+- **Coverage**: Must fully contain boundary
+- **Naming**: Arbitrary filenames (no longer required to end with _hse/_k_allom)
 
-### HSE and k_allom
+### Date Range Formatting
+Uses NASA CMR temporal syntax:
+- Start and end dates in UTC: `YYYY-MM-DDThh:mm:ssZ`
+- Open ranges supported: 
+  - `,END_DATE` for data before END_DATE
+  - `START_DATE,` for data after START_DATE
+  - `START_DATE,END_DATE` for bounded range
 
-The height scaling exponent and allometric coefficient are specified using GeoTIFF raster files in EPSG:4326 coordinate system. The files must be named hse.tif and k_allom.tif, respectively (this convention facilitates worker-side processing of the rasters). The rasters should fully cover the area of interest defined in the boundary file; one way to ensure this is to generate the boundary file from the rasters.
-
-#### Date Range
-
-The date range parameter filters GEDI data by acquisition time. It must be formatted according to NASA's Common Metadata Repository (CMR) conventions. Valid formats include:
-- A single date with a leading comma for start date (e.g., ",2020-12-31" for all data before December 31, 2020)
-- A single date with a trailing comma for end date (e.g., "2019-04-01," for all data after April 1, 2019)
-- Two dates separated by a comma (e.g., "2019-04-01,2020-12-31" for all data between those dates)
-Dates should be in YYYY-MM-DD format.
-
-### Output Management
-
-After submitting a batch of job with the same job tag, the MAAP platform automatically creates a timestamped output directory containing:
-- A log file with detailed processing information
-- A list of all job IDs for reference
-- Status summaries for succeeded and failed jobs
+### Job Management Features
+- Automatic exponential backoff for failed jobs
+- Interactive monitoring with status updates
+- Resubmission capabilities (unless `--no-resubmit` used)
+- Run continuation/redo system via `--redo-of`
+- Graceful shutdown handling (Ctrl-C confirmation)
 
 All job outputs are stored in the MAAP workspace S3 bucket under a directory structure that includes your username and the specified job tag. For example, if your username is "jsmith" and you used the tag "biomass_2020", the outputs would be in "s3://maap-ops-workspace/jsmith/dps_output/nmbim_biomass_index/main/biomass_2020". You can use AWS CLI tools to locate and download all GeoPackage files within this directory:
 
