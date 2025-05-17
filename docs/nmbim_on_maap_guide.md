@@ -4,18 +4,21 @@ This guide provides step-by-step instructions to run the NMBIM algorithm on MAAP
 ## Quick Start
 Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spatial and temporal query.
 
-1. Create parameter rasters (HSE and k_allom) according to your chosen parameterization method
+### 1. Create Parameter Rasters 
+Create height scaling exponent (HSE) and allometric coefficient (k_allom) rasters according to your chosen parameterization method:
    - Format: GeoTIFF in EPSG:4326 projection
    - Names must end in `hse.tif` and `k_allom.tif`
    - Ensure complete coverage of your area of interest
 
-2. Create boundary layer for the region to be processed
+### 2. Define Processing Boundary
+Create a boundary layer for the region to be processed:
    - Format: GeoPackage (.gpkg) or Shapefile (.shp) in EPSG:4326
    - Best practice: Generate from rasters to ensure complete parameterization
    - Must only include areas with valid HSE and k_allom values
    - Multiple polygons supported but must not overlap
 
-3. Get or create a configuration file
+### 3. Configure Processing Pipeline 
+Get or create a configuration file:
    - Option A: Use an existing config file (see config/config.yaml in the ni-meister-gedi-biomass repository for a default)
    - Option B: Create new config file:
      - Name as `config.yaml` or `config.yml`
@@ -23,18 +26,21 @@ Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spa
      - Define processing pipeline steps
      - Can leave temporal/spatial parameters blank if using MAAP job submission API
 
-4. Clone source repository into MAAP ADE from the MAAP GitLab.
+### 4. Clone Source Repository
+Clone the processing code into your MAAP ADE environment:
      ```bash
      git clone https://gitlab.maap-project.org/iangrant/ni-meister-gedi-biomass.git
      ```
 
-5. Upload files to your MAAP workspace bucket
+### 5. Upload Input Files 
+Transfer required files to your MAAP workspace bucket:
    - Navigate my-private-bucket in the MAAP ADE graphical file browser
    - Upload hse.tif, k_allom.tif, boundary.gpkg, and config.yaml using the interface
    - It's easiest to isolate these in an "inputs" folder, with a subfolder for a particular model run
 
 
-6. Run processing script
+### 6. Start Processing Jobs 
+Execute the main processing script:
    - Invoke run_on_maap.py in a MAAP terminal or notebook
    - Jobs will be identified, submitted, and monitored
    - Once complete, the scripts creates a local output directory (`run_output_<YYYYMMDD_HHMMSS>`) containing `run.log` and a copy of your config file
@@ -61,7 +67,8 @@ Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spa
 
 This script will figure out what GEDI files are necessary to cover the query and submit the necessary jobs to the MAAP DPS.
 
-7. Monitor job progress
+### 7. Monitor Job Progress 
+Track processing status through the MAAP interface:
 The script will display a progress bar showing:
      - Total completed jobs
      - Current status counts (Succeeded, Failed, Running)
@@ -69,7 +76,8 @@ The script will display a progress bar showing:
 
 Wait until all or most jobs are complete. Press Ctrl-C once to suspend monitoring. You can then choose to resume, resubmit failed jobs, or exit. Unless you've run the command with the "--no-redo" option, you'll also get an option to resubmit failed jobs at the end of the run.
 
-8. Download the results
+### 8. Retrieve Results 
+Download processed outputs from MAAP:
    
 Once the run is complete, you'll probably want to download the results from MAAP for further processing. (Note: In theory, you could implement whatever further processing steps you needed as additional MAAP algorithms, but in practice the MAAP algorithm registration process makes this cumbersome for many post-processing tasks). 
 IMPORTANT: Do not try to download big files (> 1GB or so) directly from the MAAP ADE interface (i.e. your MAAP workspace). This will route the download through the MAAP ADE cluster, which is shared by all MAAP users and has limited resources.
@@ -104,7 +112,8 @@ With these credentials, you can use the provided `download_from_workspace.py`  (
      --tag {unique_processing_id}
    ```
 
-9. Post-processing
+### 9. Post-Process Results 
+Prepare downloaded data for analysis:
 
 The result of the download will be a directory structure under your 'output-dir' that mirrors the output structure on MAAP--outputs will be organized hierarchically by date and time. The files you're interested in are the output GeoPackages, which are compressed by default to ease huge downloads. To decompress them, use an option like the following:
 
