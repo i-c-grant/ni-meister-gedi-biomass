@@ -112,7 +112,7 @@ The result of the download will be a directory structure under your 'output-dir'
 find . -name "*.gpkg.bz2" | bunzip2
 ```
 
-Or, if there are thousands of files and you're on a powerful computer, do it in parallel:
+Or, if there are thousands of files and you're on a powerful computer with GNU parallel, you could do the following. Python based-solutions like dask or futures also work, of course.
 
 ```
 find . -name "*.gpkg.bz2" | parallel bunzip2
@@ -135,8 +135,8 @@ The script accepts these required arguments:
 | `-u/--username` | MAAP username for job tracking |
 | `-t/--tag` | Unique identifier for the processing run |
 | `-c/--config` | Path to YAML config file with filters/pipeline |
-| `--hse` | Path to Height Scaling Exponent GeoTIFF |
-| `--k_allom` | Path to Allometric Coefficient GeoTIFF |
+| `--hse` | Path to height scaling exponent GeoTIFF |
+| `--k_allom` | Path to allometric coefficient GeoTIFF |
 | `-a/--algo_id` | MAAP algorithm ID to execute |
 | `-v/--algo_version` | Version of the algorithm to run |
 
@@ -179,54 +179,3 @@ Uses NASA CMR temporal syntax:
   - `,END_DATE` for data before END_DATE
   - `START_DATE,` for data after START_DATE
   - `START_DATE,END_DATE` for bounded range
-
-### Job Management Features
-- Automatic exponential backoff for failed jobs
-- Interactive monitoring with status updates
-- Resubmission capabilities (unless `--no-resubmit` used)
-- Run continuation/redo system via `--redo-of`
-- Graceful shutdown handling (Ctrl-C confirmation)
-
-All job outputs are stored in the MAAP workspace S3 bucket under a directory structure that includes your username and the specified job tag. For example, if your username is "jsmith" and you used the tag "biomass_2020", the outputs would be in "s3://maap-ops-workspace/jsmith/dps_output/nmbim_biomass_index/main/biomass_2020". You can use AWS CLI tools to locate and download all GeoPackage files within this directory:
-
-```bash
-# Get a list of all the output files in the bucket
-aws s3 ls s3://maap-ops-workspace/jsmith/dps_output/nmbim_biomass_index/main/biomass_2020/ --recursive | grep '.gpkg.bz2$'
-
-# Copy the files to the local directory
-aws s3 cp s3://maap-ops-workspace/jsmith/biomass_2020/ . --recursive --exclude "*" --include "*.gpkg.bz2"
-```
-### Post-processing
-The output of a single model run through run_on_maap.py is a hierarchical directory structure containing output GeoPackage files. The method chosen to process these files will depend on the end goal, but one workflow is outlined below. Future work could automate this process.
-
-1. Download compressed GeoPackages from S3 to your local machine:
-```bash
-# Get a list of all the output files in the bucket
-aws s3 ls s3://maap-ops-workspace/jsmith/dps_output/nmbim_biomass_index/main/biomass_2020/ --recursive | grep '.gpkg.bz2$'
-
-# Copy the files to the local directory
-aws s3 cp s3://maap-ops-workspace/jsmith/biomass_2020/ . --recursive --exclude "*" --include "*.gpkg.bz2"
-```
-
-2. Decompress the GeoPackages. You can use GNU Parallel for faster processing:
-```bash
-# Using GNU Parallel
-find . -name "*.gpkg.bz2" | parallel bunzip2
-
-# Or using Python with Dask for parallel processing
-python -c '
-import dask.bag as db
-from pathlib import Path
-import subprocess
-
-files = list(Path(".").rglob("*.gpkg.bz2"))
-def decompress(f):
-    subprocess.run(["bunzip2", str(f)])
-    
-db.from_sequence(files).map(decompress).compute()
-'
-```
-
-3. Consolidate the decompressed GeoPackages into a single file using GDAL's ogrmerge.py or a Python script.
-
-4. Load the consolidated data into a spatial database using ogr2ogr. Set a high value for the -gt option to improve performance.
