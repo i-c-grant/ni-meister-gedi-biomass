@@ -4,11 +4,11 @@ This script processes a single set of GEDI L1B, L2A, and L4A granules locally to
 
 ## 1. Installation
 
-Ensure you have the required dependencies installed:
+Create and activate the conda environment using the provided `environment.yml`:
 
 ```bash
-pip install click h5py pyyaml rasterio
-pip install nmbim  # if installing from PyPI or editable install
+conda env create -f environment.yml
+conda activate nmbim-env
 ```
 
 ## 2. Basic CLI Usage
