@@ -102,13 +102,6 @@ maap = MAAP(maap_host="api.maap-project.org")
     "--algo_version", "-v", type=str, required=True, help="Algorithm version to run."
 )
 @click.option("--job_limit", "-j", type=int, help="Limit the number of jobs submitted.")
-@click.option(
-    "--check_interval",
-    "-i",
-    type=int,
-    default=120,
-    help="Time interval (in seconds) between job status checks.",
-)
 @click.option("--redo-of", "-r", type=str, help="Tag of previous run to redo")
 @click.option("--force-redo", is_flag=True, help="Allow redo with same tag")
 @click.option(
@@ -122,7 +115,6 @@ def main(
     boundary: str,
     date_range: str,
     job_limit: int,
-    check_interval: int,
     config: str,
     hse: str,
     k_allom: str,
@@ -144,7 +136,6 @@ def main(
         boundary=boundary,
         date_range=date_range,
         job_limit=job_limit,
-        check_interval=check_interval,
         redo_of=redo_of,
         force_redo=force_redo,
     )
@@ -220,7 +211,6 @@ def main(
     job_manager = JobManager(
         run_config,
         job_kwargs_list,
-        check_interval=run_config.check_interval,
     )
     job_manager.submit(output_dir)
 
