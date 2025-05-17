@@ -42,20 +42,21 @@ Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spa
    # Navigate to the cloned repository
    cd ni-meister-gedi-biomass
 
-   # Run the script with additional options
-   python run_on_maap.py \
-     --username {your_username} \
-     --tag {unique_processing_id} \
-     --config s3://maap-ops-workspace/{username}/my-private-bucket/config.yaml \
-     --hse s3://maap-ops-workspace/{username}/my-private-bucket/hse.tif \
-     --k_allom s3://maap-ops-workspace/{username}/my-private-bucket/k_allom.tif \
-     --algo_id nmbim_biomass_index \
-     --algo_version main \
-     --boundary s3://maap-ops-workspace/{username}/my-private-bucket/boundary.gpkg \
-     --date_range "2019-01-01,2020-12-31" \
-     --job_limit 100 \
-     --redo-of previous_tag \
-     --no-redo
+   # For convenience, set the input directory (use s3 path, not local path)
+   INPUT_DIR="s3://maap-ops-workspace/iangrant94/inputs/conus_5-9"
+
+   # Run the script
+	python run_on_maap.py \
+       -u iangrant94 \
+       -t conus_bifurcated_2019 \
+       -d "2019-01-01T10:00:00Z,2020-01-01T00:00:00Z" \
+       -b ${INPUT_DIR}/conus.gpkg \
+       -c ${INPUT_DIR}/config.yaml \
+       --hse ${INPUT_DIR}/conus_region_bifurcation_hse.tif \
+       --k_allom ${INPUT_DIR}/conus_region_bifurcation_k_allom.tif \
+       -a nmbim_biomass_index \
+       -v main \
+       -j 3000
    ```
 
 This script will figure out what GEDI files are necessary to cover the query and submit the necessary jobs to the MAAP DPS.
@@ -101,25 +102,31 @@ With these credentials, you can use the provided `download_from_workspace.py`  (
      --algorithm nmbim_biomass_index \
      --version main \
      --tag {unique_processing_id}
-
-   # Decompress downloaded GeoPackages
-   bunzip2 run_results/*.gpkg.bz2
    ```
 
-Alternatively, you can still use AWS CLI directly:
+9. Post-processing
 
-   ```bash
-   # List output files
-   aws s3 ls s3://maap-ops-workspace/{username}/dps_output/nmbim_biomass_index/main/{unique_processing_id}/ --recursive | grep '.gpkg.bz2$'
-   # Download compressed GeoPackages
-   aws s3 cp s3://maap-ops-workspace/{username}/dps_output/nmbim_biomass_index/main/{unique_processing_id}/ ./run_results \
-     --recursive --exclude "*" --include "*.gpkg.bz2"
-   # Decompress files
-   bunzip2 run_results/*.gpkg.bz2
-   ```
+The result of the download will be a directory structure under your 'output-dir' that mirrors the output structure on MAAP--outputs will be organized hierarchically by date and time. The files you're interested in are the output GeoPackages, which are compressed by default to ease huge downloads. To decompress them, use an option like the following:
 
-## Detailed description of arguments for run_on_maap.py 
-## Inputs
+```
+find . -name "*.gpkg.bz2" | bunzip2
+```
+
+Or, if there are thousands of files and you're on a powerful computer, do it in parallel:
+
+```
+find . -name "*.gpkg.bz2" | parallel bunzip2
+```
+
+Further processing is up to you. It may be advantageous to combine all the output GeoPackages one (typically huge) GeoPackage for visualization:
+
+```
+ogrmerge.py -progress -single -o <output path for combined GPKG> $(find <dir with results downloaded from MAAP> -name "*.gpkg")
+```
+
+However, it may also be more efficient to do some processing tasks without first combining the results, as this allows parallelization over the output files.
+
+## Detailed description of run_on_maap.py options
 
 ### Boundary
 
