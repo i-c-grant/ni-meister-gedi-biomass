@@ -6,7 +6,7 @@ Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spa
 
 1. Create parameter rasters (HSE and k_allom) according to your chosen parameterization method
    - Format: GeoTIFF in EPSG:4326 projection
-   - Names must be: `hse.tif` and `k_allom.tif`
+   - Names must end in `hse.tif` and `k_allom.tif`
    - Ensure complete coverage of your area of interest
 
 2. Create boundary layer for the region to be processed
@@ -23,22 +23,21 @@ Here are minimal instructions to run the NMBIM algorithm on MAAP for a given spa
      - Define processing pipeline steps
      - Can leave temporal/spatial parameters blank if using MAAP job submission API
 
-4. Clone source repository into MAAP ADE from the MAAP GitLab or Ian Grant's GitHub account (the two are identical as of the writing of this guide).
-   - Option A: From MAAP GitLab:
+4. Clone source repository into MAAP ADE from the MAAP GitLab.
      ```bash
      git clone https://gitlab.maap-project.org/iangrant/ni-meister-gedi-biomass.git
-     ```
-   - Option B: From Ian Grant's GitHub:
-     ```bash
-     git clone https://github.com/i-c-grant/ni-meister-gedi-biomass.git
      ```
 
 5. Upload files to your MAAP workspace bucket
    - Navigate my-private-bucket in the MAAP ADE graphical file browser
    - Upload hse.tif, k_allom.tif, boundary.gpkg, and config.yaml using the interface
+   - It's easiest to isolate these in an "inputs" folder, with a subfolder for a particular model run
+
 
 6. Run processing script
-   - Creates a local output directory (`run_output_<YYYYMMDD_HHMMSS>`) containing `run.log` and a copy of your config file
+   - Invoke run_on_maap.py in a MAAP terminal or notebook
+   - Jobs will be identified, submitted, and monitored
+   - Once complete, the scripts creates a local output directory (`run_output_<YYYYMMDD_HHMMSS>`) containing `run.log` and a copy of your config file
    ```bash
    # Navigate to the cloned repository
    cd ni-meister-gedi-biomass
@@ -67,34 +66,37 @@ The script will display a progress bar showing:
      - Current status counts (Succeeded, Failed, Running)
      - Time of last status update (updates occur infrequently for very large job batches)
 
-Wait until all or most jobs are complete. Press Ctrl-C once to suspend monitoring (you can then choose to resume, resubmit failed jobs, or exit). Press Ctrl-C again at the prompt or select 'x' to cancel the run; any completed jobs will remain available for download.
+Wait until all or most jobs are complete. Press Ctrl-C once to suspend monitoring. You can then choose to resume, resubmit failed jobs, or exit. Unless you've run the command with the "--no-redo" option, you'll also get an option to resubmit failed jobs at the end of the run.
 
-8. Get temporary MAAP credentials
-In order to download the outputs from the MAAP s3 bucket, it is necessary to obtain temporary credentials to access the bucket.
+8. Download the results
+   
+Once the run is complete, you'll probably want to download the results from MAAP for further processing. (Note: In theory, you could implement whatever further processing steps you needed as additional MAAP algorithms, but in practice the MAAP algorithm registration process makes this cumbersome for many post-processing tasks). 
+IMPORTANT: Do not try to download big files (> 1GB or so) directly from the MAAP ADE interface (i.e. your MAAP workspace). This will route the download through the MAAP ADE cluster, which is shared by all MAAP users and has limited resources.
 
-   ```python
-   from maap.maap import MAAP
-   maap = MAAP(maap_host='api.maap-project.org')
-   credentials = maap.aws.workspace_bucket_credentials()
-   ```
+Instead, you should use the AWS S3 CLI interface to download the data to your computer using AWS. To do that, you need to get temporary credentials to access the MAAP S3 bucket from your own machine. 
 
-9. Download and process results
+I use a simple script run on MAAP to do this. This writes the credentials you need to "temp_credentials.json" in your MAAP workspace. 
 
-You can use the provided `download_from_workspace.py` script along with your temporary AWS credentials JSON file to download all compressed GeoPackages for your run:
+``` python
+from maap.maap import MAAP
+import json
+
+maap = MAAP(maap_host='api.maap-project.org')
+cred = maap.aws.workspace_bucket_credentials()
+
+with open('temp_credentials.json', 'w') as f:
+    json.dump(cred, f)
+```
+
+With these credentials, you can use the provided `download_from_workspace.py`  (use `download_from_workspace.py --help` to see usage hints) script along with your temporary AWS credentials JSON file. I've found the easiest way to do this is to get the download link of the credentials file on MAAP, then embed the credentials request within the download call (shown below). However, you can use any method that passes the credentials JSON to download_from_workspace.py.
 
    ```bash
    # Save temporary credentials to creds.json
-   python - <<'EOF'
-   from maap.maap import MAAP
-   maap = MAAP(maap_host='api.maap-project.org')
-   import json
-   creds = maap.aws.workspace_bucket_credentials()
-   print(json.dumps(creds, indent=2))
-   EOF > creds.json
+   CREDENTIALS_URL={<insert link from MAAP "Copy Download Link" option here>} 
 
    # Download results for your run
    python download_from_workspace.py \
-     --credentials creds.json \
+     --credentials <(curl -s $CREDENTIALS_URL) \
      --output-dir ./run_results \
      --algorithm nmbim_biomass_index \
      --version main \
@@ -116,25 +118,14 @@ Alternatively, you can still use AWS CLI directly:
    bunzip2 run_results/*.gpkg.bz2
    ```
 
-## Deployment Overview
+## Detailed description of arguments for run_on_maap.py 
+## Inputs
 
-The NMBIM algorithm on NASA's MAAP platform processes GEDI waveform data to produce biomass estimates for user-defined geographic regions and time periods. Rather than requiring users to manually identify and download GEDI data files, the algorithm interfaces with NASA's Common Metadata Repository (CMR) to automatically locate all relevant GEDI granules that intersect the specified spatial and temporal bounds. The algorithm handles downloading and processing of Level 1B, 2A, and 4A GEDI data products, applying configurable quality filters and processing steps to each waveform. This automation significantly simplifies the workflow - users only need to provide their area of interest (as a boundary file), desired time range, and processing parameters through a configuration file.
-
-The algorithm is deployed on the MAAP platform as `nmbim_biomass_index:main`. This algorithm runs the NMBIM model on a single set of corresponding L1B, L2A, and L4A files (three total files). `run_on_maap.py` is a script that automates the process of submitting MAAP jobs for this algorithm in order to cover a given spatial extent and duration. Direct calls to the `nmbim_biomass_index:main` algorithm (i.e. by submitting through the MAAP ADE graphical interface via Jobs -> Submit Jobs) are typically not practical since processing a given spatial area requires multiple algorithm calls, and GEDI granule names may not be known in advance. Instead, the `run_on_maap.py` script orchestrates the necessary sequence of calls to `nmbim_biomass_index:main` to process the desired area. However, the following section describes the operation of `nmbim_biomass_index:main` in detail in order to support future development and debugging.
-
-## MAAP Algorithm Details
-
-The NMBIM algorithm is registered under the name `nmbim_biomass_index:main` on the MAAP platform. 'main' corresponds to the branch of the source repository that the algorithm was deployed from; other versions of the algorithm may also be registered, but 'main' should be used unless development is ongoing on a different branch.
-
-Each run of the algorithm processes one set of corresponding L1B, L2A, and L4A files, which must be specified at runtime.
-
-### Inputs
-
-#### Boundary
+### Boundary
 
 The boundary input defines the geographic area of interest for processing. It must be provided as either a geopackage (.gpkg) or shapefile (.shp) in the EPSG:4326 coordinate system. The boundary should encompass only areas where both HSE and k_allom parameters have valid values. While multiple polygons are supported, they should not overlap.
 
-#### Configuration
+### Configuration
 
 The algorithm accepts a configuration file that specifies the filters and processing pipeline to be run on the GEDI waveforms within the query window. This file is in YAML format and must be named config.yaml or config.yml.
 
@@ -144,13 +135,9 @@ Note: Since the MAAP deployment of NMBIM algorithm accepts temporal and spatial 
 
 The second section of the configuration file specifies the processing pipeline to be run on the GEDI waveforms. Each entry in this section specifies one step of the pipeline; these steps are applied sequentially to each waveform in the model run. The `alg_fun` value within each processing step indicates the name of the Python function to be applied for that step, `input_map` determines what data from each Waveform object is supplied as input to that function, and `output_path` gives the path within each Waveform object to which the outputs will be written.
 
-#### HSE and k_allom
+### HSE and k_allom
 
 The height scaling exponent and allometric coefficient are specified using GeoTIFF raster files in EPSG:4326 coordinate system. The files must be named hse.tif and k_allom.tif, respectively (this convention facilitates worker-side processing of the rasters). The rasters should fully cover the area of interest defined in the boundary file; one way to ensure this is to generate the boundary file from the rasters.
-
-#### GEDI Data Products
-
-The algorithm requires GEDI Level 1B, 2A, and 4A data products for processing. For each granule to be processed, provide the full granule name without any file path or extension. The algorithm will automatically download the necessary files from the LP DAAC or the ORNL DAAC as necessary.
 
 #### Date Range
 
@@ -159,49 +146,6 @@ The date range parameter filters GEDI data by acquisition time. It must be forma
 - A single date with a trailing comma for end date (e.g., "2019-04-01," for all data after April 1, 2019)
 - Two dates separated by a comma (e.g., "2019-04-01,2020-12-31" for all data between those dates)
 Dates should be in YYYY-MM-DD format.
-
-### Output
-
-The algorithm outputs a single compressed GeoPackage with point features corresponding to each processed footprint and output attributes. The attributes written to the GeoPackage are currently determined by the write_waveforms function in app_utils.py; in the future, it would be better to make the output attributes configurable in the configuration file. The GeoPackage path will end with the .bz2 extension because the algorithm compresses the output using bzip2. This feature makes it easier to transfer the output from very large model runs out of the MAAP S3 bucket. The output GeoPackage can be decompressed with the bunzip2 command.
-
-## Running with run_on_maap.py
-
-The run_on_maap.py script provides a high-level interface for running the NMBIM algorithm on MAAP. Instead of requiring you to specify individual GEDI granule names, you provide a spatial query (as a boundary file) and a temporal query (as a date range). The script then automatically queries NASA's Common Metadata Repository (CMR) to find all GEDI granules that intersect your area and time period of interest. For each matching L1B granule found, it identifies the corresponding L2A and L4A granules, submits separate processing jobs for each matched set, and monitors their progress. This automation makes it easy to process large areas that may span multiple GEDI orbits and time periods, as it eliminates the need to manually identify and download individual granules.
-
-### Basic Usage
-
-In the MAAP workspace, run `python run_on_maap.py --help` to see usage hints.
-
-The script requires several mandatory arguments:
-- username: Your MAAP username
-- tag: A unique identifier for this processing run
-- config: Path to the configuration YAML file (must be accessible to MAAP workers)
-- hse: Path to the height scaling exponent raster
-- k_allom: Path to the allometric coefficient raster
-- algo_id: The algorithm ID ("nmbim_biomass_index")
-- algo_version: The algorithm version (typically "main")
-
-Optional arguments allow you to:
-- Restrict processing to a specific geographic boundary (`--boundary`)
-- Filter by date range (`--date_range`)
-- Limit the number of jobs submitted (`--job_limit`)
-- Adjust the job status checking interval (`--check_interval`)
-- Reprocess a previous run (`--redo-of <tag>`)
-- Force reuse of same tag for redo (`--force-redo`)
-- Disable automatic resubmission of failed jobs (`--no-redo`)
-
-Note: all file arguments (config, hse, k_allom, and boundary) should be passed as `s3://` paths, not paths within the locally mounted MAAP filesystem. Passing local paths will result in a high load on the MAAP ADE cluster, as each transfer of a file argument to a worker will be routed through the MAAP ADE in order to resolve the local path into the s3 path. Accordingly, the configuration file and rasters should be stored in your MAAP workspace (e.g., `my-private-bucket` or `my-public-bucket`).
-
-### Job Management
-
-The script submits jobs in batches to avoid overwhelming the MAAP API. It maintains a progress bar showing:
-- Total number of completed jobs
-- Current status counts (Succeeded, Failed, Running, etc)
-- Time of last status update
-
-You can safely interrupt processing with Ctrl+C; the script will ask for confirmation and then cleanly cancel any pending jobs if you press Ctrl+C again. Since the script is conservative about making MAAP API calls, you can expect several minutes between progress bar updates.
-
-Note: The status 'Offline', which falls under 'Other' in the run_on_maap.py progress bar, indicates that the AWS spot instance that then MAAP worker has been reclaimed by AWS. Offline jobs may or may not resume. If a job has been offline for a long time and it is the only job left, it is often best to just stop the run with Ctrl+C Ctrl+C.
 
 ### Output Management
 
