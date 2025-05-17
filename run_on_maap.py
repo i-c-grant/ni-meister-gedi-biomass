@@ -105,9 +105,9 @@ maap = MAAP(maap_host="api.maap-project.org")
 @click.option("--redo-of", "-r", type=str, help="Tag of previous run to redo")
 @click.option("--force-redo", is_flag=True, help="Allow redo with same tag")
 @click.option(
-    "--no-redo",
+    "--no-resubmit",
     is_flag=True,
-    help="Disable automatic resubmission of failed jobs"
+    help="Disable resubmission of failed jobs"
 )
 def main(
     username: str,
@@ -122,7 +122,7 @@ def main(
     algo_version: str,
     redo_of: str,
     force_redo: bool,
-    no_redo: bool,
+    no_resubmit: bool,
 ):
     # Create configuration object
     run_config = RunConfig(
@@ -218,7 +218,7 @@ def main(
     def prompt_after_interrupt() -> str:
         """Prompt user after monitoring is interrupted by Ctrl-C."""
         timeout = 10
-        if no_redo:
+        if no_resubmit:
             print(f"Monitoring suspended. Waiting {timeout} seconds to resume or press Ctrl-C to exit.")
             try:
                 time.sleep(timeout)
@@ -246,7 +246,7 @@ def main(
 
     def prompt_after_run() -> str:
         """Prompt user after jobs finish with some failures."""
-        if no_redo:
+        if no_resubmit:
             return "exit"
         else:
             answer = input(
