@@ -72,6 +72,7 @@ def write_waveforms(waveforms: WaveformCollection, output_path: str):
         "time": "metadata/time",
         "rh_100": "processed/veg_ground_sep/veg_top",
         "num_modes": "metadata/modes/num_modes",
+        "elev_ground": "raw/elev/ground",
         "l4_agbd": "raw/l4a/agbd",
         "l4_agbd_se": "raw/l4a/agbd_se",
         "pft": "metadata/landcover/pft",
